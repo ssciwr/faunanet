@@ -1,0 +1,28 @@
+[project]
+name = "iSparrow"
+version = "0.0.1"
+dependencies = [
+    "numpy", 
+    "librosa", 
+    "tensorflow", 
+    "torch", 
+    "torchaudio", 
+    "PyYAML", 
+    "scipy", 
+    "pandas", 
+    "birdnetlib=0.15.0", 
+]
+requires-python = ">= 3.10"
+authors=[{name = "Inga Ulusoy", email = "inga.ulusoy@uni-heidelberg.de"}, {name = "Harald Mack", email = "harald.mack@uni-heidelberg.de"}]
+readme ="README.md"
+license={file = "LICENSE"}
+
+[project.urls]
+Repository = "https://github.com/ssciwr/iSparrow"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+# add additional stuff when needed, poetry support? 
