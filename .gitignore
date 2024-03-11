@@ -2,10 +2,11 @@
 *
 
 # unignore folders we need
-!/src
-!/doc 
-!/test
-!/.github
+!/*
+
+# but ignore build folders which may be present
+/build 
+/docs/buid
 
 # unignore source code and yaml files for config
 !*.py
