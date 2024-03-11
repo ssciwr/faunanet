@@ -1,8 +1,10 @@
 # ignore everything
 *
 
-# unignore folder 
-!*/
+# unignore folders we need
+!/src
+!/doc 
+!/test
 
 # unignore source code and yaml files for config
 !*.py

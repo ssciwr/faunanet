@@ -10,7 +10,7 @@ dependencies = [
     "PyYAML", 
     "scipy", 
     "pandas", 
-    "birdnetlib=0.15.0", 
+    "birdnetlib==0.15.0", 
 ]
 requires-python = ">= 3.10"
 authors=[{name = "Inga Ulusoy", email = "inga.ulusoy@uni-heidelberg.de"}, {name = "Harald Mack", email = "harald.mack@uni-heidelberg.de"}]
