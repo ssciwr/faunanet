@@ -13,4 +13,4 @@ class DummyTest(unittest.TestCase):
 
     def test_dummy(self):
         y = self.x + 4
-        self.assertEqual(y, 4)
+        self.assertEqual(y, 7)
