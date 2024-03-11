@@ -5,6 +5,7 @@
 !/src
 !/doc 
 !/test
+!/.github
 
 # unignore source code and yaml files for config
 !*.py
