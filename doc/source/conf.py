@@ -13,13 +13,13 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath("../../src/mypackage"))
+sys.path.insert(0, os.path.abspath("../../src/iSparrow"))
 
 
 # -- Project information -----------------------------------------------------
 
-project = "python-project-template"
-copyright = "2020, Scientific Software Center"
+project = "iSparrow"
+copyright = "2024, Scientific Software Center"
 author = "Scientific Software Center"
 
 # The full version, including alpha/beta/rc tags
