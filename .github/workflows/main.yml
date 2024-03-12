@@ -20,7 +20,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.11"]
     steps:
     - name: Set up Python ${{ matrix.python-version }}
@@ -33,7 +33,6 @@ jobs:
       run: |
         python3 -m pip install --upgrade pip
         python3 -m pip install .
-        python3 -m pip install -r requirements-dev.txt
     - name: Run pytest unittests
       run: |
         python -m pytest
