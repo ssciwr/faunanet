@@ -10,10 +10,9 @@
 /models/
 
 #unignore things in the models file that are human readable
-/models/*/*.py
+!/models/*/*.py
 # /models/*/*.txt
 # /models/*/*.csv
-
 
 # unignore source code and yaml files for config
 !*.py
@@ -32,3 +31,5 @@
 !doc/make.bat
 !.gitignore
 !.gitattributes
+!.github/workflows/*.yml 
+!.github/ISSUE_TEMPLATE/*.md
