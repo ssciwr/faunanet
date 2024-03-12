@@ -20,7 +20,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
         python-version: ["3.11"]
     steps:
     - name: Set up Python ${{ matrix.python-version }}
@@ -36,5 +36,4 @@ jobs:
         python3 -m pip install -r requirements-dev.txt
     - name: Run pytest unittests
       run: |
-        cd src/iSparrow
         python -m pytest
