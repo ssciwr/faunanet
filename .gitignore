@@ -10,13 +10,14 @@
 /models/
 
 #unignore things in the models file that are human readable
-!/models/*/*.py
+!/models/**/*.py
 # /models/*/*.txt
 # /models/*/*.csv
 
 # unignore source code and yaml files for config
-!*.py
-!*.yaml
+!src/iSparrow/*.py
+!tests/*.yaml
+!tests/*.py
 !pyproject.toml
 
 #unignore documentation things 
