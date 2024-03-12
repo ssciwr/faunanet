@@ -4,4 +4,5 @@ iSparrow
 .. toctree::
    :maxdepth: 4
 
-   main
+   sparrow_analyzer
+   sparrow_recording
