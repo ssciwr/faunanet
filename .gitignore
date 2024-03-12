@@ -1,27 +1,18 @@
 # ignore everything
 *
 
-# unignore folders we need
-!/*
-
-# but ignore build folders which may be present
-/build 
-/docs/buid
-/models/
-
 #unignore things in the models file that are human readable
-!/models/*/*.py
-# /models/*/*.txt
-# /models/*/*.csv
+!/models/**/*.py
 
 # unignore source code and yaml files for config
-!*.py
-!*.yaml
+!src/**/*.py
+!tests/*.yaml
+!tests/*.py
 !pyproject.toml
 
 #unignore documentation things 
-!*.rst
-!*.md 
+!**/*.rst
+!**/*.md 
 
 # unignore maintenance stuff 
 !LICENSE
