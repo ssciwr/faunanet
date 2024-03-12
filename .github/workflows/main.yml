@@ -33,7 +33,7 @@ jobs:
       run: |
         python3 -m pip install --upgrade pip
         python3 -m pip install .
-    - name: Run unittest
+    - name: Run pytest unittests
       run: |
-        cd .
-        python3 -m unittest discover -s ./tests/ -p "*_test.py"
+        cd src/mypackage
+        python -m pytest
