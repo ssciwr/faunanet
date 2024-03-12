@@ -35,5 +35,5 @@ jobs:
         python3 -m pip install .
     - name: Run pytest unittests
       run: |
-        cd src/mypackage
+        cd src/iSparrow
         python -m pytest
