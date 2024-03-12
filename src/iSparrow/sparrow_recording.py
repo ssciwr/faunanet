@@ -27,6 +27,7 @@ class SparrowRecording(RecordingBase):
         lat: float = None,
         lon: float = None,
         return_all_detections: bool = False,
+        min_conf: float = 0.25
     ):
         """
         Create a new SparrowRecording.
@@ -49,7 +50,7 @@ class SparrowRecording(RecordingBase):
         self.filestem = p.stem
 
         # README: This call will change later, as some of the members will live in the analyzer at a later stage
-        super().__init__(analyzer, week_48=week_48, date=date, sensitivity=1.0, lat=lat, lon=lon, min_conf=0.25, overlap=0.0, return_all_detections=return_all_detections)
+        super().__init__(analyzer, week_48=week_48, date=date, sensitivity=1.0, lat=lat, lon=lon, min_conf=min_conf, overlap=0.0, return_all_detections=return_all_detections)
 
     @property
     def filename(self):
