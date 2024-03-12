@@ -35,13 +35,15 @@ class SparrowAnalyzer(Analyzer):
 
         custom_species_list = cfg["Model"]["custom_species_list"] if "custom_species_list" in cfg["Model"] else None
 
-        if Path(custom_species_list_path).exists() is False:
-            raise AnalyzerConfigurationError("custom species list path does not exist")
+        if custom_species_list_path is not None:
+            if Path(custom_species_list_path).exists() is False:
+                raise AnalyzerConfigurationError("custom species list path does not exist")
 
-        if Path(custom_species_list).exists() is False:
-            raise AnalyzerConfigurationError("custom species list file does not exist")
+        if custom_species_list is not None:
+            if Path(custom_species_list).exists() is False:
+                raise AnalyzerConfigurationError("custom species list file does not exist")
 
-        if "path" not in cfg["Model"] or cfg["Model"]["path"] != "birdnet_default":
+        if "path" not in cfg["Model"] or cfg["Model"]["path"] != "birdnet_defaults":
             if (Path(cfg["Model"]["model_dir"]) / Path(cfg["Model"]["model_name"]) / Path("model.tflite")).exists() is False:
                 raise AnalyzerConfigurationError("model file does not exist")
 
@@ -52,16 +54,15 @@ class SparrowAnalyzer(Analyzer):
 
             classifier_labels_path = str(Path(cfg["Model"]["model_dir"]) / Path(cfg["Model"]["model_name"]) / Path("labels.txt"))
 
-        else:
-            if (Path(cfg["Model"]["model_dir"]) / Path(cfg["Model"]["model_name"]) / Path("model.tflite")).exists() is False:
+            if (Path(cfg["Model"]["model_dir"]) / Path("birdnet_defaults") / Path("model.tflite")).exists() is False:
                 raise AnalyzerConfigurationError("default model file does not exist")
 
-            if (Path(cfg["Model"]["model_dir"]) / Path(cfg["Model"]["model_name"]) / Path("labels.txt")).exists() is False:
+            if (Path(cfg["Model"]["model_dir"]) / Path("birdnet_defaults") / Path("labels.txt")).exists() is False:
                 raise AnalyzerConfigurationError("default labels file does not exist")
 
-            self.default_model_path = Path(cfg["Model"]["model_dir"]) / Path(cfg["Model"]["model_name"]) / Path("model.tflite")
+        self.default_model_path = Path(cfg["Model"]["model_dir"]) / "birdnet_defaults" / Path("model.tflite")
 
-            self.default_labels_path = Path(cfg["Model"]["model_dir"]) / Path(cfg["Model"]["model_name"]) / Path("labels.txt")
+        self.default_labels_path = Path(cfg["Model"]["model_dir"]) / "birdnet_defaults" / Path("labels.txt")
 
         super().__init__(custom_species_list_path=custom_species_list_path,
                          custom_species_list=custom_species_list,
