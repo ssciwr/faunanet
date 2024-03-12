@@ -8,7 +8,7 @@ class PreprocessorBase(ABC):
 
     """
     @abstractmethod
-    def read_audio_data(self, path: str) -> np.ndarray:
+    def read_audio_data(self, path: str) -> np.array:
         """
         read_audio_data Read in audio data from a path and return it in a form that can be used by a 'process_audio_data' implementation.
 

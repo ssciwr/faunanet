@@ -24,11 +24,8 @@ class SparrowRecording(RecordingBase):
         path: str,
         week_48: int = -1,
         date: datetime = None,
-        sensitivity: float = 1.0,
-        overlap: float = 0.0,
         lat: float = None,
         lon: float = None,
-        min_conf: float = 0.1,
         return_all_detections: bool = False,
     ):
         """
@@ -51,23 +48,25 @@ class SparrowRecording(RecordingBase):
         p = Path(self.path)
         self.filestem = p.stem
 
-        super().__init__(analyzer, week_48=week_48, date=date, sensitivity=sensitivity, lat=lat, lon=lon, min_conf=min, overlap=overlap, return_all_detections=return_all_detections)
+        # README: This call will change later, as some of the members will live in the analyzer at a later stage
+        super().__init__(analyzer, week_48=week_48, date=date, sensitivity=1.0, lat=lat, lon=lon, min_conf=0.25, overlap=0.0, return_all_detections=return_all_detections)
 
     @property
     def filename(self):
         return os.path.basename(self.path)
 
-    @property 
-    def sample_secs(self):
-        return self.processor.sample_secs
+    # @property 
+    # def sample_secs(self):
+    #     return self.processor.sample_secs
+
+    # @property 
+    # def overlap(self):
+    #     return self.processor.overlap
+
 
     @property 
-    def chunks(self):
+    def chunks(self): 
         return self.processor.chunks
-
-    @property 
-    def overlap(self):
-        return self.processor.overlap
 
     def process_audio_data(self, data: np.ndarray) -> list:
         """Process raw audio data via processor.process_audio_data.
