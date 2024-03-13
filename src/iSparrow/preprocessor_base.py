@@ -7,6 +7,10 @@ class PreprocessorBase(ABC):
     PreprocessorBase A common interface for all custom preprocessor classes
 
     """
+
+    def __init__(self, name: str):
+        self.name = name
+
     @abstractmethod
     def read_audio_data(self, path: str) -> np.array:
         """
@@ -31,5 +35,5 @@ class PreprocessorBase(ABC):
         Returns:
             list: final preprocessed audiodata ready to be passed to the analyzer
         """
-        
+
         pass
