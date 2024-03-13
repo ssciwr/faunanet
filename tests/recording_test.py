@@ -1,86 +1,22 @@
-from src.iSparrow import sparrow_analyzer as spa
-from src.iSparrow import sparrow_recording as spc
-import sys
-import yaml
 import pytest
 import numpy as np
 from numpy.testing import assert_array_equal
-import importlib
 import pandas as pd
 from pandas.testing import assert_frame_equal
 from pathlib import Path
-
-sys.path.append('../src/iSparrow')
-
-
-@pytest.fixture
-def recorded_data_for_construction():
-
-    tests = Path(__file__).resolve().parent
-
-    with open(tests / Path("example") / "test.yml", "r") as file:
-        cfg = yaml.safe_load(file)
-
-    pp = importlib.import_module('models.' + cfg["Analyzer"]["Model"]["model_name"] + '.preprocessor')
-
-    preprocessor = pp.Preprocessor(cfg["Data"]["Preprocessor"])
-
-    analyzer = spa.SparrowAnalyzer(cfg["Analyzer"])
-
-    recording = spc.SparrowRecording(analyzer, preprocessor, tests / "example/soundscape.wav", min_conf=0.25,)
-
-    return recording, tests
+from copy import deepcopy
+import importlib
+from src.iSparrow import sparrow_recording as spc
+from src.iSparrow import sparrow_analyzer as spa
 
 
-@pytest.fixture
-def recorded_data_for_analysis_custom():
+def test_recording_construction(recording_fx):
 
-    tests = Path(__file__).resolve().parent
+    recording = spc.SparrowRecording(
+        recording_fx.analyzer, recording_fx.preprocessor, recording_fx.good_file
+    )
 
-    with open(tests / Path("example") / "test.yml", "r") as file:
-        cfg = yaml.safe_load(file)
-
-    pp = importlib.import_module('models.' + cfg["Analyzer"]["Model"]["model_name"] + '.preprocessor')
-
-    preprocessor = pp.Preprocessor(cfg["Data"]["Preprocessor"])
-
-    analyzer = spa.SparrowAnalyzer(cfg["Analyzer"])
-
-    recording = spc.SparrowRecording(analyzer, preprocessor, tests / "example/soundscape.wav", min_conf=0.25,)
-
-    analysis_results = pd.read_csv(tests / Path("example") / Path("custom_results.csv"))
-
-    return recording, analysis_results
-
-
-
-@pytest.fixture
-def recorded_data_for_analysis_default():
-
-    tests = Path(__file__).resolve().parent
-
-    with open(tests / Path("example") / "test.yml", "r") as file:
-        cfg = yaml.safe_load(file)
-
-    cfg["Analyzer"]["Model"]["model_name"] = "birdnet_defaults"
-
-    pp = importlib.import_module('models.' + cfg["Analyzer"]["Model"]["model_name"] + '.preprocessor')
-
-    preprocessor = pp.Preprocessor(cfg["Data"]["Preprocessor"])
-
-    analyzer = spa.SparrowAnalyzer(cfg["Analyzer"])
-
-    recording = spc.SparrowRecording(analyzer, preprocessor, tests / "example/soundscape.wav", min_conf=0.25,)
-
-    analysis_results = pd.read_csv(tests / Path("example") / Path("default_results.csv"))
-
-    return recording, analysis_results
-
-
-def test_recording_construction(recorded_data_for_construction):
-    recording, testpath = recorded_data_for_construction
-
-    assert recording.path == testpath / Path("example/soundscape.wav")
+    assert recording.path == recording_fx.test_path / Path("example/soundscape.wav")
     assert recording.filename == "soundscape.wav"
     assert recording.filestem == "soundscape"
     assert recording.chunks == []
@@ -88,61 +24,120 @@ def test_recording_construction(recorded_data_for_construction):
     assert recording.processor.sample_rate == 48000
     assert recording.processor.overlap == pytest.approx(0.0)
     assert recording.processor.sample_secs == pytest.approx(3.0)
-    assert recording.processor.resample_type == 'kaiser_fast'
+    assert recording.processor.resample_type == "kaiser_fast"
     assert recording.processor.duration == 0  # unknown at this point, hence zero
-    assert recording.processor.actual_sampling_rate == pytest.approx(0.)  # unknown at this point, hence zero
+    assert recording.processor.actual_sampling_rate == pytest.approx(
+        0.0
+    )  # unknown at this point, hence zero
     assert recording.minimum_confidence == pytest.approx(0.25)
 
 
-def test_recording_construction_exceptions():
-    pass
+def test_recording_reading(recording_fx):
 
+    recording = spc.SparrowRecording(
+        recording_fx.analyzer, recording_fx.preprocessor, recording_fx.good_file
+    )
 
-def test_recording_reading(recorded_data_for_construction):
+    audiodata = recording.processor.read_audio_data(recording_fx.good_file)
 
-    recording, testpath = recorded_data_for_construction
-    data = recording.processor.read_audio_data(testpath / Path("example/soundscape.wav"))
-
-    assert len(data) == pytest.approx(recording.processor.actual_sampling_rate * recording.processor.duration)
+    assert len(audiodata) == pytest.approx(
+        recording.processor.actual_sampling_rate * recording.processor.duration
+    )
     assert recording.processor.actual_sampling_rate == 48000
     assert recording.processor.duration == pytest.approx(120.0)
 
 
-def test_recording_processing(recorded_data_for_construction):
+def test_recording_processing(recording_fx):
 
-    recording, testpath = recorded_data_for_construction
     # use trimmed audio file that's not a multiple of 3s in length
 
-    data = recording.processor.read_audio_data(testpath / Path("example/trimmed.wav"))
+    recording = spc.SparrowRecording(
+        recording_fx.analyzer, recording_fx.preprocessor, recording_fx.trimmed_file
+    )
 
-    chunks = recording.processor.process_audio_data(data)
+    recording_fx = recording.processor.read_audio_data(recording_fx.trimmed_file)
 
-    assert len(chunks) == pytest.approx(120.0 / 3.0)  # duration divided by sample_secs. last chunk is padded to 3
+    chunks = recording.processor.process_audio_data(recording_fx)
+
+    assert len(chunks) == pytest.approx(
+        120.0 / 3.0
+    )  # duration divided by sample_secs. last chunk is padded to 3
 
     # last chunks should have zeros in it for sampling_rate * 1.5
     # 72000 = (sampling_rate*duration)/2 = 1.5 seconds = last chunk that should be padded with zeros
     assert_array_equal(chunks[-1][72000::], np.zeros(72000))
 
 
-def test_analysis(recorded_data_for_analysis_custom):
+def test_analysis_custom(recording_fx):
 
-    recording, expected_analysis_results = recorded_data_for_analysis_custom
+    recording = spc.SparrowRecording(
+        recording_fx.analyzer,
+        recording_fx.preprocessor,
+        recording_fx.good_file,
+        min_conf=0.25,
+    )
+
+    assert recording.analyzer.classifier_model_path == str(
+        Path("models") / Path("birdnet_custom") / Path("model.tflite")
+    )
+    assert recording.analyzer.classifier_labels_path == str(
+        Path("models") / Path("birdnet_custom") / Path("labels.txt")
+    )
+    assert recording.analyzer.use_custom_classifier is not False
+    assert recording.analyzer.default_model_path == str(
+        Path("models") / Path("birdnet_defaults") / Path("model.tflite")
+    )
+    assert recording.analyzer.default_labels_path == str(
+        Path("models") / Path("birdnet_defaults") / Path("labels.txt")
+    )
 
     recording.analyze()
 
-    # make a dataframe and sort it the same way as the expected data, with an index ranging from 0:len(df)-1
-    df = pd.DataFrame(recording.detections).sort_values(by="confidence", ascending=False).reset_index().drop("index", axis=1)
+    # make a dataframe and sort it the same way as the expected recording_fx, with an index ranging from 0:len(df)-1
+    df = (
+        pd.DataFrame(recording.detections)
+        .sort_values(by="confidence", ascending=False)
+        .reset_index()
+        .drop("index", axis=1)
+    )
 
-    assert_frame_equal(df, expected_analysis_results)
+    assert_frame_equal(df, recording_fx.custom_analysis_results)
 
 
-def test_analysis_default(recorded_data_for_analysis_default): 
-    recording, expected_analysis_results = recorded_data_for_analysis_default
+def test_analysis_default(recording_fx):
+
+    default_cfg = deepcopy(recording_fx.cfg)
+
+    default_cfg["Analyzer"]["Model"]["model_name"] = "birdnet_defaults"
+    ppd = importlib.import_module(
+        "models." + default_cfg["Analyzer"]["Model"]["model_name"] + ".preprocessor"
+    )
+
+    default_analyzer = spa.SparrowAnalyzer(default_cfg["Analyzer"])
+    default_preprocessor = ppd.Preprocessor(default_cfg["Data"]["Preprocessor"])
+
+    recording = spc.SparrowRecording(
+        default_analyzer, default_preprocessor, recording_fx.good_file, min_conf=0.25
+    )
+
+    assert recording.analyzer.classifier_model_path is None
+    assert recording.analyzer.classifier_labels_path is None
+    assert recording.analyzer.use_custom_classifier is None
+    assert recording.analyzer.default_model_path == str(
+        Path("models") / Path("birdnet_defaults") / Path("model.tflite")
+    )
+    assert recording.analyzer.default_labels_path == str(
+        Path("models") / Path("birdnet_defaults") / Path("labels.txt")
+    )
 
     recording.analyze()
 
-    # make a dataframe and sort it the same way as the expected data, with an index ranging from 0:len(df)-1
+    # make a dataframe and sort it the same way as the expected recording_fx, with an index ranging from 0:len(df)-1
     # unfortunately, default test results where recorded with ascending = True... so it's inconsistent with custom
-    df = pd.DataFrame(recording.detections).sort_values(by="confidence", ascending=True).reset_index().drop("index", axis=1)
-
-    assert_frame_equal(df, expected_analysis_results)
+    df = (
+        pd.DataFrame(recording.detections)
+        .sort_values(by="confidence", ascending=True)
+        .reset_index()
+        .drop("index", axis=1)
+    )
+    assert_frame_equal(df, recording_fx.default_analysis_results)

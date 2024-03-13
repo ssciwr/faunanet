@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from pathlib import Path
-import datetime 
+import datetime
 from birdnetlib.main import RecordingBase
 from birdnetlib.analyzer import Analyzer
 from .preprocessor_base import PreprocessorBase
@@ -49,24 +49,23 @@ class SparrowRecording(RecordingBase):
         p = Path(self.path)
         self.filestem = p.stem
 
-        # README: This call will change later, as some of the members will live in the analyzer at a later stage
+        # README: This call will change later, as some of the members will live in the analyzer/model in future PR
         super().__init__(analyzer, week_48=week_48, date=date, sensitivity=1.0, lat=lat, lon=lon, min_conf=min_conf, overlap=0.0, return_all_detections=return_all_detections)
 
     @property
     def filename(self):
         return os.path.basename(self.path)
 
-    # @property 
+    # @property
     # def sample_secs(self):
     #     return self.processor.sample_secs
 
-    # @property 
+    # @property
     # def overlap(self):
     #     return self.processor.overlap
 
-
-    @property 
-    def chunks(self): 
+    @property
+    def chunks(self):
         return self.processor.chunks
 
     def process_audio_data(self, data: np.ndarray) -> list:
