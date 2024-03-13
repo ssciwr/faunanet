@@ -15,12 +15,14 @@ class RecordingFixture:
     """Provides data to execute recording tests"""
 
     def __init__(self):
-        self.test_path = Path(__file__).resolve().parent.parent
+        self.sparrow_folder = Path.home() / Path("iSparrow")
 
-        with open(self.test_path / Path("example") / "cfg.yml", "r") as file:
+        self.data_path = self.sparrow_folder / Path("data")
+
+        with open(self.data_path / "cfg.yml", "r") as file:
             self.cfg = yaml.safe_load(file)
 
-        with open(self.test_path / Path("example") / "cfg_default.yml", "r") as file:
+        with open(self.data_path / "cfg_default.yml", "r") as file:
             self.default_cfg = yaml.safe_load(file)
 
         # import preprocessor definition that we need
@@ -36,24 +38,24 @@ class RecordingFixture:
             self.cfg["Data"]["Preprocessor"]
         )
 
-        self.analyzer = spa.analyzer_from_config(self.cfg["Analyzer"])
+        self.analyzer = spa.analyzer_from_config(str(self.sparrow_folder), self.cfg["Analyzer"])
 
-        self.default_analyzer = spa.analyzer_from_config(self.default_cfg["Analyzer"])
+        self.default_analyzer = spa.analyzer_from_config(str(self.sparrow_folder), self.default_cfg["Analyzer"])
         
         self.default_preprocessor = ppd.preprocessor_from_config(self.default_cfg["Data"]["Preprocessor"])
 
-        self.good_file = self.test_path / "example/soundscape.wav"
+        self.good_file = self.data_path / "soundscape.wav"
 
-        self.corrupted_file = self.test_path / "example/corrupted.wav"
+        self.corrupted_file = self.data_path / "corrupted.wav"
 
-        self.trimmed_file = self.test_path / "example/trimmed.wav"
+        self.trimmed_file = self.data_path / "trimmed.wav"
 
         self.custom_analysis_results = pd.read_csv(
-            self.test_path / Path("example") / Path("custom_results.csv")
+            self.data_path / Path("custom_results.csv")
         )
 
         self.default_analysis_results = pd.read_csv(
-            self.test_path / Path("example") / Path("default_results.csv")
+            self.data_path / Path("default_results.csv")
         )
 
 

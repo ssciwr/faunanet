@@ -135,7 +135,7 @@ class SparrowAnalyzer(Analyzer):
 
     def load_labels(self):
         """
-        load_labels Load labels for classes from file. 
+        load_labels Load labels for classes from file.
 
         """
         labels_file_path = self.default_labels_path
@@ -151,8 +151,8 @@ class SparrowAnalyzer(Analyzer):
 
     def get_embeddings(self, data: np.array) -> np.array:
         """
-        get_embeddings Extract feature embedding from audio file without immediatelly classifying the species. 
-                       These can in a second step be used with a custom classifier to find species not 
+        get_embeddings Extract feature embedding from audio file without immediatelly classifying the species.
+                       These can in a second step be used with a custom classifier to find species not
                        included in the default training data.
 
         Args:
@@ -226,11 +226,12 @@ class SparrowAnalyzer(Analyzer):
         return prediction
 
 
-def analyzer_from_config(cfg: dict) -> SparrowAnalyzer:
+def analyzer_from_config(sparrow_dir: str, cfg: dict) -> SparrowAnalyzer:
     """
-    analyzer_from_config Create a new `SparrowAnalyzer` from a dict that contains parameters to be applied. 
-                         Dictionary typically results from reading in a YAML config file. 
+    analyzer_from_config Create a new `SparrowAnalyzer` from a dict that contains parameters to be applied.
+                         Dictionary typically results from reading in a YAML config file.
     Args:
+        sparrow_dir (str): path to the top level directory where iSparrow stores its data
         cfg (dict): Dictionary containing the needed parameters
 
     Returns:
@@ -270,13 +271,15 @@ def analyzer_from_config(cfg: dict) -> SparrowAnalyzer:
     ):
 
         classifier_model_path = (
-            Path(cfg["Model"]["model_dir"])
+            Path(sparrow_dir)
+            / Path(cfg["Model"]["model_dir"])
             / Path(cfg["Model"]["model_name"])
             / Path("model.tflite")
         )
 
         classifier_labels_path = (
-            Path(cfg["Model"]["model_dir"])
+            Path(sparrow_dir)
+            / Path(cfg["Model"]["model_dir"])
             / Path(cfg["Model"]["model_name"])
             / Path("labels.txt")
         )
@@ -288,11 +291,17 @@ def analyzer_from_config(cfg: dict) -> SparrowAnalyzer:
     # we always need those. Later: have a default config that's set up upon install and
     # that lives in .config on a unix system or similar
     default_model_path = (
-        Path(cfg["Model"]["model_dir"]) / "birdnet_defaults" / Path("model.tflite")
+        Path(sparrow_dir)
+        / Path(cfg["Model"]["model_dir"])
+        / "birdnet_defaults"
+        / Path("model.tflite")
     )
 
     default_labels_path = (
-        Path(cfg["Model"]["model_dir"]) / "birdnet_defaults" / Path("labels.txt")
+        Path(sparrow_dir)
+        / Path(cfg["Model"]["model_dir"])
+        / "birdnet_defaults"
+        / Path("labels.txt")
     )
 
     default_model_path = str(default_model_path)
