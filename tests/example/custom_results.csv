@@ -1,0 +1,24 @@
+common_name,scientific_name,start_time,end_time,confidence,label
+Blue Jay,Cyanocitta cristata,18.0,21.0,0.98053956,Cyanocitta cristata_Blue Jay
+Blue Jay,Cyanocitta cristata,21.0,24.0,0.9790315,Cyanocitta cristata_Blue Jay
+Dark-eyed Junco,Junco hyemalis,42.0,45.0,0.95995486,Junco hyemalis_Dark-eyed Junco
+Black-capped Chickadee,Poecile atricapillus,0.0,3.0,0.9565333,Poecile atricapillus_Black-capped Chickadee
+Dark-eyed Junco,Junco hyemalis,33.0,36.0,0.7542113,Junco hyemalis_Dark-eyed Junco
+Blue Jay,Cyanocitta cristata,48.0,51.0,0.7488279,Cyanocitta cristata_Blue Jay
+Blue Jay,Cyanocitta cristata,57.0,60.0,0.7119541,Cyanocitta cristata_Blue Jay
+Dark-eyed Junco,Junco hyemalis,60.0,63.0,0.67792976,Junco hyemalis_Dark-eyed Junco
+Black-capped Chickadee,Poecile atricapillus,3.0,6.0,0.6559606,Poecile atricapillus_Black-capped Chickadee
+Blue Jay,Cyanocitta cristata,24.0,27.0,0.5984675,Cyanocitta cristata_Blue Jay
+Blue Jay,Cyanocitta cristata,45.0,48.0,0.56287616,Cyanocitta cristata_Blue Jay
+Blue Jay,Cyanocitta cristata,15.0,18.0,0.51027346,Cyanocitta cristata_Blue Jay
+Blue Jay,Cyanocitta cristata,27.0,30.0,0.49673903,Cyanocitta cristata_Blue Jay
+Blue Jay,Cyanocitta cristata,36.0,39.0,0.48976943,Cyanocitta cristata_Blue Jay
+Northern Cardinal,Cardinalis cardinalis,81.0,84.0,0.43493107,Cardinalis cardinalis_Northern Cardinal
+Dark-eyed Junco,Junco hyemalis,54.0,57.0,0.42188612,Junco hyemalis_Dark-eyed Junco
+Dark-eyed Junco,Junco hyemalis,63.0,66.0,0.42155936,Junco hyemalis_Dark-eyed Junco
+Dark-eyed Junco,Junco hyemalis,6.0,9.0,0.38382733,Junco hyemalis_Dark-eyed Junco
+Dark-eyed Junco,Junco hyemalis,39.0,42.0,0.3802997,Junco hyemalis_Dark-eyed Junco
+Dark-eyed Junco,Junco hyemalis,36.0,39.0,0.362318,Junco hyemalis_Dark-eyed Junco
+Dark-eyed Junco,Junco hyemalis,27.0,30.0,0.32711697,Junco hyemalis_Dark-eyed Junco
+Dark-eyed Junco,Junco hyemalis,30.0,33.0,0.31000763,Junco hyemalis_Dark-eyed Junco
+Dark-eyed Junco,Junco hyemalis,99.0,102.0,0.28884372,Junco hyemalis_Dark-eyed Junco
