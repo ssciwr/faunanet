@@ -6,7 +6,7 @@ from birdnetlib.analyzer import AnalyzerConfigurationError
 def test_analyzer_construction_default(analyzer_fx):
     tv = analyzer_fx
 
-    analyzer = spa.SparrowAnalyzer(tv.default_cfg["Analyzer"])
+    analyzer = spa.analyzer_from_config(tv.default_cfg["Analyzer"])
 
     assert analyzer.apply_sigmoid is True
     assert analyzer.sigmoid_sensitivity == 1.0
@@ -20,7 +20,7 @@ def test_analyzer_construction_default(analyzer_fx):
 def test_analyzer_construction_missing_nodes(analyzer_fx):
     tv = analyzer_fx
 
-    analyzer = spa.SparrowAnalyzer(tv.cfg_missing["Analyzer"])
+    analyzer = spa.analyzer_from_config(tv.cfg_missing["Analyzer"])
 
     assert analyzer.apply_sigmoid is True
     assert analyzer.sigmoid_sensitivity == 1.0
@@ -34,7 +34,7 @@ def test_analyzer_construction_missing_nodes(analyzer_fx):
 def test_analyzer_custom_model(analyzer_fx):
     tv = analyzer_fx
 
-    analyzer = spa.SparrowAnalyzer(tv.cfg["Analyzer"])
+    analyzer = spa.analyzer_from_config(tv.cfg["Analyzer"])
 
     assert analyzer.apply_sigmoid is True
     assert analyzer.sigmoid_sensitivity == 1.0
@@ -48,7 +48,7 @@ def test_analyzer_custom_model(analyzer_fx):
 def test_analyzer_wrong_custom_model(analyzer_fx):
     tv = analyzer_fx
     with pytest.raises(AnalyzerConfigurationError) as exc_info:
-        spa.SparrowAnalyzer(tv.cfg_wrong_model["Analyzer"])
+        spa.analyzer_from_config(tv.cfg_wrong_model["Analyzer"])
 
     assert (
         str(exc_info.value)
@@ -61,7 +61,7 @@ def test_analyzer_wrong_custom_specieslist(analyzer_fx):
     tv = analyzer_fx
 
     with pytest.raises(AnalyzerConfigurationError) as exc_info:
-        spa.SparrowAnalyzer(tv.cfg_wrong_species_list["Analyzer"])
+        spa.analyzer_from_config(tv.cfg_wrong_species_list["Analyzer"])
 
     assert (
         str(exc_info.value)
@@ -73,6 +73,6 @@ def test_analyzer_correct_custom_specieslist(analyzer_fx):
     
     tv = analyzer_fx
 
-    analyzer = spa.SparrowAnalyzer(tv.cfg_species_list["Analyzer"])
+    analyzer = spa.analyzer_from_config(tv.cfg_species_list["Analyzer"])
     assert analyzer.has_custom_species_list is True
     assert analyzer.custom_species_list[0] == "Cyanocitta cristata_Blue Jay"

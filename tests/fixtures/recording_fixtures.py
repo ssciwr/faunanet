@@ -27,7 +27,7 @@ class RecordingFixture:
 
         self.preprocessor = pp.Preprocessor(self.cfg["Data"]["Preprocessor"])
 
-        self.analyzer = spa.SparrowAnalyzer(self.cfg["Analyzer"])
+        self.analyzer = spa.analyzer_from_config(self.cfg["Analyzer"])
 
         self.good_file = self.test_path / "example/soundscape.wav"
 

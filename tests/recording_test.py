@@ -1,6 +1,4 @@
 import pytest
-import numpy as np
-from numpy.testing import assert_array_equal
 import pandas as pd
 from pandas.testing import assert_frame_equal
 from pathlib import Path
@@ -21,6 +19,7 @@ def test_recording_construction(recording_fx):
     assert recording.filestem == "soundscape"
     assert recording.chunks == []
     assert recording.minimum_confidence == pytest.approx(0.25)
+
 
 def test_analysis_custom(recording_fx):
 
@@ -67,7 +66,7 @@ def test_analysis_default(recording_fx):
         "models." + default_cfg["Analyzer"]["Model"]["model_name"] + ".preprocessor"
     )
 
-    default_analyzer = spa.SparrowAnalyzer(default_cfg["Analyzer"])
+    default_analyzer = spa.analyzer_from_config(default_cfg["Analyzer"])
     default_preprocessor = ppd.Preprocessor(default_cfg["Data"]["Preprocessor"])
 
     recording = spc.SparrowRecording(
