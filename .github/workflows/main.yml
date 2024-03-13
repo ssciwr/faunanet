@@ -22,6 +22,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.11"]
+        include: 
+            - os: ubuntu-latest
+              coverage: true 
     steps:
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
@@ -34,6 +37,21 @@ jobs:
         python3 -m pip install --upgrade pip
         python3 -m pip install .
         python3 -m pip install -r requirements-dev.txt
-    - name: Run pytest unittests
+    - name: Run pytest unittests without coverage report
       run: |
         python -m pytest
+      if: matrix.coverage != 'true'
+
+    - name: Run pytest unittests with coverage report 
+      run: | 
+        python -m pytest --cov=src/iSparrow --cov-branch --cov-report=term-missing --cov-report=html
+      if: matrix.coverage = 'true'
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v2
+      if: matrix.coverage = 'true'
+      with:
+        name: coverage-report
+        path: |
+          ${{ github.workspace }}/htmlcov
+
