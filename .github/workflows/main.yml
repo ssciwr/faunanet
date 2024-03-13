@@ -29,6 +29,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Getting repository
       uses: actions/checkout@v3
+      with: 
+        lfs: true
     - name: Install dependencies
       run: |
         python3 -m pip install --upgrade pip
