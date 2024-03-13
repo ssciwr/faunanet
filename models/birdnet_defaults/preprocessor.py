@@ -56,9 +56,10 @@ class Preprocessor(ppb.PreprocessorBase):
             self.actual_sampling_rate = rate
 
         # FIXME: on macos, the BaseException below is thrown, no ubuntu the AudioFormatError... ??
-        # except audioread.exceptions.NoBackendError as e:
-        #     print(e)
-        #     raise AudioFormatError("Audio format could not be opened.")
+
+        except audioread.exceptions.NoBackendError as e:
+            print(e)
+            raise AudioFormatError("Audio format could not be opened.")
         except FileNotFoundError as e:
             print(e)
             raise e
