@@ -9,9 +9,12 @@ def preprocessor_fx():
     """
     sets up fixture a preprocessor thatś build with the wrong file paths -> reading must fail
     """
-    test_path = Path(__file__).resolve().parent.parent
 
-    with open(test_path / Path("example") / "cfg_default.yml", "r") as file:
+    sparrow_folder = Path.home() / Path("iSparrow")
+
+    data_folder = sparrow_folder / Path("data")
+
+    with open(data_folder / "cfg_default.yml", "r") as file:
         cfg = yaml.safe_load(file)
 
     # README: in later versions when a 'exchange_model'function is present somewhere, this
@@ -20,7 +23,7 @@ def preprocessor_fx():
 
     preprocessor = pp.preprocessor_from_config(cfg["Data"]["Preprocessor"])
 
-    filepath = test_path / "example/soundscape.wav"
-    trimmedpath = test_path / "example/trimmed.wav"
+    filepath = data_folder / "soundscape.wav"
+    trimmedpath = data_folder / "trimmed.wav"
 
-    return preprocessor, cfg, test_path, filepath, trimmedpath
+    return preprocessor, cfg, data_folder, filepath, trimmedpath

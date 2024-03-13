@@ -49,23 +49,23 @@ def test_processing_processing(preprocessor_fx):
 
 
 def test_preprocessor_exceptions(preprocessor_fx):
-    preprocessor, cfg, test_path, filepath, trimmedpath = preprocessor_fx
+    preprocessor, cfg, datapath, filepath, trimmedpath = preprocessor_fx
 
     with pytest.raises(FileNotFoundError) as exc_info:
         preprocessor.read_audio_data(
-            test_path / Path("example") / Path("soundscape.mp12")
+            datapath / Path("soundscape.mp12")
         )  # unknown format
 
     assert (
         str(exc_info.value)
         == "[Errno 2] No such file or directory: "
         + "'"
-        + str(test_path / Path("example") / Path("soundscape.mp12"))
+        + str(datapath / Path("soundscape.mp12"))
         + "'"
     )
 
     # read corrupted file --> Audio exception
     with pytest.raises(ble.AudioFormatError) as exc_info:
-        preprocessor.read_audio_data(test_path / Path("example") / Path("corrupted.wav"))
+        preprocessor.read_audio_data(datapath / Path("corrupted.wav"))
 
     assert str(exc_info.value) == "Audio format could not be opened."
