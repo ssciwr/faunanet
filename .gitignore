@@ -1,16 +1,18 @@
 # ignore everything
 *
 
-# unignore folder 
-!*/
+#unignore things in the models file that are human readable
+!/models/**/*.py
 
 # unignore source code and yaml files for config
-!*.py
-!*.yaml
+!src/**/*.py
+!tests/*.yaml
+!tests/*.py
+!pyproject.toml
 
 #unignore documentation things 
-!*.rst
-!*.md 
+!**/*.rst
+!**/*.md 
 
 # unignore maintenance stuff 
 !LICENSE
@@ -18,3 +20,7 @@
 !.flake8
 !doc/MakeFile
 !doc/make.bat
+!.gitignore
+!.gitattributes
+!.github/workflows/*.yml 
+!.github/ISSUE_TEMPLATE/*.md
