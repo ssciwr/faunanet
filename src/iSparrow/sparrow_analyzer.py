@@ -108,7 +108,8 @@ class SparrowAnalyzer(Analyzer):
             self.classifier_labels_path = str(classifier_labels_path)
 
         # the default path is only used in the derived class for now and must be checked
-        # we always need those
+        # we always need those. Later: have a default config that's set up upon install and 
+        # that lives in .config on a unix system or similar
         default_model_path = (
             Path(cfg["Model"]["model_dir"]) / "birdnet_defaults" / Path("model.tflite")
         )
