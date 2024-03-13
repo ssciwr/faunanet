@@ -17,10 +17,9 @@ class RecordingFixture:
     def __init__(self):
         self.test_path = Path(__file__).resolve().parent.parent
 
-        print("test path: ", self.test_path)
-
         with open(self.test_path / Path("example") / "test.yml", "r") as file:
             self.cfg = yaml.safe_load(file)
+            
         # import preprocessor definition that we need
         pp = importlib.import_module(
             "models." + self.cfg["Analyzer"]["Model"]["model_name"] + ".preprocessor"
@@ -43,8 +42,6 @@ class RecordingFixture:
         self.default_analysis_results = pd.read_csv(
             self.test_path / Path("example") / Path("default_results.csv")
         )
-
-
 
 
 @pytest.fixture

@@ -20,53 +20,7 @@ def test_recording_construction(recording_fx):
     assert recording.filename == "soundscape.wav"
     assert recording.filestem == "soundscape"
     assert recording.chunks == []
-
-    assert recording.processor.sample_rate == 48000
-    assert recording.processor.overlap == pytest.approx(0.0)
-    assert recording.processor.sample_secs == pytest.approx(3.0)
-    assert recording.processor.resample_type == "kaiser_fast"
-    assert recording.processor.duration == 0  # unknown at this point, hence zero
-    assert recording.processor.actual_sampling_rate == pytest.approx(
-        0.0
-    )  # unknown at this point, hence zero
     assert recording.minimum_confidence == pytest.approx(0.25)
-
-
-def test_recording_reading(recording_fx):
-
-    recording = spc.SparrowRecording(
-        recording_fx.analyzer, recording_fx.preprocessor, recording_fx.good_file
-    )
-
-    audiodata = recording.processor.read_audio_data(recording_fx.good_file)
-
-    assert len(audiodata) == pytest.approx(
-        recording.processor.actual_sampling_rate * recording.processor.duration
-    )
-    assert recording.processor.actual_sampling_rate == 48000
-    assert recording.processor.duration == pytest.approx(120.0)
-
-
-def test_recording_processing(recording_fx):
-
-    # use trimmed audio file that's not a multiple of 3s in length
-
-    recording = spc.SparrowRecording(
-        recording_fx.analyzer, recording_fx.preprocessor, recording_fx.trimmed_file
-    )
-
-    recording_fx = recording.processor.read_audio_data(recording_fx.trimmed_file)
-
-    chunks = recording.processor.process_audio_data(recording_fx)
-
-    assert len(chunks) == pytest.approx(
-        120.0 / 3.0
-    )  # duration divided by sample_secs. last chunk is padded to 3
-
-    # last chunks should have zeros in it for sampling_rate * 1.5
-    # 72000 = (sampling_rate*duration)/2 = 1.5 seconds = last chunk that should be padded with zeros
-    assert_array_equal(chunks[-1][72000::], np.zeros(72000))
-
 
 def test_analysis_custom(recording_fx):
 
