@@ -16,10 +16,7 @@ dependencies = [
     "numpy", 
     "librosa", 
     "tensorflow", 
-    "torch", 
-    "torchaudio", 
     "PyYAML", 
-    "scipy", 
     "pandas", 
     "birdnetlib==0.15.0", 
 ]
