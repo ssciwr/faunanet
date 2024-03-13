@@ -11,7 +11,7 @@ def test_analyzer_construction_default(analyzer_fx):
 
     assert analyzer.apply_sigmoid is True
     assert analyzer.sigmoid_sensitivity == 1.0
-    assert analyzer.num_threads == 12
+    assert analyzer.num_threads == 1
     assert analyzer.classifier_model_path is None
     assert analyzer.classifier_labels_path is None
     assert analyzer.default_model_path == str(
@@ -59,7 +59,7 @@ def test_analyzer_custom_model(analyzer_fx):
 
     assert analyzer.apply_sigmoid is True
     assert analyzer.sigmoid_sensitivity == 1.0
-    assert analyzer.num_threads == 12
+    assert analyzer.num_threads == 1
     assert analyzer.classifier_model_path == str(
         tv.sparrow_folder
         / Path("models")
