@@ -230,7 +230,7 @@ class SparrowAnalyzer(Analyzer):
         return prediction
 
 
-def analyzer_from_config(cfg: dict):
+def analyzer_from_config(cfg: dict) -> SparrowAnalyzer:
     """
     analyzer_from_config _summary_
 

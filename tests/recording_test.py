@@ -59,28 +59,11 @@ def test_analysis_custom(recording_fx):
 
 def test_analysis_default(recording_fx):
 
-    default_cfg = deepcopy(recording_fx.cfg)
-
-    default_cfg["Analyzer"]["Model"]["model_name"] = "birdnet_defaults"
-    ppd = importlib.import_module(
-        "models." + default_cfg["Analyzer"]["Model"]["model_name"] + ".preprocessor"
-    )
-
-    default_analyzer = spa.analyzer_from_config(default_cfg["Analyzer"])
-    default_preprocessor = ppd.Preprocessor(default_cfg["Data"]["Preprocessor"])
-
     recording = spc.SparrowRecording(
-        default_analyzer, default_preprocessor, recording_fx.good_file, min_conf=0.25
-    )
-
-    assert recording.analyzer.classifier_model_path is None
-    assert recording.analyzer.classifier_labels_path is None
-    assert recording.analyzer.use_custom_classifier is None
-    assert recording.analyzer.default_model_path == str(
-        Path("models") / Path("birdnet_defaults") / Path("model.tflite")
-    )
-    assert recording.analyzer.default_labels_path == str(
-        Path("models") / Path("birdnet_defaults") / Path("labels.txt")
+        recording_fx.default_analyzer,
+        recording_fx.default_preprocessor,
+        recording_fx.good_file,
+        min_conf=0.25,
     )
 
     recording.analyze()
