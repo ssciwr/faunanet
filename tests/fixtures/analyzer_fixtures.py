@@ -1,6 +1,5 @@
 from pathlib import Path
 import yaml
-from copy import deepcopy
 import pytest
 
 

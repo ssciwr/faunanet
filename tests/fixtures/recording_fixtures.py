@@ -17,7 +17,7 @@ class RecordingFixture:
     def __init__(self):
         self.test_path = Path(__file__).resolve().parent.parent
 
-        with open(self.test_path / Path("example") / "test.yml", "r") as file:
+        with open(self.test_path / Path("example") / "cfg.yml", "r") as file:
             self.cfg = yaml.safe_load(file)
             
         # import preprocessor definition that we need

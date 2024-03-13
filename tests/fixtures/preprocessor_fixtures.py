@@ -11,11 +11,10 @@ def preprocessor_fx():
     """
     test_path = Path(__file__).resolve().parent.parent
 
-    with open(test_path / Path("example") / "test.yml", "r") as file:
+    with open(test_path / Path("example") / "cfg_default.yml", "r") as file:
         cfg = yaml.safe_load(file)
 
-    # use the default for testing because it will be provided with the system in the end
-    cfg["Analyzer"]["Model"]["model_name"] = "birdnet_defaults"
+
 
     # README: in later versions when a 'exchange_model'function is present somewhere, this
     # needs respective catches for wrong paths/nonexistant files etc
