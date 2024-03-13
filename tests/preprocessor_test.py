@@ -4,7 +4,6 @@ from birdnetlib import exceptions as ble
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-# Tests the preprocessor implementation for the custom model, which is identical to the preprocessor for the default model
 
 def test_preprocessor_constructions(preprocessor_fx):
     preprocessor, cfg, test_path, filepath, trimmedpath = preprocessor_fx
