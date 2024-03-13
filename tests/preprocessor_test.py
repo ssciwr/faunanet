@@ -18,7 +18,7 @@ def test_preprocessor_constructions(preprocessor_fx):
     assert preprocessor.name == "birdnet_defaults_preprocessor"
 
 
-def test_preprocessor_readind(preprocessor_fx):
+def test_preprocessor_read(preprocessor_fx):
     preprocessor, cfg, test_path, filepath, trimmedpath = preprocessor_fx
 
     audiodata = preprocessor.read_audio_data(filepath)
@@ -68,4 +68,4 @@ def test_preprocessor_exceptions(preprocessor_fx):
     with pytest.raises(ble.AudioFormatError) as exc_info:
         preprocessor.read_audio_data(datapath / Path("corrupted.wav"))
 
-    assert str(exc_info.value) == "Audio format could not be opened."
+    assert str(exc_info.value) == "Generic audio read error occurred from librosa."
