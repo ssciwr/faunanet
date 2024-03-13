@@ -4,7 +4,7 @@ Analyzer:
     model_name: birdnet_defaults
     apply_sigmoid: True 
     sigmoid_sensitivity: 1.0
-    num_threads: 1
+    num_threads: 12
   
   min_conf: 0.25
 
