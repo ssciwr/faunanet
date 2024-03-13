@@ -18,16 +18,19 @@ class AnalyzerFixture:
             self.cfg = yaml.safe_load(file)
 
         self.default_cfg = deepcopy(self.cfg)
+        
+        self.default_cfg["Analyzer"]["Model"]["model_name"] = "birdnet_defaults"
 
         self.cfg_missing = deepcopy(self.cfg)
-
-        self.cfg_wrong = deepcopy(self.cfg)
-
-        self.default_cfg["Analyzer"]["Model"]["model_name"] = "birdnet_defaults"
 
         del self.cfg_missing["Analyzer"]["Model"][
             "model_name"
         ]  # model_name missing -> should load default
+        del self.cfg_missing["Analyzer"]["Model"]["apply_sigmoid"]
+        del self.cfg_missing["Analyzer"]["Model"]["sigmoid_sensitivity"]
+        del self.cfg_missing["Analyzer"]["Model"]["num_threads"]
+
+        self.cfg_wrong = deepcopy(self.cfg)
 
         self.cfg_wrong["Analyzer"]["Model"]["model_name"] = "wrong_model_name"
 
