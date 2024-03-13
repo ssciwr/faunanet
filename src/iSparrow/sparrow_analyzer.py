@@ -13,50 +13,40 @@ class SparrowAnalyzer(Analyzer):
     """
     SparrowAnalyzer Specialization of birdnetlib.Analyzer to get the custom model to work
 
-    Args:
-        Analyzer (_type_): _description_
     """
 
-    def __init__(self, cfg: dict):
+    def __init__(
+        self,
+        apply_sigmoid: bool = True,
+        sigmoid_sensitivity: float = 1.0,
+        num_threads: int = 1,
+        custom_species_list_path: str = None,
+        custom_species_list: str = None,
+        classifier_model_path: str = None,
+        classifier_labels_path: str = None,
+        default_model_path: str = None,
+        default_labels_path: str = None,
+    ):
         """
         __init__ _summary_
 
         _extended_summary_
 
         Args:
-            cfg (dict): _description_
+            apply_sigmoid (bool, optional): _description_. Defaults to True.
+            sigmoid_sensitivity (float, optional): _description_. Defaults to 1.0.
+            num_threads (int, optional): _description_. Defaults to 1.
+            custom_species_list_path (str, optional): _description_. Defaults to None.
+            custom_species_list (str, optional): _description_. Defaults to None.
+            classifier_model_path (str, optional): _description_. Defaults to None.
+            classifier_labels_path (str, optional): _description_. Defaults to None.
+            default_model_path (str, optional): _description_. Defaults to None.
+            default_labels_path (str, optional): _description_. Defaults to None.
 
         Raises:
-            AnalyzerConfigurationError: _description_
+            AnalyzerConfigurationError: If any one of the supplied paths is invalid
         """
-        self.apply_sigmoid = (
-            cfg["Model"]["apply_sigmoid"] if "" in cfg["Model"] else True
-        )
-
-        self.sigmoid_sensitivity = (
-            cfg["Model"]["sigmoid_sensitivity"] if "" in cfg["Model"] else 1.0
-        )
-
-        self.num_threads = (
-            cfg["Model"]["num_threads"] if "num_threads" in cfg["Model"] else 1
-        )
-
-        # README:  the path treatment below is a temporary solution that will change again once the sparrow model itself is implemented.
-        #          it will be generalized to arbitrary models and then be put there. This will also do away with the custom <-> default distinction
-        custom_species_list_path = (
-            cfg["Model"]["custom_species_list_path"]
-            if "custom_species_list_path" in cfg["Model"]
-            else None
-        )
-
-        custom_species_list = (
-            cfg["Model"]["custom_species_list"]
-            if "custom_species_list" in cfg["Model"]
-            else None
-        )
-
-
-        # handle species lists paths, check if they are there
+        # path checks
         if custom_species_list_path is not None:
 
             if Path(custom_species_list_path).exists() is False:
@@ -71,66 +61,47 @@ class SparrowAnalyzer(Analyzer):
                     "Custom species list file does not exist"
                 )
 
-        # handle custom model paths and check they exist
-        self.classifier_model_path = None
-
-        self.classifier_labels_path = None
-
-        # set them only when a model name is given explicitly and it's not default
         if (
-            "model_name" in cfg["Model"]
-            and cfg["Model"]["model_name"] != "birdnet_defaults"
+            classifier_model_path is not None
+            and classifier_labels_path is None
+            or classifier_model_path is None
+            and classifier_labels_path is not None
         ):
-
-            classifier_model_path = (
-                Path(cfg["Model"]["model_dir"])
-                / Path(cfg["Model"]["model_name"])
-                / Path("model.tflite")
+            raise AnalyzerConfigurationError(
+                "Model and label file paths must be specified to use a custom classifier"
             )
 
-            classifier_labels_path = (
-                Path(cfg["Model"]["model_dir"])
-                / Path(cfg["Model"]["model_name"])
-                / Path("labels.txt")
-            )
-
-            if classifier_model_path.exists() is False:
+        if classifier_model_path is not None:
+            if Path(classifier_model_path).exists() is False:
                 raise AnalyzerConfigurationError(
                     "Custom classifier model could not be found at the provided path"
                 )
 
-            if classifier_labels_path.exists() is False:
+        if classifier_model_path is not None:
+            if Path(classifier_labels_path).exists() is False:
                 raise AnalyzerConfigurationError(
                     "Custom classifier labels could not be found at the provided path"
                 )
 
-            self.classifier_model_path = str(classifier_model_path)
-            self.classifier_labels_path = str(classifier_labels_path)
-
-        # the default path is only used in the derived class for now and must be checked
-        # we always need those. Later: have a default config that's set up upon install and 
-        # that lives in .config on a unix system or similar
-        default_model_path = (
-            Path(cfg["Model"]["model_dir"]) / "birdnet_defaults" / Path("model.tflite")
-        )
-
-        default_labels_path = (
-            Path(cfg["Model"]["model_dir"]) / "birdnet_defaults" / Path("labels.txt")
-        )
-
-        if default_model_path.exists() is False:
+        if Path(default_model_path).exists() is False:
             raise AnalyzerConfigurationError(
                 "Error, default model could not be found at provided path"
             )
 
-        if default_labels_path.exists() is False:
+        if Path(default_labels_path).exists() is False:
             raise AnalyzerConfigurationError(
                 "Error, default label could not be found at provided path"
             )
 
-        self.default_model_path = str(default_model_path)
-
-        self.default_labels_path = str(default_labels_path)
+        self.apply_sigmoid = apply_sigmoid
+        self.sigmoid_sensitivity = sigmoid_sensitivity
+        self.num_threads = num_threads
+        self.custom_species_list_path = custom_species_list_path
+        self.custom_species_list = custom_species_list
+        self.classifier_model_path = classifier_model_path
+        self.classifier_labels_path = classifier_labels_path
+        self.default_model_path = default_model_path
+        self.default_labels_path = default_labels_path
 
         super().__init__(
             custom_species_list_path=custom_species_list_path,
@@ -165,6 +136,10 @@ class SparrowAnalyzer(Analyzer):
         print("Model loaded custom ")
 
     def load_labels(self):
+        """
+        load_labels _summary_
+
+        """
         labels_file_path = self.default_labels_path
         if self.classifier_labels_path:
             print("loading custom classifier labels")
@@ -218,7 +193,7 @@ class SparrowAnalyzer(Analyzer):
         """
         # overrides the predict_with_custom_classifier in the 'Analyzer' class
         # of birdnetlib with what the BirdNET-Analyzer system does.
-        # FIXME: will be replaced in a later PR with a more concise implementation
+        # README: will be replaced in a later PR with a more concise implementation
 
         data = np.array([sample], dtype="float32")
 
@@ -253,3 +228,91 @@ class SparrowAnalyzer(Analyzer):
             )
 
         return prediction
+
+
+def analyzer_from_config(cfg: dict):
+    """
+    analyzer_from_config _summary_
+
+    _extended_summary_
+
+    Args:
+        cfg (dict): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    apply_sigmoid = cfg["Model"]["apply_sigmoid"] if "" in cfg["Model"] else True
+
+    sigmoid_sensitivity = (
+        cfg["Model"]["sigmoid_sensitivity"] if "" in cfg["Model"] else 1.0
+    )
+
+    num_threads = cfg["Model"]["num_threads"] if "num_threads" in cfg["Model"] else 1
+
+    # README:  the path treatment below is a temporary solution that will change again once the sparrow model itself is implemented.
+    #          it will be generalized to arbitrary models and then be put there. This will also do away with the custom <-> default distinction
+    custom_species_list_path = (
+        cfg["Model"]["custom_species_list_path"]
+        if "custom_species_list_path" in cfg["Model"]
+        else None
+    )
+
+    custom_species_list = (
+        cfg["Model"]["custom_species_list"]
+        if "custom_species_list" in cfg["Model"]
+        else None
+    )
+
+    # handle custom model paths and check they exist
+    classifier_model_path = None
+
+    classifier_labels_path = None
+
+    # set them only when a model name is given explicitly and it's not default
+    if (
+        "model_name" in cfg["Model"]
+        and cfg["Model"]["model_name"] != "birdnet_defaults"
+    ):
+
+        classifier_model_path = (
+            Path(cfg["Model"]["model_dir"])
+            / Path(cfg["Model"]["model_name"])
+            / Path("model.tflite")
+        )
+
+        classifier_labels_path = (
+            Path(cfg["Model"]["model_dir"])
+            / Path(cfg["Model"]["model_name"])
+            / Path("labels.txt")
+        )
+
+        classifier_model_path = str(classifier_model_path)
+        classifier_labels_path = str(classifier_labels_path)
+
+    # the default path is only used in the derived class for now and must be checked
+    # we always need those. Later: have a default config that's set up upon install and
+    # that lives in .config on a unix system or similar
+    default_model_path = (
+        Path(cfg["Model"]["model_dir"]) / "birdnet_defaults" / Path("model.tflite")
+    )
+
+    default_labels_path = (
+        Path(cfg["Model"]["model_dir"]) / "birdnet_defaults" / Path("labels.txt")
+    )
+
+    default_model_path = str(default_model_path)
+
+    default_labels_path = str(default_labels_path)
+
+    return SparrowAnalyzer(
+        apply_sigmoid=apply_sigmoid,
+        sigmoid_sensitivity=sigmoid_sensitivity,
+        num_threads=num_threads,
+        custom_species_list_path=custom_species_list_path,
+        custom_species_list=custom_species_list,
+        classifier_model_path=classifier_model_path,
+        classifier_labels_path=classifier_labels_path,
+        default_model_path=default_model_path,
+        default_labels_path=default_labels_path,
+    )
