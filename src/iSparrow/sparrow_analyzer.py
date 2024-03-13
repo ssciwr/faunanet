@@ -35,40 +35,45 @@ class SparrowAnalyzer(Analyzer):
 
         custom_species_list = cfg["Model"]["custom_species_list"] if "custom_species_list" in cfg["Model"] else None
 
+        # these are initialized here to distinguish between use of Birdnet custom classifier and default classifier
+        self.classifier_model_path = None
+
+        self.classifier_labels_path = None
+
+        # handle species lists paths, check if they are there
         if custom_species_list_path is not None:
+
             if Path(custom_species_list_path).exists() is False:
                 raise AnalyzerConfigurationError("custom species list path does not exist")
 
         if custom_species_list is not None:
+
             if Path(custom_species_list).exists() is False:
                 raise AnalyzerConfigurationError("custom species list file does not exist")
 
-        if "path" not in cfg["Model"] or cfg["Model"]["path"] != "birdnet_defaults":
-            if (Path(cfg["Model"]["model_dir"]) / Path(cfg["Model"]["model_name"]) / Path("model.tflite")).exists() is False:
-                raise AnalyzerConfigurationError("model file does not exist")
+        # these are checked for validity in the base class, no need to do that here
+        if "model_name" in cfg["Model"] and cfg["Model"]["model_name"] != "birdnet_defaults":
+            self.classifier_model_path = str(Path(cfg["Model"]["model_dir"]) / Path(cfg["Model"]["model_name"]) / Path("model.tflite"))
 
-            if (Path(cfg["Model"]["model_dir"]) / Path(cfg["Model"]["model_name"]) / Path("labels.txt")).exists() is False:
-                raise AnalyzerConfigurationError("labels file does not exist")
+            self.classifier_labels_path = str(Path(cfg["Model"]["model_dir"]) / Path(cfg["Model"]["model_name"]) / Path("labels.txt"))
 
-            classifier_model_path = str(Path(cfg["Model"]["model_dir"]) / Path(cfg["Model"]["model_name"]) / Path("model.tflite"))
+        # we always need a default model for now
+        if (Path(cfg["Model"]["model_dir"]) / Path("birdnet_defaults") / Path("model.tflite")).exists() is False:
+            raise AnalyzerConfigurationError("default model file does not exist")
 
-            classifier_labels_path = str(Path(cfg["Model"]["model_dir"]) / Path(cfg["Model"]["model_name"]) / Path("labels.txt"))
+        if (Path(cfg["Model"]["model_dir"]) / Path("birdnet_defaults") / Path("labels.txt")).exists() is False:
+            raise AnalyzerConfigurationError("default labels file does not exist")
 
-            if (Path(cfg["Model"]["model_dir"]) / Path("birdnet_defaults") / Path("model.tflite")).exists() is False:
-                raise AnalyzerConfigurationError("default model file does not exist")
+        self.default_model_path = str(Path(cfg["Model"]["model_dir"]) / "birdnet_defaults" / Path("model.tflite"))
 
-            if (Path(cfg["Model"]["model_dir"]) / Path("birdnet_defaults") / Path("labels.txt")).exists() is False:
-                raise AnalyzerConfigurationError("default labels file does not exist")
-
-        self.default_model_path = Path(cfg["Model"]["model_dir"]) / "birdnet_defaults" / Path("model.tflite")
-
-        self.default_labels_path = Path(cfg["Model"]["model_dir"]) / "birdnet_defaults" / Path("labels.txt")
+        self.default_labels_path = str(Path(cfg["Model"]["model_dir"]) / "birdnet_defaults" / Path("labels.txt"))
 
         super().__init__(custom_species_list_path=custom_species_list_path,
                          custom_species_list=custom_species_list,
-                         classifier_model_path=classifier_model_path,
-                         classifier_labels_path=classifier_labels_path)
+                         classifier_model_path=self.classifier_model_path,
+                         classifier_labels_path=self.classifier_labels_path)
 
+    #README: these need to be overloaded because the base class uses hardcoded paths here. We don't. 
     def load_model(self):
         """
         load_model Override of the base class load model to get the correct paths and make sure that we have multithreading
@@ -80,13 +85,31 @@ class SparrowAnalyzer(Analyzer):
         self.input_details = self.interpreter.get_input_details()
         self.output_details = self.interpreter.get_output_details()
 
-        # Get classification output or feature embeddings
+        # Get input tensor index
+        self.input_layer_index = self.input_details[0]["index"]
+
+        # Get classification output or feature embeddings as output, depending on presence fo custom classifier
         if self.use_custom_classifier:
+            print(" set for feature extraction")
             self.output_layer_index = self.output_details[0]["index"] - 1
         else:
+            print(" set for prediction")
             self.output_layer_index = self.output_details[0]["index"]
 
-        print("Model loaded.")
+        print("Model loaded custom ")
+
+    #README: these need to be overloaded because the base class uses hardcoded paths here. We don't. 
+    def load_labels(self):
+        labels_file_path = self.default_labels_path
+        if self.classifier_labels_path:
+            print("loading custom classifier labels")
+            labels_file_path = self.classifier_labels_path
+        labels = []
+        with open(labels_file_path, "r") as lfile:
+            for line in lfile.readlines():
+                labels.append(line.replace("\n", ""))
+        self.labels = labels
+        print("Labels loaded custom.")
 
     def get_embeddings(self, data):
         """
