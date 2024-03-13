@@ -28,14 +28,12 @@ class SparrowAnalyzer(Analyzer):
         default_labels_path: str = None,
     ):
         """
-        __init__ _summary_
-
-        _extended_summary_
+        __init__ Construct a new custom analyer from parameters or use defaults for those that are not provided.
 
         Args:
-            apply_sigmoid (bool, optional): _description_. Defaults to True.
-            sigmoid_sensitivity (float, optional): _description_. Defaults to 1.0.
-            num_threads (int, optional): _description_. Defaults to 1.
+            apply_sigmoid (bool, optional): Whether to apply a sigmoid function to the final predictions. Defaults to True.
+            sigmoid_sensitivity (float, optional): Sigmoid parameter. Defaults to 1.0.
+            num_threads (int, optional): Number of threads to use for analysis. Defaults to 1.
             custom_species_list_path (str, optional): _description_. Defaults to None.
             custom_species_list (str, optional): _description_. Defaults to None.
             classifier_model_path (str, optional): _description_. Defaults to None.
@@ -44,7 +42,7 @@ class SparrowAnalyzer(Analyzer):
             default_labels_path (str, optional): _description_. Defaults to None.
 
         Raises:
-            AnalyzerConfigurationError: If any one of the supplied paths is invalid
+            AnalyzerConfigurationError: If any one of the supplied paths is invalid.
         """
         # path checks
         if custom_species_list_path is not None:
@@ -137,7 +135,7 @@ class SparrowAnalyzer(Analyzer):
 
     def load_labels(self):
         """
-        load_labels _summary_
+        load_labels Load labels for classes from file. 
 
         """
         labels_file_path = self.default_labels_path
@@ -151,17 +149,17 @@ class SparrowAnalyzer(Analyzer):
         self.labels = labels
         print("Labels loaded custom.")
 
-    def get_embeddings(self, data):
+    def get_embeddings(self, data: np.array) -> np.array:
         """
-        get_embeddings _summary_
-
-        _extended_summary_
+        get_embeddings Extract feature embedding from audio file without immediatelly classifying the species. 
+                       These can in a second step be used with a custom classifier to find species not 
+                       included in the default training data.
 
         Args:
-            data (_type_): _description_
+            data (np.array): Preprocessed audio snippet to extract features from
 
         Returns:
-            _type_: _description_
+            np.array: Feature embedding produces by the default birdnet CNN.
         """
         # this is what the "embeddings" function in the normal BirdNET library does.
         # gets the feature embeddings from the
@@ -179,17 +177,15 @@ class SparrowAnalyzer(Analyzer):
 
         return features
 
-    def predict_with_custom_classifier(self, sample):
+    def predict_with_custom_classifier(self, sample: np.array) -> list:
         """
-        predict_with_custom_classifier _summary_
-
-        _extended_summary_
+        predict_with_custom_classifier Extract features from supplied audio sample and classify them into bird species the classifier is trained upon.
 
         Args:
-            sample (_type_): _description_
+            sample (np.array): Preprocessed audio sample
 
         Returns:
-            _type_: _description_
+            list: Probabilities with which the model thinks we have what species for each species known to it.
         """
         # overrides the predict_with_custom_classifier in the 'Analyzer' class
         # of birdnetlib with what the BirdNET-Analyzer system does.
@@ -232,15 +228,13 @@ class SparrowAnalyzer(Analyzer):
 
 def analyzer_from_config(cfg: dict) -> SparrowAnalyzer:
     """
-    analyzer_from_config _summary_
-
-    _extended_summary_
-
+    analyzer_from_config Create a new `SparrowAnalyzer` from a dict that contains parameters to be applied. 
+                         Dictionary typically results from reading in a YAML config file. 
     Args:
-        cfg (dict): _description_
+        cfg (dict): Dictionary containing the needed parameters
 
     Returns:
-        _type_: _description_
+        SparrowAnalyzer: new `SparrowAnalyzer` instance.
     """
     apply_sigmoid = cfg["Model"]["apply_sigmoid"] if "" in cfg["Model"] else True
 
