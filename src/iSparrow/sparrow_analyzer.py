@@ -61,14 +61,14 @@ class SparrowAnalyzer(Analyzer):
 
             if Path(custom_species_list_path).exists() is False:
                 raise AnalyzerConfigurationError(
-                    "custom species list path does not exist"
+                    "Custom species list path does not exist"
                 )
 
         if custom_species_list is not None:
 
             if Path(custom_species_list).exists() is False:
                 raise AnalyzerConfigurationError(
-                    "custom species list file does not exist"
+                    "Custom species list file does not exist"
                 )
 
         # handle custom model paths and check they exist

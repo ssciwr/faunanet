@@ -14,29 +14,23 @@ class AnalyzerFixture:
 
         self.test_path = Path(__file__).resolve().parent.parent
 
-        with open(self.test_path / Path("example") / "test.yml", "r") as file:
+        with open(self.test_path / Path("example") / "cfg.yml", "r") as file:
             self.cfg = yaml.safe_load(file)
 
-        self.default_cfg = deepcopy(self.cfg)
-        
-        self.default_cfg["Analyzer"]["Model"]["model_name"] = "birdnet_defaults"
+        with open(self.test_path / Path("example") / "cfg_missing.yml", "r") as file:
+            self.cfg_missing = yaml.safe_load(file)
 
-        self.cfg_missing = deepcopy(self.cfg)
+        with open(self.test_path / Path("example") / "cfg_default.yml", "r") as file:
+            self.default_cfg = yaml.safe_load(file)
 
-        del self.cfg_missing["Analyzer"]["Model"][
-            "model_name"
-        ]  # model_name missing -> should load default
-        del self.cfg_missing["Analyzer"]["Model"]["apply_sigmoid"]
-        del self.cfg_missing["Analyzer"]["Model"]["sigmoid_sensitivity"]
-        del self.cfg_missing["Analyzer"]["Model"]["num_threads"]
+        with open(self.test_path / Path("example") / "cfg_wrong_model.yml", "r") as file:
+            self.cfg_wrong_model = yaml.safe_load(file)
 
-        self.cfg_wrong = deepcopy(self.cfg)
+        with open(self.test_path / Path("example") / "cfg_species_list.yml", "r") as file:
+            self.cfg_species_list = yaml.safe_load(file)
 
-        self.cfg_wrong["Analyzer"]["Model"]["model_name"] = "wrong_model_name"
-
-        self.wrong_custom_species_list_path = "some_really_wrong_path"
-
-        self.wrong_custom_species_list_path = "some_other_really_wrong_path"
+        with open(self.test_path / Path("example") / "cfg_wrong_species_list.yml", "r") as file:
+            self.cfg_wrong_species_list = yaml.safe_load(file)
 
 
 @pytest.fixture

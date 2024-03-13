@@ -1,0 +1,64 @@
+Cyanocitta cristata_Blue Jay
+Poecile atricapillus_Black-capped Chickadee
+Sitta carolinensis_White-breasted Nuthatch
+Cardinalis cardinalis_Northern Cardinal
+Junco hyemalis_Dark-eyed Junco
+Zenaida macroura_Mourning Dove
+Corvus brachyrhynchos_American Crow
+Dryobates pubescens_Downy Woodpecker
+Spinus tristis_American Goldfinch
+Baeolophus bicolor_Tufted Titmouse
+Melanerpes carolinus_Red-bellied Woodpecker
+Sturnus vulgaris_European Starling
+Branta canadensis_Canada Goose
+Passer domesticus_House Sparrow
+Dryobates villosus_Hairy Woodpecker
+Anas platyrhynchos_Mallard
+Spizelloides arborea_American Tree Sparrow
+Haemorhous mexicanus_House Finch
+Buteo jamaicensis_Red-tailed Hawk
+Columba livia_Rock Pigeon
+Mergus merganser_Common Merganser
+Haliaeetus leucocephalus_Bald Eagle
+Larus delawarensis_Ring-billed Gull
+Larus argentatus_Herring Gull
+Sitta canadensis_Red-breasted Nuthatch
+Turdus migratorius_American Robin
+Melospiza melodia_Song Sparrow
+Bucephala clangula_Common Goldeneye
+Zonotrichia albicollis_White-throated Sparrow
+Thryothorus ludovicianus_Carolina Wren
+Bucephala albeola_Bufflehead
+Dryocopus pileatus_Pileated Woodpecker
+Corvus corax_Common Raven
+Lophodytes cucullatus_Hooded Merganser
+Meleagris gallopavo_Wild Turkey
+Anas rubripes_American Black Duck
+Cygnus olor_Mute Swan
+Mergus serrator_Red-breasted Merganser
+Sialia sialis_Eastern Bluebird
+Agelaius phoeniceus_Red-winged Blackbird
+Certhia americana_Brown Creeper
+Spinus pinus_Pine Siskin
+Eremophila alpestris_Horned Lark
+Accipiter cooperii_Cooper's Hawk
+Clangula hyemalis_Long-tailed Duck
+Mimus polyglottos_Northern Mockingbird
+Regulus satrapa_Golden-crowned Kinglet
+Haemorhous purpureus_Purple Finch
+Colaptes auratus_Northern Flicker
+Megaceryle alcyon_Belted Kingfisher
+Ardea herodias_Great Blue Heron
+Bombycilla cedrorum_Cedar Waxwing
+Falco sparverius_American Kestrel
+Aythya marila_Greater Scaup
+Aythya collaris_Ring-necked Duck
+Gavia immer_Common Loon
+Podiceps auritus_Horned Grebe
+Quiscalus quiscula_Common Grackle
+Zonotrichia leucophrys_White-crowned Sparrow
+Plectrophenax nivalis_Snow Bunting
+Acanthis flammea_Common Redpoll
+Buteo lagopus_Rough-legged Hawk
+Circus hudsonius_Northern Harrier
+Larus marinus_Great Black-backed Gull
