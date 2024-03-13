@@ -35,6 +35,7 @@ def install(request):
 
     data_folder.mkdir(parents=True, exist_ok=True)
 
+    # copy over the model files
     for model in ["birdnet_defaults", "birdnet_custom"]:
 
         # make models folder
@@ -46,12 +47,14 @@ def install(request):
                 str(model_folder / Path(model)),
             )
 
+    # copy over the example files for testing
     for file_to_copy in (sparrow_lib_folder / Path("tests") / Path("example")).iterdir():
         shutil.copy(
             str(sparrow_lib_folder / Path("tests") / Path("example") / file_to_copy),
             str(data_folder),
         )
 
+    # remove again after usage
     def teardown():
         shutil.rmtree(str(sparrow_folder))
 
