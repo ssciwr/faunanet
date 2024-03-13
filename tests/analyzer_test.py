@@ -45,12 +45,34 @@ def test_analyzer_custom_model(analyzer_fx):
     assert analyzer.default_labels_path == "models/birdnet_defaults/labels.txt"
 
 
-def test_analyzer_excetptions(analyzer_fx):
+def test_analyzer_wrong_custom_model(analyzer_fx):
     tv = analyzer_fx
     with pytest.raises(AnalyzerConfigurationError) as exc_info:
-        spa.SparrowAnalyzer(tv.cfg_wrong["Analyzer"])
+        spa.SparrowAnalyzer(tv.cfg_wrong_model["Analyzer"])
 
     assert (
         str(exc_info.value)
         == "Custom classifier model could not be found at the provided path"
     )
+
+
+def test_analyzer_wrong_custom_specieslist(analyzer_fx):
+    
+    tv = analyzer_fx
+
+    with pytest.raises(AnalyzerConfigurationError) as exc_info:
+        spa.SparrowAnalyzer(tv.cfg_wrong_species_list["Analyzer"])
+
+    assert (
+        str(exc_info.value)
+        == "Custom species list path does not exist"
+    )
+
+
+def test_analyzer_correct_custom_specieslist(analyzer_fx):
+    
+    tv = analyzer_fx
+
+    analyzer = spa.SparrowAnalyzer(tv.cfg_species_list["Analyzer"])
+    assert analyzer.has_custom_species_list is True
+    assert analyzer.custom_species_list[0] == "Cyanocitta cristata_Blue Jay"
