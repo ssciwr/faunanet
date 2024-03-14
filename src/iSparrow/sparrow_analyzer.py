@@ -248,7 +248,7 @@ def analyzer_from_config(sparrow_dir: str, cfg: dict) -> SparrowAnalyzer:
     # README:  the path treatment below is a temporary solution that will change again once the sparrow model itself is implemented.
     #          it will be generalized to arbitrary models and then be put there. This will also do away with the custom <-> default distinction
     custom_species_list_path = (
-        cfg["Model"]["custom_species_list_path"]
+        str(Path(sparrow_dir) / Path(cfg["Model"]["custom_species_list_path"]))
         if "custom_species_list_path" in cfg["Model"]
         else None
     )
@@ -267,7 +267,7 @@ def analyzer_from_config(sparrow_dir: str, cfg: dict) -> SparrowAnalyzer:
     # set them only when a model name is given explicitly and it's not default
     if (
         "model_name" in cfg["Model"]
-        and cfg["Model"]["model_name"] != "birdnet_defaults"
+        and cfg["Model"]["model_name"] != "birdnet_default"
     ):
 
         classifier_model_path = (
@@ -293,14 +293,14 @@ def analyzer_from_config(sparrow_dir: str, cfg: dict) -> SparrowAnalyzer:
     default_model_path = (
         Path(sparrow_dir)
         / Path(cfg["Model"]["model_dir"])
-        / "birdnet_defaults"
+        / "birdnet_default"
         / Path("model.tflite")
     )
 
     default_labels_path = (
         Path(sparrow_dir)
         / Path(cfg["Model"]["model_dir"])
-        / "birdnet_defaults"
+        / "birdnet_default"
         / Path("labels.txt")
     )
 

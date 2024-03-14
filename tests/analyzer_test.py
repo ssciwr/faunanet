@@ -17,13 +17,13 @@ def test_analyzer_construction_default(analyzer_fx):
     assert analyzer.default_model_path == str(
         tv.sparrow_folder
         / Path("models")
-        / Path("birdnet_defaults")
+        / Path("birdnet_default")
         / Path("model.tflite")
     )
     assert analyzer.default_labels_path == str(
         tv.sparrow_folder
         / Path("models")
-        / Path("birdnet_defaults")
+        / Path("birdnet_default")
         / Path("labels.txt")
     )
 
@@ -41,13 +41,13 @@ def test_analyzer_construction_missing_nodes(analyzer_fx):
     assert analyzer.default_model_path == str(
         tv.sparrow_folder
         / Path("models")
-        / Path("birdnet_defaults")
+        / Path("birdnet_default")
         / Path("model.tflite")
     )
     assert analyzer.default_labels_path == str(
         tv.sparrow_folder
         / Path("models")
-        / Path("birdnet_defaults")
+        / Path("birdnet_default")
         / Path("labels.txt")
     )
 
@@ -72,13 +72,13 @@ def test_analyzer_custom_model(analyzer_fx):
     assert analyzer.default_model_path == str(
         tv.sparrow_folder
         / Path("models")
-        / Path("birdnet_defaults")
+        / Path("birdnet_default")
         / Path("model.tflite")
     )
     assert analyzer.default_labels_path == str(
         tv.sparrow_folder
         / Path("models")
-        / Path("birdnet_defaults")
+        / Path("birdnet_default")
         / Path("labels.txt")
     )
 

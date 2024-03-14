@@ -1,8 +1,0 @@
-Analyzer:
-  Model:
-    model_dir: models
-    model_name: birdnet_custom
-    apply_sigmoid: True 
-    sigmoid_sensitivity: 1.0
-    num_threads: 12
-    custom_species_list_path: path/gone/species_list_that_doesnt_exist.txt"
