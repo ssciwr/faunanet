@@ -225,8 +225,7 @@ def install(request):
 
     # remove again after usage
     def teardown():
-        # shutil.rmtree(str(models))
-        # shutil.rmtree(str(examples))
+        shutil.rmtree(str(home))
         shutil.rmtree(str(data))
         shutil.rmtree(str(output))
 
