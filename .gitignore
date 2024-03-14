@@ -6,9 +6,11 @@
 
 # unignore source code and yaml files for config
 !src/**/*.py
-!tests/*.yaml
+!tests/*.yml
+!config/*.yml 
 !tests/*.py
 !pyproject.toml
+!setup.py
 
 #unignore documentation things 
 !**/*.rst
