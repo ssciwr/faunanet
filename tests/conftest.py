@@ -171,7 +171,7 @@ def download_example_data(isparrow_example_dir: str):
         "corrupted.wav": "sha256:68cbc7c63bed90c2ad4fb7d3b5cc608c82cebeaf5e91d5e8d6793d8645b30b95",
         "soundscape.wav": "sha256:df312b45bc82ce4c638c3e9e09d748702ea14a91ec29e4e8e0676d3e3e015fd7",
         "trimmed.wav": "sha256:a4b3c078d2c617264dc5e6a0d62deedba9232699580c9c73d237496726c194b3",
-        "species_list.txt": None
+        "species_list.txt": None,
     }
 
     example_data = pooch.create(
@@ -196,8 +196,12 @@ def copy_files(modeldir):
     local_pp_dir = current.parent / "models"
 
     for name in ["birdnet_default", "birdnet_custom", "google_perch"]:
-        shutil.copy(local_pp_dir / Path(name) / "preprocessor.py", Path(modeldir) / Path(name))
-        shutil.copy(local_pp_dir / Path(name) / "__init__.py", Path(modeldir) / Path(name))
+        shutil.copy(
+            local_pp_dir / Path(name) / "preprocessor.py", Path(modeldir) / Path(name)
+        )
+        shutil.copy(
+            local_pp_dir / Path(name) / "__init__.py", Path(modeldir) / Path(name)
+        )
 
 
 # add a fixture with session scope that emulates the result of a later to-be-implemented-install-routine

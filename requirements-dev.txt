@@ -4,3 +4,4 @@ pytest
 pytest-cov 
 coverage
 pooch
+pre-commit

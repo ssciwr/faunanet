@@ -5,6 +5,7 @@ from birdnetlib.exceptions import AudioFormatError
 
 from iSparrow import preprocessor_base as ppb
 
+
 # README: work in progress - will be completed in separate issue
 class Preprocessor(ppb.PreprocessorBase):
     """
