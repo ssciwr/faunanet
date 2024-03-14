@@ -14,7 +14,13 @@ class Preprocessor(ppb.PreprocessorBase):
 
     """
 
-    def __init__(self, sample_rate: int = 48000, overlap: float = 0.0, sample_secs: int = 3.0, resample_type: str = "kaiser_fast"):
+    def __init__(
+        self,
+        sample_rate: int = 48000,
+        overlap: float = 0.0,
+        sample_secs: int = 3.0,
+        resample_type: str = "kaiser_fast",
+    ):
         """
         __init__ Construct a new preprocesssor for custom birdnet classifiers from given parameters, and use defaults for the ones not present.
 
@@ -24,10 +30,10 @@ class Preprocessor(ppb.PreprocessorBase):
             sample_secs (int, optional): Length of chunks to be analyzed at once. Defaults to 3.0.
             resample_type (str, optional): Resampling method used when reading from file. Defaults to "kaiser_fast".
         """
-        self.sample_rate = sample_rate 
-        self.overlap = overlap 
-        self.sample_secs = sample_secs 
-        self.resample_type = resample_type 
+        self.sample_rate = sample_rate
+        self.overlap = overlap
+        self.sample_secs = sample_secs
+        self.resample_type = resample_type
         self.duration = 0
         self.actual_sampling_rate = 0
         self.chunks = []
@@ -114,7 +120,7 @@ class Preprocessor(ppb.PreprocessorBase):
 
 def preprocessor_from_config(cfg: dict) -> Preprocessor:
     """
-    preprocessor_from_config Construct a new preprocessor from a given dictionary. This represents typically a config node read from a YAML file. 
+    preprocessor_from_config Construct a new preprocessor from a given dictionary. This represents typically a config node read from a YAML file.
 
     Args:
         cfg (dict): Config node read from a YAML file

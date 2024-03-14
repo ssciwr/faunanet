@@ -265,10 +265,7 @@ def analyzer_from_config(sparrow_dir: str, cfg: dict) -> SparrowAnalyzer:
     classifier_labels_path = None
 
     # set them only when a model name is given explicitly and it's not default
-    if (
-        "model_name" in cfg["Model"]
-        and cfg["Model"]["model_name"] != "birdnet_default"
-    ):
+    if "model_name" in cfg["Model"] and cfg["Model"]["model_name"] != "birdnet_default":
 
         classifier_model_path = (
             Path(sparrow_dir)

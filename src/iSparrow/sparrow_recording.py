@@ -9,7 +9,7 @@ from .preprocessor_base import PreprocessorBase
 
 class SparrowRecording(RecordingBase):
     """
-    SparrowRecording A SparrowRecording represents an audio recoding of arbitrary length and date associated with a preprocessor and analyzer object. 
+    SparrowRecording A SparrowRecording represents an audio recoding of arbitrary length and date associated with a preprocessor and analyzer object.
 
     SparrowRecordings read and preprocess audio data using the supplied preprocessor object and can use the 'analyzer' object to analyze and classify the contained animal sounds
 
@@ -27,7 +27,7 @@ class SparrowRecording(RecordingBase):
         lat: float = None,
         lon: float = None,
         return_all_detections: bool = False,
-        min_conf: float = 0.25
+        min_conf: float = 0.25,
     ):
         """
         Create a new SparrowRecording.
@@ -50,7 +50,17 @@ class SparrowRecording(RecordingBase):
         self.filestem = p.stem
 
         # README: This call will change later, as some of the members will live in the analyzer/model in future PR
-        super().__init__(analyzer, week_48=week_48, date=date, sensitivity=1.0, lat=lat, lon=lon, min_conf=min_conf, overlap=0.0, return_all_detections=return_all_detections)
+        super().__init__(
+            analyzer,
+            week_48=week_48,
+            date=date,
+            sensitivity=1.0,
+            lat=lat,
+            lon=lon,
+            min_conf=min_conf,
+            overlap=0.0,
+            return_all_detections=return_all_detections,
+        )
 
     @property
     def filename(self):
