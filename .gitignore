@@ -6,7 +6,8 @@
 
 # unignore source code and yaml files for config
 !src/**/*.py
-!tests/*.yaml
+!tests/*.yml
+!config/install_cfg.yml
 !tests/*.py
 !pyproject.toml
 
