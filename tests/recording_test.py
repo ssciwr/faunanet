@@ -11,7 +11,7 @@ def test_recording_construction(recording_fx):
         recording_fx.analyzer, recording_fx.preprocessor, recording_fx.good_file
     )
 
-    assert recording.path == recording_fx.data_path / Path("soundscape.wav")
+    assert recording.path == recording_fx.example_folder / Path("soundscape.wav")
     assert recording.filename == "soundscape.wav"
     assert recording.filestem == "soundscape"
     assert recording.chunks == []
@@ -35,10 +35,10 @@ def test_analysis_custom(recording_fx):
     )
     assert recording.analyzer.use_custom_classifier is not False
     assert recording.analyzer.default_model_path == str(
-        recording_fx.sparrow_folder / Path("models") / Path("birdnet_defaults") / Path("model.tflite")
+        recording_fx.sparrow_folder / Path("models") / Path("birdnet_default") / Path("model.tflite")
     )
     assert recording.analyzer.default_labels_path == str(
-        recording_fx.sparrow_folder / Path("models") / Path("birdnet_defaults") / Path("labels.txt")
+        recording_fx.sparrow_folder / Path("models") / Path("birdnet_default") / Path("labels.txt")
     )
 
     recording.analyze()
