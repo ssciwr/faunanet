@@ -3,6 +3,10 @@ from src.iSparrow import sparrow_analyzer as spa
 from birdnetlib.analyzer import AnalyzerConfigurationError
 from pathlib import Path
 
+# README: this is only there because SonarCloud wants it...
+BIRDNET_MODEL_NAME = "model.tflite"
+BIRDNET_LABELS_NAME = "labels.txt"
+
 
 def test_analyzer_construction_default(analyzer_fx):
     tv = analyzer_fx
@@ -18,13 +22,13 @@ def test_analyzer_construction_default(analyzer_fx):
         tv.sparrow_folder
         / Path("models")
         / Path("birdnet_default")
-        / Path("model.tflite")
+        / Path(BIRDNET_MODEL_NAME)
     )
     assert analyzer.default_labels_path == str(
         tv.sparrow_folder
         / Path("models")
         / Path("birdnet_default")
-        / Path("labels.txt")
+        / Path(BIRDNET_LABELS_NAME)
     )
 
 
@@ -42,13 +46,13 @@ def test_analyzer_construction_missing_nodes(analyzer_fx):
         tv.sparrow_folder
         / Path("models")
         / Path("birdnet_default")
-        / Path("model.tflite")
+        / Path(BIRDNET_MODEL_NAME)
     )
     assert analyzer.default_labels_path == str(
         tv.sparrow_folder
         / Path("models")
         / Path("birdnet_default")
-        / Path("labels.txt")
+        / Path(BIRDNET_LABELS_NAME)
     )
 
 
@@ -64,7 +68,7 @@ def test_analyzer_custom_model(analyzer_fx):
         tv.sparrow_folder
         / Path("models")
         / Path("birdnet_custom")
-        / Path("model.tflite")
+        / Path(BIRDNET_MODEL_NAME)
     )
     assert analyzer.classifier_labels_path == str(
         tv.sparrow_folder / Path("models") / Path("birdnet_custom") / Path("labels.txt")
@@ -73,13 +77,13 @@ def test_analyzer_custom_model(analyzer_fx):
         tv.sparrow_folder
         / Path("models")
         / Path("birdnet_default")
-        / Path("model.tflite")
+        / Path(BIRDNET_MODEL_NAME)
     )
     assert analyzer.default_labels_path == str(
         tv.sparrow_folder
         / Path("models")
         / Path("birdnet_default")
-        / Path("labels.txt")
+        / Path(BIRDNET_LABELS_NAME)
     )
 
 
