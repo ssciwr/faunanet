@@ -1,5 +1,3 @@
-import csv
-import numpy as np
 import tensorflow as tf
 import tensorflow_hub as tfhub
 import tflite_runtime.interpreter as tflite
@@ -8,6 +6,7 @@ from pathlib import Path
 import validators as valid
 
 
+# custom exception to have some more control over what is raised
 class TFModelException(Exception):
     pass
 
@@ -26,7 +25,7 @@ def is_url(potential_url: str) -> bool:
     return True if valid.url(potential_url) else False
 
 
-def load_model_tflite_from_file(path: str, num_threads: int = 1):
+def load_model_from_file_tflite(path: str, num_threads: int = 1):
     """
     load_tflite_from_file _summary_
 
@@ -52,9 +51,9 @@ def load_model_tflite_from_file(path: str, num_threads: int = 1):
         raise TFModelException(e)
 
 
-def load_model_pb_from_file(path: str):
+def load_model_from_file_pb(path: str):
     """
-    load_model_pb_from_file Load a tensorflow model saved as .pb in tensorflow's saved_model format from file. The file to be loaded must be named 'saved_model.pb'
+    load_model_from_file_pb Load a tensorflow model saved as .pb in tensorflow's saved_model format from file. The file to be loaded must be named 'saved_model.pb'
 
     Args:
         path (str): Path to a floder containing 'saved_model.pb'
@@ -76,7 +75,7 @@ def load_model_pb_from_file(path: str):
         raise TFModelException(e)
 
 
-def load_model_from_tfhub(url: str):
+def load_model_from_tensorflowhub(url: str):
     """
     load_model_from_hub Download a tensorflow model from tensorflow hub, ready to be used
 
@@ -102,7 +101,12 @@ def load_model_from_tfhub(url: str):
         raise TFModelException(e)
 
 
-def load_torch_model_from_file(path: str):
+def load_model_from_huggingfacehub(url: str):
+    # TODO
+    raise NotImplementedError("Huggingface hub is not yet supported")
+
+
+def load_model_from_file_torch(path: str):
     """
     load_torch_model_from_file Load a torch model from file.
 
