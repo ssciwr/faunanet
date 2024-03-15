@@ -15,55 +15,13 @@ class SparrowAnalyzer(Analyzer):
 
     """
 
-    def __init__(
-        self,
-        apply_sigmoid: bool = True,
-        sigmoid_sensitivity: float = 1.0,
-        num_threads: int = 1,
-        custom_species_list_path: str = None,
-        custom_species_list: str = None,
-        classifier_model_path: str = None,
-        classifier_labels_path: str = None,
-        default_model_path: str = None,
-        default_labels_path: str = None,
+    def _check_classifier_path_integrity(
+        self, classifier_model_path: str, classifier_labels_path: str
     ):
-        """
-        __init__ Construct a new custom analyer from parameters or use defaults for those that are not provided.
+        """checks if custom classifier/labels are both given if one is present and the files they point to exist"""
 
-        Args:
-            apply_sigmoid (bool, optional): Whether to apply a sigmoid function to the final predictions. Defaults to True.
-            sigmoid_sensitivity (float, optional): Sigmoid parameter. Defaults to 1.0.
-            num_threads (int, optional): Number of threads to use for analysis. Defaults to 1.
-            custom_species_list_path (str, optional): _description_. Defaults to None.
-            custom_species_list (str, optional): _description_. Defaults to None.
-            classifier_model_path (str, optional): _description_. Defaults to None.
-            classifier_labels_path (str, optional): _description_. Defaults to None.
-            default_model_path (str, optional): _description_. Defaults to None.
-            default_labels_path (str, optional): _description_. Defaults to None.
-
-        Raises:
-            AnalyzerConfigurationError: If any one of the supplied paths is invalid.
-        """
-        # path checks
-        if custom_species_list_path is not None:
-
-            if Path(custom_species_list_path).exists() is False:
-                raise AnalyzerConfigurationError(
-                    "Custom species list path does not exist"
-                )
-
-        if custom_species_list is not None:
-
-            if Path(custom_species_list).exists() is False:
-                raise AnalyzerConfigurationError(
-                    "Custom species list file does not exist"
-                )
-
-        if (
-            classifier_model_path is not None
-            and classifier_labels_path is None
-            or classifier_model_path is None
-            and classifier_labels_path is not None
+        if (classifier_model_path is not None and classifier_labels_path is None) or (
+            classifier_model_path is None and classifier_labels_path is not None
         ):
             raise AnalyzerConfigurationError(
                 "Model and label file paths must be specified to use a custom classifier"
@@ -85,6 +43,53 @@ class SparrowAnalyzer(Analyzer):
                 "Custom classifier labels could not be found at the provided path"
             )
 
+    def __init__(
+        self,
+        apply_sigmoid: bool = True,
+        sigmoid_sensitivity: float = 1.0,
+        num_threads: int = 1,
+        custom_species_list_path: str = None,
+        custom_species_list: list = None,
+        classifier_model_path: str = None,
+        classifier_labels_path: str = None,
+        default_model_path: str = None,
+        default_labels_path: str = None,
+    ):
+        """
+        __init__ Construct a new custom analyer from parameters or use defaults for those that are not provided.
+
+        Args:
+            apply_sigmoid (bool, optional): Whether to apply a sigmoid function to the final predictions. Defaults to True.
+            sigmoid_sensitivity (float, optional): Sigmoid parameter. Defaults to 1.0.
+            num_threads (int, optional): Number of threads to use for analysis. Defaults to 1.
+            custom_species_list_path (str, optional): _description_. Defaults to None.
+            custom_species_list (str, optional): _description_. Defaults to None.
+            classifier_model_path (str, optional): _description_. Defaults to None.
+            classifier_labels_path (str, optional): _description_. Defaults to None.
+            default_model_path (str, optional): _description_. Defaults to None.
+            default_labels_path (str, optional): _description_. Defaults to None.
+
+        Raises:
+            AnalyzerConfigurationError: If any paths for default model are invalid.
+            AnalyzerConfigurationError: If any paths for custom model are invalid or inconsistent.
+            AnalyzerConfigurationError: If species list path is inconsistent
+
+        """
+        # path checks
+
+        # check custom classifier paths through function due to higher complexity
+        self._check_classifier_path_integrity(
+            classifier_model_path, classifier_labels_path
+        )
+
+        # make sure species list paths exists
+        if (
+            custom_species_list_path is not None
+            and Path(custom_species_list_path).exists() is False
+        ):
+            raise AnalyzerConfigurationError("Custom species list path does not exist")
+
+        # make sure default model is found
         if Path(default_model_path).exists() is False:
             raise AnalyzerConfigurationError(
                 "Error, default model could not be found at provided path"
