@@ -61,14 +61,14 @@ class Preprocessor(ppb.PreprocessorBase):
             self.duration = librosa.get_duration(y=data, sr=self.sample_rate)
             self.actual_sampling_rate = rate
 
-        # FIXME: on macos, the BaseException below is thrown, no ubuntu the AudioFormatError... ??
+        # README: on macos, the Exception below is thrown, no ubuntu the AudioFormatError...
         except audioread.exceptions.NoBackendError as e:
             print(e)
             raise AudioFormatError("Audio format could not be opened.")
         except FileNotFoundError as e:
             print(e)
             raise e
-        except BaseException as e:
+        except Exception as e:
             print(e)
             raise AudioFormatError("Generic audio read error occurred from librosa.")
 
