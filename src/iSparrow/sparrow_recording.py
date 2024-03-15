@@ -66,14 +66,6 @@ class SparrowRecording(RecordingBase):
     def filename(self):
         return os.path.basename(self.path)
 
-    # @property
-    # def sample_secs(self):
-    #     return self.processor.sample_secs
-
-    # @property
-    # def overlap(self):
-    #     return self.processor.overlap
-
     @property
     def chunks(self):
         return self.processor.chunks

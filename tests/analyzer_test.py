@@ -14,7 +14,7 @@ def test_analyzer_construction_default(analyzer_fx):
     analyzer = spa.analyzer_from_config(tv.sparrow_folder, tv.default_cfg["Analyzer"])
 
     assert analyzer.apply_sigmoid is True
-    assert analyzer.sigmoid_sensitivity == 1.0
+    assert analyzer.sigmoid_sensitivity == pytest.approx(1.0)
     assert analyzer.num_threads == 12
     assert analyzer.classifier_model_path is None
     assert analyzer.classifier_labels_path is None
@@ -38,7 +38,7 @@ def test_analyzer_construction_missing_nodes(analyzer_fx):
     analyzer = spa.analyzer_from_config(tv.sparrow_folder, tv.cfg_missing["Analyzer"])
 
     assert analyzer.apply_sigmoid is True
-    assert analyzer.sigmoid_sensitivity == 1.0
+    assert analyzer.sigmoid_sensitivity == pytest.approx(1.0)
     assert analyzer.num_threads == 1
     assert analyzer.classifier_model_path is None
     assert analyzer.classifier_labels_path is None
@@ -62,7 +62,7 @@ def test_analyzer_custom_model(analyzer_fx):
     analyzer = spa.analyzer_from_config(tv.sparrow_folder, tv.cfg["Analyzer"])
 
     assert analyzer.apply_sigmoid is True
-    assert analyzer.sigmoid_sensitivity == 1.0
+    assert analyzer.sigmoid_sensitivity == pytest.approx(1.0)
     assert analyzer.num_threads == 12
     assert analyzer.classifier_model_path == str(
         tv.sparrow_folder
