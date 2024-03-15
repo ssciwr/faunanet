@@ -37,7 +37,7 @@ class Preprocessor(ppb.PreprocessorBase):
         self.actual_sampling_rate = 0
         super().__init__("google_perch")
 
-    def read_audio_data(self, path: str) -> np.ndarray:
+    def read_audio_data(self, path: str) -> np.array:
         """
         read_audio_data Read in audio data, resample and return the resampled raw data, adding members for actual sampling rate and duration of audio file.
         Args:
@@ -74,6 +74,8 @@ class Preprocessor(ppb.PreprocessorBase):
             raise RuntimeError(
                 "Error, sampling rate from resampling and desired sampling rate don't match"
             )
+
+        return data
 
     def process_audio_data(self, rawdata: np.ndarray) -> list:
         """

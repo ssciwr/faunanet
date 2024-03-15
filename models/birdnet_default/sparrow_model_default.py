@@ -1,9 +1,12 @@
+import sys
 from pathlib import Path
 import numpy as np
-import utils
 
 from birdnetlib.analyzer import AnalyzerConfigurationError
-from sparrow_model_base import ModelBase
+
+sys.path.append("../../src/iSparrow")
+from src.iSparrow.sparrow_model_base import ModelBase
+import src.iSparrow.utils as utils
 
 
 class BirdnetDefaultModel(ModelBase):

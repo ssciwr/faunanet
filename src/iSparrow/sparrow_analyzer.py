@@ -126,6 +126,11 @@ class SparrowAnalyzer(Analyzer):
     def predict_with_custom_classifier(self, sample: np.array) -> np.array:
         return self.predict(sample)
 
+    def detections(self):
+        # TODO
+        # super().detections() # if we have a model that is birdnet, else use a custom thingy
+        pass
+
 
 def analyzer_from_config(sparrow_dir: str, cfg: dict) -> SparrowAnalyzer:
     """
