@@ -117,46 +117,49 @@ class SparrowAnalyzer(Analyzer):
             classifier_labels_path=self.classifier_labels_path,
         )
 
+    # README: these are there to retain compatibility with birdnetlib
+    @property
+    def labels(self):
+        return self.model.labels
+
+    @property
+    def default_model_path(self):
+        return self.model.default_model_path
+
+    @property
+    def default_labels_path(self):
+        return self.model.default_labels_path
+
+    @property
+    def num_threads(self):
+        return self.model.num_threads
+
+    @property
+    def custom_species_list_path(self):
+        return self.model.custom_species_list_path
+
+    @property
+    def custom_species_list(self):
+        return self.model.custom_species_list
+
+    @property
+    def classifier_model_path(self):
+        return self.model.classifier_model_path
+
+    @property
+    def classifier_labels_path(self):
+        return self.model.classifier_labels_path
+
     # README: these need to be overloaded because the base class uses hardcoded paths here. We don't.
     def load_model(self):
-        """
-        load_model Override of the base class load model to get the correct paths and make sure that we have multithreading
-        """
-        self.interpreter = tflite.Interpreter(
-            model_path=str(self.default_model_path), num_threads=self.num_threads
-        )
-        self.interpreter.allocate_tensors()
-
-        # Get input and output tensors.
-        self.input_details = self.interpreter.get_input_details()
-        self.output_details = self.interpreter.get_output_details()
-
-        # Get input tensor index
-        self.input_layer_index = self.input_details[0]["index"]
-
-        # Get classification output or feature embeddings as output, depending on presence fo custom classifier
-        if self.use_custom_classifier:
-            self.output_layer_index = self.output_details[0]["index"] - 1
-        else:
-            self.output_layer_index = self.output_details[0]["index"]
-
-        print("Model loaded custom ")
+        self.model.load_model()
 
     def load_labels(self):
         """
         load_labels Load labels for classes from file.
 
         """
-        labels_file_path = self.default_labels_path
-        if self.classifier_labels_path:
-            print("loading custom classifier labels")
-            labels_file_path = self.classifier_labels_path
-        labels = []
-        with open(labels_file_path, "r") as lfile:
-            for line in lfile.readlines():
-                labels.append(line.replace("\n", ""))
-        self.labels = labels
-        print("Labels loaded custom.")
+        self.model.load_labels()
 
     def get_embeddings(self, data: np.array) -> np.array:
         """
@@ -187,6 +190,7 @@ class SparrowAnalyzer(Analyzer):
         return features
 
     def predict_with_custom_classifier(self, sample: np.array) -> list:
+        # FIXME: this is probably not used anymore when we are done implementing stuff
         """
         predict_with_custom_classifier Extract features from supplied audio sample and classify them into bird species the classifier is trained upon.
 
@@ -196,41 +200,51 @@ class SparrowAnalyzer(Analyzer):
         Returns:
             list: Probabilities with which the model thinks we have what species for each species known to it.
         """
-        # overrides the predict_with_custom_classifier in the 'Analyzer' class
-        # of birdnetlib with what the BirdNET-Analyzer system does.
-        # README: will be replaced in a later PR with a more concise implementation
+        # # overrides the predict_with_custom_classifier in the 'Analyzer' class
+        # # of birdnetlib with what the BirdNET-Analyzer system does.
+        # # README: will be replaced in a later PR with a more concise implementation
 
-        data = np.array([sample], dtype="float32")
+        # data = np.array([sample], dtype="float32")
 
-        input_details = self.custom_interpreter.get_input_details()
+        # input_details = self.custom_interpreter.get_input_details()
 
-        input_size = input_details[0]["shape"][-1]
+        # input_size = input_details[0]["shape"][-1]
 
-        feature_vector = self.get_embeddings(data) if input_size != 144000 else data
+        # feature_vector = self.get_embeddings(data) if input_size != 144000 else data
 
-        self.custom_interpreter.resize_tensor_input(
-            self.custom_input_layer_index,
-            [len(feature_vector), *feature_vector[0].shape],
+        # self.custom_interpreter.resize_tensor_input(
+        #     self.custom_input_layer_index,
+        #     [len(feature_vector), *feature_vector[0].shape],
+        # )
+
+        # self.custom_interpreter.allocate_tensors()
+
+        # # Make a prediction
+        # self.custom_interpreter.set_tensor(
+        #     self.custom_input_layer_index, np.array(feature_vector, dtype="float32")
+        # )
+
+        # self.custom_interpreter.invoke()
+
+        # prediction = self.custom_interpreter.get_tensor(self.custom_output_layer_index)
+
+        # # Logits or sigmoid activations?
+        # if self.apply_sigmoid:
+        #     prediction = self.flat_sigmoid(
+        #         np.array(prediction), sensitivity=-self.sigmoid_sensitivity
+        #     )
+
+        # return prediction
+
+        return self.model.predict(sample)  # equal in this case
+
+    def predict(self, sample: np.array) -> list:
+
+        raise NotImplementedError(
+            "Error, since model is not yet implemented, prediction is not yet implemented either"
         )
 
-        self.custom_interpreter.allocate_tensors()
-
-        # Make a prediction
-        self.custom_interpreter.set_tensor(
-            self.custom_input_layer_index, np.array(feature_vector, dtype="float32")
-        )
-
-        self.custom_interpreter.invoke()
-
-        prediction = self.custom_interpreter.get_tensor(self.custom_output_layer_index)
-
-        # Logits or sigmoid activations?
-        if self.apply_sigmoid:
-            prediction = self.flat_sigmoid(
-                np.array(prediction), sensitivity=-self.sigmoid_sensitivity
-            )
-
-        return prediction
+        return self.model.predict(sample)
 
 
 def analyzer_from_config(sparrow_dir: str, cfg: dict) -> SparrowAnalyzer:
