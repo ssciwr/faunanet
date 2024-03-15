@@ -225,9 +225,7 @@ class SparrowAnalyzer(Analyzer):
         prediction = self.custom_interpreter.get_tensor(self.custom_output_layer_index)
 
         # Logits or sigmoid activations?
-        # self.apply_sigmoid = True # This is how it is done in birdnetlib-> ?
         if self.apply_sigmoid:
-            # self.sigmoid_sensitivity = 1.0
             prediction = self.flat_sigmoid(
                 np.array(prediction), sensitivity=-self.sigmoid_sensitivity
             )
