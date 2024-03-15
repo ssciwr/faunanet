@@ -20,6 +20,8 @@ class SparrowAnalyzer(Analyzer):
         model,
         apply_sigmoid: bool = True,
         sigmoid_sensitivity: float = 1.0,
+        custom_species_list_path=None,
+        custom_species_list=None,
     ):
         """
         __init__ Construct a new custom analyer from parameters or use defaults for those that are not provided.
@@ -33,11 +35,16 @@ class SparrowAnalyzer(Analyzer):
         self.apply_sigmoid = apply_sigmoid
         self.sigmoid_sensitivity = sigmoid_sensitivity
         self.model = model
+
+        if (
+            custom_species_list_path is not None
+            and Path(custom_species_list_path).exists() is False
+        ):
+            raise AnalyzerConfigurationError("Custom species list path does not exist")
+
         super().__init__(
-            custom_species_list_path=self.model.custom_species_list_path,
-            custom_species_list=self.model.custom_species_list,
-            classifier_model_path=self.model.classifier_model_path,
-            classifier_labels_path=self.model.classifier_labels_path,
+            custom_species_list_path=custom_species_list_path,
+            custom_species_list=custom_species_list,
         )
 
     # README: these are there to retain compatibility with birdnetlib
@@ -58,14 +65,6 @@ class SparrowAnalyzer(Analyzer):
         return self.model.num_threads
 
     @property
-    def custom_species_list_path(self):
-        return self.model.custom_species_list_path
-
-    @property
-    def custom_species_list(self):
-        return self.model.custom_species_list
-
-    @property
     def classifier_model_path(self):
         return self.model.classifier_model_path
 
@@ -75,6 +74,10 @@ class SparrowAnalyzer(Analyzer):
 
     # README: these need to be overloaded because the base class uses hardcoded paths here. We don't.
     def load_model(self):
+        """
+        load_model _summary_
+
+        """
         self.model.load_model()
 
     def load_labels(self):
@@ -98,35 +101,9 @@ class SparrowAnalyzer(Analyzer):
         """
         return self.model.get_embeddings(data)
 
-    def predict_with_custom_classifier(self, sample: np.array) -> list:
-        # FIXME: this is probably not used anymore when we are done implementing stuff
-        """
-        predict_with_custom_classifier Extract features from supplied audio sample and classify them into bird species the classifier is trained upon.
-
-        Args:
-            sample (np.array): Preprocessed audio sample
-
-        Returns:
-            list: Probabilities with which the model thinks we have what species for each species known to it.
-        """
-        # overrides the predict_with_custom_classifier in the 'Analyzer' class
-        # of birdnetlib with what the BirdNET-Analyzer system does.
-        # README: will be replaced in a later PR with a more concise implementation
-
-        predictions = self.model.predict(sample)
-
-        if self.apply_sigmoid:
-            predictions = self.flat_sigmoid(
-                np.array(predictions), sensitivity=-self.sigmoid_sensitivity
-            )
-
-        return predictions
-
-    def predict(self, sample: np.array) -> list:
+    def predict(self, sample: np.array) -> np.array:
         """
         predict TODO
-
-        _extended_summary_
 
         Args:
             sample (np.array): _description_
@@ -143,6 +120,11 @@ class SparrowAnalyzer(Analyzer):
             )
 
         return predictions
+
+    # README: this function only exists for compatibility reasons with the base class' 'analyze_recording' method.
+    # This should be gotten rid of.
+    def predict_with_custom_classifier(self, sample: np.array) -> np.array:
+        return self.predict(sample)
 
 
 def analyzer_from_config(sparrow_dir: str, cfg: dict) -> SparrowAnalyzer:

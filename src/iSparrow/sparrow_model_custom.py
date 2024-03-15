@@ -43,8 +43,6 @@ class BirdnetCustomModel(BirdnetDefaultModel):
         default_labels_path=None,
         classifier_model_path=None,
         classifier_labels_path=None,
-        custom_species_list_path=None,
-        custom_species_list=None,
         num_threads=1,
     ):
         """
@@ -76,8 +74,6 @@ class BirdnetCustomModel(BirdnetDefaultModel):
         super().__init__(
             default_model_path=default_model_path,
             default_labels_path=default_labels_path,
-            custom_species_list=custom_species_list,
-            custom_species_list_path=custom_species_list_path,
             num_threads=num_threads,
         )
 

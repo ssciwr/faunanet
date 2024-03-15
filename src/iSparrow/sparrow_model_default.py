@@ -18,8 +18,6 @@ class BirdnetDefaultModel(ModelBase):
         self,
         model_path,
         labels_path,
-        custom_species_list_path=None,
-        custom_species_list=None,
         num_threads=1,
     ):
         """
@@ -30,15 +28,10 @@ class BirdnetDefaultModel(ModelBase):
             labels_path (_type_): _description_
             classifier_model_path (_type_, optional): _description_. Defaults to None.
             classifier_labels_path (_type_, optional): _description_. Defaults to None.
-            custom_species_list_path (_type_, optional): _description_. Defaults to None.
-            custom_species_list (_type_, optional): _description_. Defaults to None.
             num_threads (int, optional): _description_. Defaults to 1.
         """
 
         self.num_threads = num_threads
-
-        self.custom_species_list_path = custom_species_list_path
-        self.custom_species_list = custom_species_list
 
         self.model_path = model_path
         self.labels_path = labels_path
@@ -48,11 +41,6 @@ class BirdnetDefaultModel(ModelBase):
         self.output_layer_index = 0
 
         # make sure species list paths exists
-        if (
-            custom_species_list_path is not None
-            and Path(custom_species_list_path).exists() is False
-        ):
-            raise AnalyzerConfigurationError("Custom species list path does not exist")
 
         # make sure default model is found
         if Path(model_path).exists() is False:
