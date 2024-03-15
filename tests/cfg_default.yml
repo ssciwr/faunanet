@@ -1,0 +1,19 @@
+Analyzer:
+  Model:
+    model_dir: models
+    model_name: birdnet_default
+    apply_sigmoid: True 
+    sigmoid_sensitivity: 1.0
+    num_threads: 12
+  
+  min_conf: 0.25
+
+Data:
+  # input: example/soundscape.wav
+  # output: example
+
+  Preprocessor: 
+    sample_rate: 48000
+    overlap: 0.0
+    sample_secs: 3.0
+    resample_type: kaiser_fast

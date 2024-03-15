@@ -1,0 +1,7 @@
+Analyzer:
+  Model:
+    model_dir: models
+    model_name: unknown_model_that_doesn' exist
+    apply_sigmoid: True 
+    sigmoid_sensitivity: 1.0
+    num_threads: 12
