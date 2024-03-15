@@ -5,7 +5,7 @@ from pathlib import Path
 
 try:
     import tflite_runtime.interpreter as tflite
-except:
+except Exception:
     from tensorflow import lite as tflite
 
 
@@ -69,17 +69,21 @@ class SparrowAnalyzer(Analyzer):
                 "Model and label file paths must be specified to use a custom classifier"
             )
 
-        if classifier_model_path is not None:
-            if Path(classifier_model_path).exists() is False:
-                raise AnalyzerConfigurationError(
-                    "Custom classifier model could not be found at the provided path"
-                )
+        if (
+            classifier_model_path is not None
+            and Path(classifier_model_path).exists() is False
+        ):
+            raise AnalyzerConfigurationError(
+                "Custom classifier model could not be found at the provided path"
+            )
 
-        if classifier_model_path is not None:
-            if Path(classifier_labels_path).exists() is False:
-                raise AnalyzerConfigurationError(
-                    "Custom classifier labels could not be found at the provided path"
-                )
+        if (
+            classifier_model_path is not None
+            and Path(classifier_labels_path).exists() is False
+        ):
+            raise AnalyzerConfigurationError(
+                "Custom classifier labels could not be found at the provided path"
+            )
 
         if Path(default_model_path).exists() is False:
             raise AnalyzerConfigurationError(
