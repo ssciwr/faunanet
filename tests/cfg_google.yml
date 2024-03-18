@@ -1,0 +1,19 @@
+Analyzer:
+  Model:
+    model_dir: models
+    model_name: google_perch
+    apply_sigmoid: True 
+    sigmoid_sensitivity: 1.0
+    num_threads: 12
+  
+  min_conf: 0.25
+
+Data:
+  # input: example/soundscape.wav
+  # output: example
+  # Parameters taken from https://www.kaggle.com/models/google/bird-vocalization-classifier/frameworks/TensorFlow2/variations/bird-vocalization-classifier/versions/2
+  Preprocessor: 
+    sample_rate: 32000
+    overlap: 0.0
+    sample_secs: 5.0
+    resample_type: kaiser_fast

@@ -1,11 +1,16 @@
+import sys
+
+sys.path.append("../src/iSparrow")
+
 import pytest
 import shutil
 import pooch
 import yaml
 from pathlib import Path
 
+from src.iSparrow import preprocessor_base as ppb
 from .fixtures.recording_fixtures import recording_fx
-from .fixtures.preprocessor_fixtures import preprocessor_fx
+from .fixtures.preprocessor_fixtures import preprocessor_fx, preprocessor_fx_google
 from .fixtures.analyzer_fixtures import analyzer_fx
 
 
@@ -229,7 +234,7 @@ def install(request):
 
     # remove again after usage
     def teardown():
-        shutil.rmtree(str(home))
+        # shutil.rmtree(str(home))
         shutil.rmtree(str(data))
         shutil.rmtree(str(output))
 
