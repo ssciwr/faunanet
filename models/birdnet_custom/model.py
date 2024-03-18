@@ -187,7 +187,12 @@ class BirdnetCustomModel(BirdnetDefaultModel):
 
         prediction = self.custom_interpreter.get_tensor(self.custom_output_layer_index)
 
-        return prediction
+        probabilities = self._sigmoid(prediction, self.sensitivity)
+
+        return probabilities
+
+    def _sigmoid(self, x, sensitivity=-1):
+        return 1 / (1.0 + np.exp(sensitivity * np.clip(x, -15, 15)))
 
     @classmethod
     def from_config(cls, cfg: dict):

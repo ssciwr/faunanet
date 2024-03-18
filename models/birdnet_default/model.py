@@ -120,7 +120,11 @@ class Model(ModelBase):
 
         features = self.interpreter.get_tensor(self.output_layer_index)
 
-        return features
+        probabilities = self._sigmoid(features, self.sensitivity)
+        return probabilities
+
+    def _sigmoid(self, x, sensitivity=-1):
+        return 1 / (1.0 + np.exp(sensitivity * np.clip(x, -15, 15)))
 
     @classmethod
     def from_config(cls, cfg: dict):
