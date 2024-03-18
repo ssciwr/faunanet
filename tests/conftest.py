@@ -113,6 +113,8 @@ def download_model_files(isparrow_model_dir: str):
         "google_bird_classification/assets/genus.csv": None,
         "google_bird_classification/assets/label.csv": None,
         "google_bird_classification/assets/order.csv": None,
+        "google_bird_classification/labels.txt": None,
+        "google_bird_classification/train_metadata.csv": None,
     }
 
     models_data = pooch.create(
@@ -136,16 +138,9 @@ def download_model_files(isparrow_model_dir: str):
             ism / Path("birdnet_custom"),
         )
 
-    for name in [
-        "saved_model.pb",
-        "variables/variables.index",
-        "variables/variables.data-00000-of-00001",
-        "assets/family.csv",
-        "assets/genus.csv",
-        "assets/label.csv",
-        "assets/order.csv",
-    ]:
+    for name in ["saved_model.pb", "labels.txt", "train_metadata.csv"]:
         (ism / Path("google_perch")).mkdir(parents=True, exist_ok=True)
+
         shutil.copy(
             Path(
                 models_data.fetch(
@@ -153,6 +148,41 @@ def download_model_files(isparrow_model_dir: str):
                 )
             ),
             ism / Path("google_perch"),
+        )
+
+    # assets and variables need to live in separate directories to load the model correctly
+    for name in [
+        "variables/variables.index",
+        "variables/variables.data-00000-of-00001",
+    ]:
+
+        (ism / Path("google_perch") / "variables").mkdir(parents=True, exist_ok=True)
+
+        shutil.copy(
+            Path(
+                models_data.fetch(
+                    f"google_bird_classification/{name}", progressbar=False
+                )
+            ),
+            ism / Path("google_perch") / "variables",
+        )
+
+    for name in [
+        "assets/family.csv",
+        "assets/genus.csv",
+        "assets/label.csv",
+        "assets/order.csv",
+    ]:
+
+        (ism / Path("google_perch") / "assets").mkdir(parents=True, exist_ok=True)
+
+        shutil.copy(
+            Path(
+                models_data.fetch(
+                    f"google_bird_classification/{name}", progressbar=False
+                )
+            ),
+            ism / Path("google_perch") / "assets",
         )
 
 
@@ -234,7 +264,7 @@ def install(request):
 
     # remove again after usage
     def teardown():
-        # shutil.rmtree(str(home))
+        shutil.rmtree(str(home))
         shutil.rmtree(str(data))
         shutil.rmtree(str(output))
 
