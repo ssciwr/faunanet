@@ -95,30 +95,6 @@ class Preprocessor(ppb.PreprocessorBase):
 
         self.chunks = []
 
-        # README: this is the usual birdnet/birdnetlib splitting code...
-        # minlen = 1.5
-
-        # step = int(self.sample_secs * self.sample_rate)
-
-        # for i in range(0, len(rawdata), step):
-
-        #     split = rawdata[i : (i + int(self.sample_secs * self.actual_sampling_rate))]
-
-        #     # end of data: throw away tails that are too short
-        #     if len(split) < int(minlen * self.actual_sampling_rate):
-        #         break
-
-        #     # pad data
-        #     if len(split) < int(self.sample_secs * self.actual_sampling_rate):
-        #         temp = np.zeros(int(self.sample_secs * self.actual_sampling_rate))
-        #         temp[: len(split)] = split
-        #         split = temp
-
-        #     self.chunks.append(split)
-
-        # README: ... but used instead tensorflow code as suggested in https://www.kaggle.com/code/pratul007/bird-species-classification-using-tensorflow-hub.
-        # because it has the functionality built index
-
         # raise when sampling rate is unequal.
         if self.actual_sampling_rate != self.sample_rate:
             raise RuntimeError(
