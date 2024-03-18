@@ -230,6 +230,7 @@ def copy_files(modeldir):
         shutil.copy(
             local_pp_dir / Path(name) / "preprocessor.py", Path(modeldir) / Path(name)
         )
+        shutil.copy(local_pp_dir / Path(name) / "model.py", Path(modeldir) / Path(name))
         shutil.copy(
             local_pp_dir / Path(name) / "__init__.py", Path(modeldir) / Path(name)
         )

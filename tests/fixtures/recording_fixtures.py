@@ -31,7 +31,7 @@ class RecordingFixture:
 
         self.example_folder = self.sparrow_folder / "example"
 
-        with open(self.testpath / "cfg.yml", "r") as file:
+        with open(self.testpath / "cfg_custom.yml", "r") as file:
             self.cfg = yaml.safe_load(file)
 
         with open(self.testpath / "cfg_default.yml", "r") as file:
@@ -42,7 +42,7 @@ class RecordingFixture:
         pp = utils.load_module(
             str(
                 self.models_folder
-                / Path(self.cfg["Analyzer"]["Model"]["model_name"])
+                / Path(self.cfg["Analyzer"]["Model"]["model_path"])
                 / "preprocessor.py"
             )
         )
@@ -50,7 +50,7 @@ class RecordingFixture:
         ppd = utils.load_module(
             str(
                 self.models_folder
-                / Path(self.cfg["Analyzer"]["Model"]["model_name"])
+                / Path(self.cfg["Analyzer"]["Model"]["model_path"])
                 / "preprocessor.py"
             )
         )

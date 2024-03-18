@@ -14,18 +14,19 @@ import pandas as pd
 
 class Model(ModelBase):
 
-    def __init__(self, model_path: str):
+    def __init__(self, model_path: str, num_threads: int = 1):
         """
         __init__ Create a new Model instance using the google perch model.
 
         Args:
             model_path (str): Path to the model file to load from disk
+            num_threads (int): The number of threads used for inference. Currently not used for this model.
         """
         model_path = Path(model_path) / "model.pb"
         labels_path = Path(model_path) / "labels.txt"
 
         super().__init__(
-            model_path, labels_path, 1
+            model_path, labels_path, num_threads
         )  # num_threads doesn't do anything here.
 
     def load_model(self):

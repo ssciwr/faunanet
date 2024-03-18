@@ -24,9 +24,9 @@ class ModelFixture:
             cfg = cfg["Directories"]
 
         self.sparrow_folder = Path(cfg["home"]).expanduser()
-        models_folder = self.sparrow_folder / "models"
+        self.models_folder = self.sparrow_folder / "models"
 
-        with open(self.testpath / "cfg.yml", "r") as file:
+        with open(self.testpath / "cfg_custom.yml", "r") as file:
             self.custom_cfg = yaml.safe_load(file)
 
         with open(self.testpath / "cfg_default.yml", "r") as file:
@@ -36,13 +36,29 @@ class ModelFixture:
             self.cfg_wrong_model = yaml.safe_load(file)
 
         with open(self.testpath / "cfg_google.yml", "r") as file:
-            self.cfg_google = yaml.safe_load(file)
+            self.gogole_cfg = yaml.safe_load(file)
 
-        self.module = utils.load_module(
+        self.default_module = utils.load_module(
             str(
-                models_folder
-                / Path(cfg["Analyzer"]["Model"]["model_name"])
-                / "preprocessor.py"
+                self.models_folder
+                / Path(self.default_cfg["Analyzer"]["Model"]["model_path"])
+                / "model.py"
+            )
+        )
+
+        self.custom_module = utils.load_module(
+            str(
+                self.models_folder
+                / Path(self.custom_cfg["Analyzer"]["Model"]["model_path"])
+                / "model.py"
+            )
+        )
+
+        self.google_module = utils.load_module(
+            str(
+                self.models_folder
+                / Path(self.gogole_cfg["Analyzer"]["Model"]["model_path"])
+                / "model.py"
             )
         )
 

@@ -11,34 +11,32 @@ import src.iSparrow.utils as utils
 
 class Model(ModelBase):
     """
-    BirdnetModel _summary_
+    Model Model class representing the the default birdnet model. Does currently not support custom species list or species prediction based on coordinates.
 
-    Args:
-        ModelBase (_type_): _description_
     """
 
     def __init__(
-        self,
-        model_path,
-        labels_path,
-        num_threads=1,
+        self, model_path: str, num_threads: int = 1, sigmoid_sensitivity: float = 1.0
     ):
         """
         __init__ Create a new model instance that uses birdnet-analyzer models for bird species classification
 
         Args:
-            model_path (_type_): _description_
-            labels_path (_type_): _description_
-            classifier_model_path (_type_, optional): _description_. Defaults to None.
-            classifier_labels_path (_type_, optional): _description_. Defaults to None.
-            num_threads (int, optional): _description_. Defaults to 1.
+            model_path (str): Path to the location of the model file to be loaded
+            num_threads (int, optional): Number of threads used for inference. Defaults to 1.
+            sigmoid_sensitivity (float, optional): Parameter of the sigmoid function used to compute probabilities. Defaults to 1.0.
+
+        Raises:
+            AnalyzerConfigurationError: The model file 'model.tflite' doesn't exist at the given path.
+            AnalyzerConfigurationError: The labels file 'labels.txt' doesn't exist at the given path.
         """
 
         self.num_threads = num_threads
 
-        self.model_path = model_path
-        self.labels_path = labels_path
+        self.model_path = str(Path(model_path) / "model.tflite")
 
+        self.labels_path = str(Path(model_path) / "labels.txt")
+        self.sensitivity = sigmoid_sensitivity
         self.interpreter = None
         self.input_layer_index = 0
         self.output_layer_index = 0
@@ -46,14 +44,14 @@ class Model(ModelBase):
         # make sure species list paths exists
 
         # make sure default model is found
-        if Path(model_path).exists() is False:
+        if Path(self.model_path).exists() is False:
             raise AnalyzerConfigurationError(
-                "Error, default model could not be found at provided path"
+                f"Error, default model could not be found at provided path {self.model_path}"
             )
 
-        if Path(labels_path).exists() is False:
+        if Path(self.labels_path).exists() is False:
             raise AnalyzerConfigurationError(
-                "Error, default label could not be found at provided path"
+                f"Error, default label could not be found at provided path {self.labels_path}"
             )
 
         self.load_model()
@@ -64,7 +62,9 @@ class Model(ModelBase):
         load_model Override of the base class load model to get the correct paths and make sure that we have multithreading.
         """
 
-        utils.load_model_from_file_tflite(self.model_path, num_threads=self.num_threads)
+        self.interpreter = utils.load_model_from_file_tflite(
+            self.model_path, num_threads=self.num_threads
+        )
 
         # Get input and output tensors.
         input_details = self.interpreter.get_input_details()
@@ -75,10 +75,7 @@ class Model(ModelBase):
         self.input_layer_index = input_details[0]["index"]
 
         # Get classification output or feature embeddings as output, depending on presence fo custom classifier
-        if self.use_custom_classifier:
-            self.output_layer_index = output_details[0]["index"] - 1
-        else:
-            self.output_layer_index = output_details[0]["index"]
+        self.output_layer_index = output_details[0]["index"]
 
         print("Default model loaded ")
 
@@ -120,12 +117,30 @@ class Model(ModelBase):
 
         features = self.interpreter.get_tensor(self.output_layer_index)
 
-        probabilities = self._sigmoid(features, self.sensitivity)
+        # map to probabilities
+        probabilities = self._sigmoid(features, -self.sensitivity)
         return probabilities
 
-    def _sigmoid(self, x, sensitivity=-1):
-        return 1 / (1.0 + np.exp(sensitivity * np.clip(x, -15, 15)))
+    def _sigmoid(self, logits: np.array, sensitivity: float = -1):
+        """
+        _sigmoid Apply a simple sigmoid to output logits to map to probabilities
+
+        Args:
+            logits (np.array): Raw output from a the inference function of the loaded model.
+            sensitivity (float, optional): Sigmoid parameter. Defaults to -1.
+
+        Returns:
+            np.array: Model output mapped to [0,1] to get interpretable probability
+        """
+        return 1 / (1.0 + np.exp(sensitivity * np.clip(logits, -15, 15)))
 
     @classmethod
-    def from_config(cls, cfg: dict):
+    def from_cfg(cls, sparrow_folder: str, cfg: dict):
+
+        cfg["model_path"] = str(
+            Path(sparrow_folder) / Path("models") / cfg["model_path"]
+        )
+
+        print(type(cfg["model_path"]))
+
         return cls(**cfg)

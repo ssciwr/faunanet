@@ -5,11 +5,11 @@ import numpy as np
 from birdnetlib.analyzer import AnalyzerConfigurationError
 
 sys.path.append("../../src/iSparrow")
-from src.iSparrow.sparrow_model_default import BirdnetDefaultModel
+from src.iSparrow.sparrow_model_base import ModelBase
 import src.iSparrow.utils as utils
 
 
-class BirdnetCustomModel(BirdnetDefaultModel):
+class BirdnetCustomModel(ModelBase):
 
     def _check_classifier_path_integrity(
         self, classifier_model_path: str, classifier_labels_path: str
@@ -42,11 +42,12 @@ class BirdnetCustomModel(BirdnetDefaultModel):
     #
     def __init__(
         self,
-        default_model_path=None,
-        default_labels_path=None,
-        classifier_model_path=None,
-        classifier_labels_path=None,
-        num_threads=1,
+        default_model_path: str = None,
+        classifier_model_path: str = None,
+        custom_species_list_path: str = None,
+        custom_species_list: list = None,
+        sigmoid_sensitivity: float = 1.0,
+        num_threads: int = 1,
     ):
         """
         __init__ _summary_
@@ -55,28 +56,30 @@ class BirdnetCustomModel(BirdnetDefaultModel):
 
         Args:
             default_model_path (_type_, optional): _description_. Defaults to None.
-            default_labels_path (_type_, optional): _description_. Defaults to None.
             classifier_model_path (_type_, optional): _description_. Defaults to None.
-            classifier_labels_path (_type_, optional): _description_. Defaults to None.
             custom_species_list_path (_type_, optional): _description_. Defaults to None.
             custom_species_list (_type_, optional): _description_. Defaults to None.
             num_threads (int, optional): _description_. Defaults to 1.
         """
-        self.classifier_model_path = classifier_model_path
-        self.classifier_labels_path = classifier_labels_path
+        self.default_model_path = str(Path(default_model_path) / "models.tflite")
+        self.default_labels_path = str(Path(default_model_path) / "labels.txt")
+
+        self.classifier_model_path = str(Path(classifier_model_path) / "models.tflite")
+        self.classifier_labels_path = str(Path(classifier_model_path) / "labels.txt")
 
         # check custom classifier paths through function due to higher complexity
         self._check_classifier_path_integrity(
-            classifier_model_path, classifier_labels_path
+            self.classifier_model_path, self.classifier_labels_path
         )
         # need to call this custom because the super class has no prefix..
         self.custom_interpreter = None
         self.custom_input_layer_index = 0
         self.custom_output_layer_index = 0
 
+        # use the super class for handling the default models and load the custom ones in this one
         super().__init__(
-            default_model_path=default_model_path,
-            default_labels_path=default_labels_path,
+            model_path=self.default_model_path,
+            labels_path=self.default_labels_path,
             num_threads=num_threads,
         )
 
@@ -88,7 +91,26 @@ class BirdnetCustomModel(BirdnetDefaultModel):
         load_model _summary_
         """
         # load the default model
-        super().load_models()
+
+        self.interpreter = utils.load_model_from_file_tflite(
+            self.model_path, num_threads=self.num_threads
+        )
+
+        # Get input and output tensors.
+        input_details = self.interpreter.get_input_details()
+
+        output_details = self.interpreter.get_output_details()
+
+        # Get input tensor index
+        self.input_layer_index = input_details[0]["index"]
+
+        # Get classification output or feature embeddings as output, depending on presence fo custom classifier
+        if self.use_custom_classifier:
+            self.output_layer_index = output_details[0]["index"] - 1
+        else:
+            self.output_layer_index = output_details[0]["index"]
+
+        print("Default model loaded ")
 
         # now load the custom classifier
         self.custom_interpreter = utils.load_model_from_file_tflite(
@@ -171,6 +193,7 @@ class BirdnetCustomModel(BirdnetDefaultModel):
         # get features from default model if the input size is compatible with the default model's feature vector output
         feature_vector = self.get_embeddings(data) if input_size != 144000 else data
 
+        # use the feature vector as input of the self-trained classifier
         self.custom_interpreter.resize_tensor_input(
             self.custom_input_layer_index,
             [len(feature_vector), *feature_vector[0].shape],
@@ -187,17 +210,28 @@ class BirdnetCustomModel(BirdnetDefaultModel):
 
         prediction = self.custom_interpreter.get_tensor(self.custom_output_layer_index)
 
-        probabilities = self._sigmoid(prediction, self.sensitivity)
+        # map to probabilities
+        probabilities = self._sigmoid(prediction, -self.sensitivity)
 
         return probabilities
 
     def _sigmoid(self, x, sensitivity=-1):
+        """
+        _sigmoid Apply a simple sigmoid to output logits to map to probabilities
+
+        Args:
+            logits (np.array): Raw output from a the inference function of the loaded model.
+            sensitivity (float, optional): Sigmoid parameter. Defaults to -1.
+
+        Returns:
+            np.array: Model output mapped to [0,1] to get interpretable probability
+        """
         return 1 / (1.0 + np.exp(sensitivity * np.clip(x, -15, 15)))
 
     @classmethod
-    def from_config(cls, cfg: dict):
+    def from_cfg(cls, sparrow_dir: str, cfg: dict):
         """
-        from_config _summary_
+        from_cfg _summary_
 
         _extended_summary_
 
@@ -207,4 +241,7 @@ class BirdnetCustomModel(BirdnetDefaultModel):
         Returns:
             _type_: _description_
         """
+
+        cfg["model_path"] = str(Path(sparrow_dir) / Path(cfg["model_path"]))
+
         return cls(**cfg)
