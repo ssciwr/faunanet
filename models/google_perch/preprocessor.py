@@ -1,9 +1,13 @@
+import sys
+
+sys.path.append("../../src/iSparrow")
 import numpy as np
 import librosa
 import audioread
 from birdnetlib.exceptions import AudioFormatError
+from tensorflow.signal import frame as tf_split_signal_into_chunks
 
-from iSparrow import preprocessor_base as ppb
+from src.iSparrow import preprocessor_base as ppb
 
 
 # README: work in progress - will be completed in separate issue
@@ -15,9 +19,9 @@ class Preprocessor(ppb.PreprocessorBase):
 
     def __init__(
         self,
-        sample_rate: int = 48000,
+        sample_rate: int = 32000,
+        sample_secs: float = 5.0,
         overlap: float = 0.0,
-        sample_secs: int = 3.0,
         resample_type: str = "kaiser_fast",
     ):
         """
@@ -26,7 +30,7 @@ class Preprocessor(ppb.PreprocessorBase):
         Args:
             sample_rate (int, optional): The sample rate used to resample the read audio file. Defaults to 48000.
             overlap (float, optional): Overlap between chunks to be analyzed. Defaults to 0.0.
-            sample_secs (int, optional): Length of chunks to be analyzed at once. Defaults to 3.0.
+            sample_secs (float, optional): Length of chunks to be analyzed at once. Defaults to 3.0.
             resample_type (str, optional): Resampling method used when reading from file. Defaults to "kaiser_fast".
         """
         self.sample_rate = sample_rate
@@ -77,7 +81,7 @@ class Preprocessor(ppb.PreprocessorBase):
 
         return data
 
-    def process_audio_data(self, rawdata: np.ndarray) -> list:
+    def process_audio_data(self, rawdata: np.array) -> np.array:
         """
         process_audio_data Process raw, resampled audio data into chunks that then can be analyzed
 
@@ -88,7 +92,53 @@ class Preprocessor(ppb.PreprocessorBase):
             list: chunked audio data
         """
         print("process audio data custom ")
-        chunks = []
-        print("process audio data custom: complete, read ", str(len(chunks)), "chunks.")
 
-        return chunks
+        self.chunks = []
+
+        # README: this is the usual birdnet/birdnetlib splitting code...
+        # minlen = 1.5
+
+        # step = int(self.sample_secs * self.sample_rate)
+
+        # for i in range(0, len(rawdata), step):
+
+        #     split = rawdata[i : (i + int(self.sample_secs * self.actual_sampling_rate))]
+
+        #     # end of data: throw away tails that are too short
+        #     if len(split) < int(minlen * self.actual_sampling_rate):
+        #         break
+
+        #     # pad data
+        #     if len(split) < int(self.sample_secs * self.actual_sampling_rate):
+        #         temp = np.zeros(int(self.sample_secs * self.actual_sampling_rate))
+        #         temp[: len(split)] = split
+        #         split = temp
+
+        #     self.chunks.append(split)
+
+        # try to use tensorflow instead as suggested in https://www.kaggle.com/code/pratul007/bird-species-classification-using-tensorflow-hub
+
+        # warn about sampling rate being unequal.
+        if self.actual_sampling_rate != self.sample_rate:
+            raise RuntimeError(
+                "Sampling rate is not the desired one. Desired sampling rate: {self.sample_rate}, actual sampling rate: {self.actual_sampling_rate}"
+            )
+
+        frame_length = int(self.sample_secs * self.sample_rate)
+        step_length = int(self.sample_secs - self.overlap) * self.sample_rate
+
+        self.chunks = tf_split_signal_into_chunks(
+            rawdata, frame_length, step_length, pad_end=True
+        ).numpy()
+
+        print(
+            "process audio data google: complete, read ",
+            str(len(self.chunks)),
+            "chunks.",
+        )
+
+        return self.chunks
+
+
+def preprocessor_from_config(cfg: dict) -> Preprocessor:
+    return Preprocessor(**cfg)
