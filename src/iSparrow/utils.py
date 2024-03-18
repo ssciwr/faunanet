@@ -1,9 +1,14 @@
 import tensorflow as tf
 import tensorflow_hub as tfhub
-import tflite_runtime.interpreter as tflite
+
+try:
+    import tflite_runtime as tflite
+except Exception:
+    from tensorflow import lite as tflite
 
 from pathlib import Path
 import validators as valid
+import importlib
 
 
 # custom exception to have some more control over what is raised
@@ -121,3 +126,19 @@ def load_model_from_file_torch(path: str):
         torch model: The loaded model
     """
     raise NotImplementedError("torch models are not yet supported")
+
+
+def load_module(path: str):
+    """
+    load_module _summary_
+
+    Args:
+        path (str): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    spec = importlib.util.spec_from_file_location("pp", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module

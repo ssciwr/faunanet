@@ -1,15 +1,10 @@
 import pytest
 from pathlib import Path
 import yaml
-import importlib
-import importlib.util
+import sys
 
-
-def load_module(path: str):
-    spec = importlib.util.spec_from_file_location("pp", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+sys.path.append("../src/iSparrow")
+from src.iSparrow import utils
 
 
 def make_preprocessor(cfg_name: str):
@@ -34,10 +29,10 @@ def make_preprocessor(cfg_name: str):
     # README: in later versions when a 'exchange_model'function is present somewhere, this
     # needs respective catches for wrong paths/nonexistant files etc
     # README: I'm not entirely sure how robust this is...
-    module = load_module(
+    module = utils.load_module(
         str(
             models_folder
-            / Path(cfg["Analyzer"]["Model"]["model_name"])
+            / Path(cfg["Analyzer"]["Model"]["model_path"])
             / "preprocessor.py"
         )
     )

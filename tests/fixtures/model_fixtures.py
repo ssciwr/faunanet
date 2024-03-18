@@ -1,16 +1,16 @@
+import sys
+
+sys.path.append("../src/iSparrow")
+from src.iSparrow import utils
+
 from pathlib import Path
 import yaml
 import pytest
 
 
-class AnalyzerFixture:
-    """
-    Provide data for setup of analyzers for testing
-
-    """
+class ModelFixture:
 
     def __init__(self):
-
         self.filepath = Path(__file__).resolve()
         self.testpath = self.filepath.parent.parent
         cfgpath = (
@@ -24,12 +24,10 @@ class AnalyzerFixture:
             cfg = cfg["Directories"]
 
         self.sparrow_folder = Path(cfg["home"]).expanduser()
+        models_folder = self.sparrow_folder / "models"
 
-        with open(self.testpath / "cfg_custom.yml", "r") as file:
-            self.cfg_custom = yaml.safe_load(file)
-
-        with open(self.testpath / "cfg_missing.yml", "r") as file:
-            self.cfg_missing = yaml.safe_load(file)
+        with open(self.testpath / "cfg.yml", "r") as file:
+            self.custom_cfg = yaml.safe_load(file)
 
         with open(self.testpath / "cfg_default.yml", "r") as file:
             self.default_cfg = yaml.safe_load(file)
@@ -37,13 +35,18 @@ class AnalyzerFixture:
         with open(self.testpath / "cfg_wrong_model.yml", "r") as file:
             self.cfg_wrong_model = yaml.safe_load(file)
 
-        with open(self.testpath / "cfg_species_list.yml", "r") as file:
-            self.cfg_species_list = yaml.safe_load(file)
+        with open(self.testpath / "cfg_google.yml", "r") as file:
+            self.cfg_google = yaml.safe_load(file)
 
-        with open(self.testpath / "cfg_wrong_species_list.yml", "r") as file:
-            self.cfg_wrong_species_list = yaml.safe_load(file)
+        self.module = utils.load_module(
+            str(
+                models_folder
+                / Path(cfg["Analyzer"]["Model"]["model_name"])
+                / "preprocessor.py"
+            )
+        )
 
 
 @pytest.fixture
-def analyzer_fx():
-    return AnalyzerFixture()
+def model_fx():
+    return ModelFixture()
