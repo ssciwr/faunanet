@@ -116,9 +116,10 @@ class Preprocessor(ppb.PreprocessorBase):
 
         #     self.chunks.append(split)
 
-        # try to use tensorflow instead as suggested in https://www.kaggle.com/code/pratul007/bird-species-classification-using-tensorflow-hub
+        # README: ... but used instead tensorflow code as suggested in https://www.kaggle.com/code/pratul007/bird-species-classification-using-tensorflow-hub.
+        # because it has the functionality built index
 
-        # warn about sampling rate being unequal.
+        # raise when sampling rate is unequal.
         if self.actual_sampling_rate != self.sample_rate:
             raise RuntimeError(
                 "Sampling rate is not the desired one. Desired sampling rate: {self.sample_rate}, actual sampling rate: {self.actual_sampling_rate}"
@@ -139,6 +140,20 @@ class Preprocessor(ppb.PreprocessorBase):
 
         return self.chunks
 
+    @classmethod
+    def from_cfg(cls, cfg: dict):
 
-def preprocessor_from_config(cfg: dict) -> Preprocessor:
-    return Preprocessor(**cfg)
+        # make sure there are no more than the allowed keyword arguments in the cfg
+        allowed = [
+            "sample_rate",
+            "overlap",
+            "sample_secs",
+            "resample_type",
+            "duration",
+            "actual_sampling_rate",
+        ]
+
+        if len([key for key in cfg if key not in allowed]) > 0:
+            raise RuntimeError("Erroneous keyword arguments in preprocessor config")
+
+        return cls(**cfg)

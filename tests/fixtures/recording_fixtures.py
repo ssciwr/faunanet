@@ -64,9 +64,7 @@ class RecordingFixture:
             )
         )
 
-        self.preprocessor = pp.preprocessor_from_config(
-            self.cfg["Data"]["Preprocessor"]
-        )
+        self.preprocessor = pp.Preprocessor.from_cfg(self.cfg["Data"]["Preprocessor"])
 
         self.analyzer = spa.analyzer_from_config(
             str(self.sparrow_folder), self.cfg["Analyzer"]
@@ -76,7 +74,7 @@ class RecordingFixture:
             str(self.sparrow_folder), self.default_cfg["Analyzer"]
         )
 
-        self.default_preprocessor = ppd.preprocessor_from_config(
+        self.default_preprocessor = ppd.Preprocessor.from_cfg(
             self.default_cfg["Data"]["Preprocessor"]
         )
 

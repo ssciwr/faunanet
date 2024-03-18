@@ -42,7 +42,7 @@ def make_preprocessor(cfg_name: str):
         )
     )
 
-    preprocessor = module.preprocessor_from_config(cfg["Data"]["Preprocessor"])
+    preprocessor = module.Preprocessor.from_cfg(cfg["Data"]["Preprocessor"])
 
     filepath = example_folder / "soundscape.wav"
     trimmedpath = example_folder / "trimmed.wav"
