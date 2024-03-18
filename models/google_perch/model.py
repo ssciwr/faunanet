@@ -47,7 +47,7 @@ class Model(ModelBase):
             self.labels_path,
         )
 
-    def predict(self, data: list):
+    def predict(self, data: np.array):
         """
         predict Make inference about the bird species for the preprocessed data passed to this function as arguments.
 
@@ -55,39 +55,24 @@ class Model(ModelBase):
             data (list): list of preprocessed data chunks
         """
         # FIXME: this does work programmatically, but gives awful results
-        final_results = []
 
-        start = 0
+        results = self.labels.copy()
 
-        for i, chunk in enumerate(data):
-            print(i, "/", len(data))
-
-            results = self.labels.copy()
-
-            # README: this should be parallelized??
-            logits, embeddings = self.model.infer_tf(
-                np.array(
-                    [
-                        chunk,
-                    ]
-                )
+        # README: this should be parallelized??
+        logits, embeddings = self.model.infer_tf(
+            np.array(
+                [
+                    data,
+                ]
             )
+        )
 
-            probabilities = tf.nn.softmax(logits).numpy()[0]
+        probabilities = tf.nn.softmax(logits).numpy()[0]
 
-            # probabilities = tf.nn.sigmoid(logits).numpy()[0]
-            results.loc[:, "probabilities"] = probabilities
+        # probabilities = tf.nn.sigmoid(logits).numpy()[0]
+        results.loc[:, "probabilities"] = probabilities
 
-            if len(results) > 0:
-                results.loc[:, "start_time"] = start
-
-                results.loc[:, "end_time"] = start + 5
-
-                start += 5
-
-                final_results.append(results)
-
-        return pd.concat(final_results)
+        return results
 
     @classmethod
     def from_cfg(cls, sparrow_folder: str, cfg: dict):
