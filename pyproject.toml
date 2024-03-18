@@ -19,7 +19,8 @@ dependencies = [
     "PyYAML", 
     "pandas", 
     "birdnetlib==0.15.0", 
-    "pooch"
+    "pooch", 
+    "resampy" # for audio loading
 ]
 
 

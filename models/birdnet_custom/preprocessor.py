@@ -72,7 +72,6 @@ class Preprocessor(ppb.PreprocessorBase):
             print(e)
             raise AudioFormatError("Generic audio read error occurred from librosa.")
 
-        print(" data: ", len(data), rate, self.duration)
         return data
 
     def process_audio_data(self, rawdata: np.ndarray) -> list:

@@ -2,6 +2,11 @@ import sys
 from pathlib import Path
 import numpy as np
 
+try:
+    import tflite_runtime as tflite
+except Exception:
+    from tensorflow import lite as tflite
+
 from birdnetlib.analyzer import AnalyzerConfigurationError
 
 sys.path.append("../../src/iSparrow")
@@ -43,7 +48,7 @@ class Model(ModelBase):
     def __init__(
         self,
         default_model_path: str = None,
-        classifier_model_path: str = None,
+        model_path: str = None,
         custom_species_list_path: str = None,
         custom_species_list: list = None,
         sigmoid_sensitivity: float = 1.0,
@@ -56,7 +61,7 @@ class Model(ModelBase):
 
         Args:
             default_model_path (_type_, optional): _description_. Defaults to None.
-            classifier_model_path (_type_, optional): _description_. Defaults to None.
+            model_path (_type_, optional): _description_. Defaults to None.
             custom_species_list_path (_type_, optional): _description_. Defaults to None.
             custom_species_list (_type_, optional): _description_. Defaults to None.
             num_threads (int, optional): _description_. Defaults to 1.
@@ -64,24 +69,28 @@ class Model(ModelBase):
         self.default_model_path = str(Path(default_model_path) / "model.tflite")
         self.default_labels_path = str(Path(default_model_path) / "labels.txt")
 
-        self.classifier_model_path = str(Path(classifier_model_path) / "model.tflite")
-        self.classifier_labels_path = str(Path(classifier_model_path) / "labels.txt")
+        classifier_model_path = str(Path(model_path) / "model.tflite")
+        classifier_labels_path = str(Path(model_path) / "labels.txt")
 
         self.sensitivity = sigmoid_sensitivity
-        
+
         # check custom classifier paths through function due to higher complexity
         self._check_classifier_path_integrity(
-            self.classifier_model_path, self.classifier_labels_path
+            classifier_model_path, classifier_labels_path
         )
         # need to call this custom because the super class has no prefix..
         self.custom_interpreter = None
         self.custom_input_layer_index = 0
         self.custom_output_layer_index = 0
 
+        self.interpreter = None
+        self.input_layer_index = 0
+        self.output_layer_index = 0
+
         # use the super class for handling the default models and load the custom ones in this one
         super().__init__(
-            model_path=self.classifier_model_path,
-            labels_path=self.classifier_labels_path,
+            model_path=classifier_model_path,
+            labels_path=classifier_labels_path,
             num_threads=num_threads,
         )
 
@@ -93,36 +102,36 @@ class Model(ModelBase):
         load_model _summary_
         """
         # load the default model
-
-        self.interpreter = utils.load_model_from_file_tflite(
-            self.model_path, num_threads=self.num_threads
+        print("model_paths: ", self.default_model_path, self.model_path)
+        self.interpreter = tflite.Interpreter(
+            model_path=str(self.default_model_path), num_threads=self.num_threads
         )
+        self.interpreter.allocate_tensors()
 
         # Get input and output tensors.
         input_details = self.interpreter.get_input_details()
-
         output_details = self.interpreter.get_output_details()
 
         # Get input tensor index
         self.input_layer_index = input_details[0]["index"]
 
-        # Get classification output or feature embeddings as output, depending on presence fo custom classifier
+        # Get  feature embeddings
         self.output_layer_index = output_details[0]["index"] - 1
-
-        print("Default model loaded ")
+        print("Default classifier loaded")
 
         # now load the custom classifier
-        self.custom_interpreter = utils.load_model_from_file_tflite(
-            self.classifier_model_path, self.num_threads
+        self.custom_interpreter = tflite.Interpreter(
+            model_path=str(self.model_path), num_threads=self.num_threads
         )
+        self.custom_interpreter.allocate_tensors()
 
-        input_details = self.custom_interpreter.get_input_details()
+        # Get input and output tensors.
+        custom_input_details = self.custom_interpreter.get_input_details()
+        custom_output_details = self.custom_interpreter.get_output_details()
 
-        output_details = self.custom_interpreter.get_output_details()
+        self.custom_input_layer_index = custom_input_details[0]["index"]
+        self.custom_output_layer_index = custom_output_details[0]["index"]
 
-        self.custom_input_layer_index = input_details[0]["index"]
-
-        self.custom_output_layer_index = output_details[0]["index"]
         print("Custom classifier loaded")
 
     def load_labels(self):
@@ -131,7 +140,7 @@ class Model(ModelBase):
         """
 
         labels = []
-        with open(self.classifier_labels_path, "r") as lfile:
+        with open(self.labels_path, "r") as lfile:
             for line in lfile.readlines():
                 labels.append(line.replace("\n", ""))
         self.labels = labels
@@ -149,6 +158,7 @@ class Model(ModelBase):
         Returns:
             np.array: Feature embedding produces by the default birdnet CNN.
         """
+        print(" get embeddings")
         self.interpreter.resize_tensor_input(
             self.input_layer_index, [len(data), *data[0].shape]
         )
@@ -166,7 +176,7 @@ class Model(ModelBase):
 
         return features
 
-    def predict(self, sample: np.array) -> np.array:
+    def predict(self, sample: list) -> np.array:
         """
         predict _summary_
 
@@ -178,21 +188,14 @@ class Model(ModelBase):
         Returns:
             np.array: _description_
         """
-        data = np.array(
-            [
-                sample,
-            ],
-            dtype="float32",
-        )
+        data = np.array([sample], dtype="float32")
 
         input_details = self.custom_interpreter.get_input_details()
 
         input_size = input_details[0]["shape"][-1]
 
-        # get features from default model if the input size is compatible with the default model's feature vector output
         feature_vector = self.get_embeddings(data) if input_size != 144000 else data
 
-        # use the feature vector as input of the self-trained classifier
         self.custom_interpreter.resize_tensor_input(
             self.custom_input_layer_index,
             [len(feature_vector), *feature_vector[0].shape],
@@ -210,7 +213,7 @@ class Model(ModelBase):
         prediction = self.custom_interpreter.get_tensor(self.custom_output_layer_index)
 
         # map to probabilities
-        probabilities = self._sigmoid(prediction, -self.sensitivity)
+        probabilities = self._sigmoid(np.array(prediction), -self.sensitivity)
 
         return probabilities
 
@@ -242,8 +245,10 @@ class Model(ModelBase):
         """
 
         # preprocess config because we need two models here
-        cfg["default_model_path"] = str(Path(sparrow_dir) / Path("models") / Path("birdnet_default"))
-        cfg["classifier_model_path"] = str(Path(sparrow_dir) / Path("models") / Path(cfg["model_path"]))
-
-        del cfg["model_path"]
+        cfg["default_model_path"] = str(
+            Path(sparrow_dir) / Path("models") / Path("birdnet_default")
+        )
+        cfg["model_path"] = str(
+            Path(sparrow_dir) / Path("models") / Path(cfg["model_path"])
+        )
         return cls(**cfg)

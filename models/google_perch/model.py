@@ -22,12 +22,15 @@ class Model(ModelBase):
             model_path (str): Path to the model file to load from disk
             num_threads (int): The number of threads used for inference. Currently not used for this model.
         """
-        model_path = Path(model_path) / "model.pb"
-        labels_path = Path(model_path) / "labels.txt"
+        labels_path = str(Path(model_path) / "labels.txt")
 
         super().__init__(
             model_path, labels_path, num_threads
         )  # num_threads doesn't do anything here.
+
+        self.model_path = str(
+            Path(model_path) / "saved_model.pb"
+        )  # tensorflow wants to add the "saved_model.pb" itself, so we set the member after the superclass cstor
 
     def load_model(self):
         """
@@ -51,6 +54,7 @@ class Model(ModelBase):
         Args:
             data (list): list of preprocessed data chunks
         """
+        # FIXME: this does work programmatically, but gives awful results
         final_results = []
 
         start = 0
@@ -83,4 +87,19 @@ class Model(ModelBase):
 
                 final_results.append(results)
 
-        self.results = pd.concat(final_results)
+        return pd.concat(final_results)
+
+    @classmethod
+    def from_cfg(cls, sparrow_folder: str, cfg: dict):
+        """
+        from_cfg _summary_
+
+        Args:
+            cfg (dict): _description_
+        """
+
+        cfg["model_path"] = str(
+            Path(sparrow_folder) / Path("models") / Path(cfg["model_path"])
+        )
+
+        return cls(**cfg)

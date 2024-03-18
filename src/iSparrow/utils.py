@@ -50,7 +50,6 @@ def load_model_from_file_tflite(path: str, num_threads: int = 1):
 
     try:
         interpreter = tflite.Interpreter(model_path=path, num_threads=num_threads)
-        interpreter.allocate_tensors()
         return interpreter
     except Exception as e:
         raise TFModelException(e)

@@ -66,6 +66,8 @@ class Model(ModelBase):
             self.model_path, num_threads=self.num_threads
         )
 
+        self.interpreter.allocate_tensors()
+
         # Get input and output tensors.
         input_details = self.interpreter.get_input_details()
 
@@ -102,24 +104,21 @@ class Model(ModelBase):
             list: _description_
         """
 
-        self.interpreter.resize_tensor_input(
-            self.input_layer_index, [len(sample), *sample[0].shape]
-        )
+        data = np.array([sample], dtype="float32")
 
+        self.interpreter.resize_tensor_input(
+            self.input_layer_index, [len(data), *data[0].shape]
+        )
         self.interpreter.allocate_tensors()
 
-        # Extract feature embeddings
+        # Make a prediction (Audio only for now)
         self.interpreter.set_tensor(
-            self.input_layer_index, np.array(sample, dtype="float32")
+            self.input_layer_index, np.array(data, dtype="float32")
         )
-
         self.interpreter.invoke()
+        prediction = self.interpreter.get_tensor(self.output_layer_index)
 
-        features = self.interpreter.get_tensor(self.output_layer_index)
-
-        # map to probabilities
-        probabilities = self._sigmoid(features, -self.sensitivity)
-        return probabilities
+        return self._sigmoid(np.array(prediction), sensitivity=self.sensitivity)
 
     def _sigmoid(self, logits: np.array, sensitivity: float = -1):
         """
@@ -140,7 +139,5 @@ class Model(ModelBase):
         cfg["model_path"] = str(
             Path(sparrow_folder) / Path("models") / cfg["model_path"]
         )
-
-        print(type(cfg["model_path"]))
 
         return cls(**cfg)
