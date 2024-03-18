@@ -9,7 +9,7 @@ from src.iSparrow.sparrow_model_base import ModelBase
 import src.iSparrow.utils as utils
 
 
-class BirdnetDefaultModel(ModelBase):
+class Model(ModelBase):
     """
     BirdnetModel _summary_
 
