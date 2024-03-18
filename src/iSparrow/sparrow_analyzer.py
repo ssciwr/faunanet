@@ -45,7 +45,6 @@ class SparrowAnalyzer(Analyzer):
 
     def __init__(
         self,
-        apply_sigmoid: bool = True,
         sigmoid_sensitivity: float = 1.0,
         num_threads: int = 1,
         custom_species_list_path: str = None,
@@ -59,7 +58,6 @@ class SparrowAnalyzer(Analyzer):
         __init__ Construct a new custom analyer from parameters or use defaults for those that are not provided.
 
         Args:
-            apply_sigmoid (bool, optional): Whether to apply a sigmoid function to the final predictions. Defaults to True.
             sigmoid_sensitivity (float, optional): Sigmoid parameter. Defaults to 1.0.
             num_threads (int, optional): Number of threads to use for analysis. Defaults to 1.
             custom_species_list_path (str, optional): _description_. Defaults to None.
@@ -92,15 +90,14 @@ class SparrowAnalyzer(Analyzer):
         # make sure default model is found
         if Path(default_model_path).exists() is False:
             raise AnalyzerConfigurationError(
-                "Error, default model could not be found at provided path"
+                f"Error, default model could not be found at provided path {default_model_path}"
             )
 
         if Path(default_labels_path).exists() is False:
             raise AnalyzerConfigurationError(
-                "Error, default label could not be found at provided path"
+                f"Error, default label could not be found at provided path {default_labels_path}"
             )
 
-        self.apply_sigmoid = apply_sigmoid
         self.sigmoid_sensitivity = sigmoid_sensitivity
         self.num_threads = num_threads
         self.custom_species_list_path = custom_species_list_path
@@ -225,101 +222,101 @@ class SparrowAnalyzer(Analyzer):
         prediction = self.custom_interpreter.get_tensor(self.custom_output_layer_index)
 
         # Logits or sigmoid activations?
-        if self.apply_sigmoid:
-            prediction = self.flat_sigmoid(
-                np.array(prediction), sensitivity=-self.sigmoid_sensitivity
-            )
+        prediction = self.flat_sigmoid(
+            np.array(prediction), sensitivity=-self.sigmoid_sensitivity
+        )
 
         return prediction
 
+    @classmethod
+    def from_cfg(cls, sparrow_dir: str, cfg: dict):
+        """
+        from_cfg Create a new `SparrowAnalyzer` from a dict that contains parameters to be applied.
+                            Dictionary typically results from reading in a YAML config file.
+        Args:
+            sparrow_dir (str): path to the top level directory where iSparrow stores its data
+            cfg (dict): Dictionary containing the needed parameters
 
-def analyzer_from_config(sparrow_dir: str, cfg: dict) -> SparrowAnalyzer:
-    """
-    analyzer_from_config Create a new `SparrowAnalyzer` from a dict that contains parameters to be applied.
-                         Dictionary typically results from reading in a YAML config file.
-    Args:
-        sparrow_dir (str): path to the top level directory where iSparrow stores its data
-        cfg (dict): Dictionary containing the needed parameters
+        Returns:
+            SparrowAnalyzer: new `SparrowAnalyzer` instance.
+        """
+        sigmoid_sensitivity = (
+            cfg["Model"]["sigmoid_sensitivity"] if "" in cfg["Model"] else 1.0
+        )
 
-    Returns:
-        SparrowAnalyzer: new `SparrowAnalyzer` instance.
-    """
-    apply_sigmoid = cfg["Model"]["apply_sigmoid"] if "" in cfg["Model"] else True
+        num_threads = (
+            cfg["Model"]["num_threads"] if "num_threads" in cfg["Model"] else 1
+        )
 
-    sigmoid_sensitivity = (
-        cfg["Model"]["sigmoid_sensitivity"] if "" in cfg["Model"] else 1.0
-    )
+        # README:  the path treatment below is a temporary solution that will change again once the sparrow model itself is implemented.
+        #          it will be generalized to arbitrary models and then be put there. This will also do away with the custom <-> default distinction
+        custom_species_list_path = (
+            str(Path(sparrow_dir) / Path(cfg["Model"]["custom_species_list_path"]))
+            if "custom_species_list_path" in cfg["Model"]
+            else None
+        )
 
-    num_threads = cfg["Model"]["num_threads"] if "num_threads" in cfg["Model"] else 1
+        custom_species_list = (
+            cfg["Model"]["custom_species_list"]
+            if "custom_species_list" in cfg["Model"]
+            else None
+        )
 
-    # README:  the path treatment below is a temporary solution that will change again once the sparrow model itself is implemented.
-    #          it will be generalized to arbitrary models and then be put there. This will also do away with the custom <-> default distinction
-    custom_species_list_path = (
-        str(Path(sparrow_dir) / Path(cfg["Model"]["custom_species_list_path"]))
-        if "custom_species_list_path" in cfg["Model"]
-        else None
-    )
+        # handle custom model paths and check they exist
+        classifier_model_path = None
 
-    custom_species_list = (
-        cfg["Model"]["custom_species_list"]
-        if "custom_species_list" in cfg["Model"]
-        else None
-    )
+        classifier_labels_path = None
 
-    # handle custom model paths and check they exist
-    classifier_model_path = None
+        # set them only when a model name is given explicitly and it's not default
+        if (
+            "model_path" in cfg["Model"]
+            and cfg["Model"]["model_path"] != "birdnet_default"
+        ):
 
-    classifier_labels_path = None
+            classifier_model_path = (
+                Path(sparrow_dir)
+                / Path("models")
+                / Path(cfg["Model"]["model_path"])
+                / Path("model.tflite")
+            )
 
-    # set them only when a model name is given explicitly and it's not default
-    if "model_name" in cfg["Model"] and cfg["Model"]["model_name"] != "birdnet_default":
+            classifier_labels_path = (
+                Path(sparrow_dir)
+                / Path("models")
+                / Path(cfg["Model"]["model_path"])
+                / Path("labels.txt")
+            )
 
-        classifier_model_path = (
+            classifier_model_path = str(classifier_model_path)
+            classifier_labels_path = str(classifier_labels_path)
+
+        # the default is always needed and itś installed with the app, hence hard coded Later: have a default config that's set up upon install and
+        # that lives in .config on a unix system or similar
+        default_model_path = (
             Path(sparrow_dir)
-            / Path(cfg["Model"]["model_dir"])
-            / Path(cfg["Model"]["model_name"])
+            / Path("models")
+            / Path("birdnet_default")
             / Path("model.tflite")
         )
 
-        classifier_labels_path = (
+        default_labels_path = (
             Path(sparrow_dir)
-            / Path(cfg["Model"]["model_dir"])
-            / Path(cfg["Model"]["model_name"])
+            / Path("models")
+            / Path("birdnet_default")
             / Path("labels.txt")
         )
 
-        classifier_model_path = str(classifier_model_path)
-        classifier_labels_path = str(classifier_labels_path)
+        default_model_path = str(default_model_path)
 
-    # the default path is only used in the derived class for now and must be checked
-    # we always need those. Later: have a default config that's set up upon install and
-    # that lives in .config on a unix system or similar
-    default_model_path = (
-        Path(sparrow_dir)
-        / Path(cfg["Model"]["model_dir"])
-        / "birdnet_default"
-        / Path("model.tflite")
-    )
+        default_labels_path = str(default_labels_path)
 
-    default_labels_path = (
-        Path(sparrow_dir)
-        / Path(cfg["Model"]["model_dir"])
-        / "birdnet_default"
-        / Path("labels.txt")
-    )
-
-    default_model_path = str(default_model_path)
-
-    default_labels_path = str(default_labels_path)
-
-    return SparrowAnalyzer(
-        apply_sigmoid=apply_sigmoid,
-        sigmoid_sensitivity=sigmoid_sensitivity,
-        num_threads=num_threads,
-        custom_species_list_path=custom_species_list_path,
-        custom_species_list=custom_species_list,
-        classifier_model_path=classifier_model_path,
-        classifier_labels_path=classifier_labels_path,
-        default_model_path=default_model_path,
-        default_labels_path=default_labels_path,
-    )
+        return cls(
+            sigmoid_sensitivity=sigmoid_sensitivity,
+            num_threads=num_threads,
+            custom_species_list_path=custom_species_list_path,
+            custom_species_list=custom_species_list,
+            classifier_model_path=classifier_model_path,
+            classifier_labels_path=classifier_labels_path,
+            default_model_path=default_model_path,
+            default_labels_path=default_labels_path,
+        )

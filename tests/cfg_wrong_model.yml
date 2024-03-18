@@ -1,7 +1,5 @@
 Analyzer:
   Model:
-    model_dir: models
-    model_name: unknown_model_that_doesn' exist
-    apply_sigmoid: True 
+    model_path: unknown_model_that_doesn' exist
     sigmoid_sensitivity: 1.0
     num_threads: 12

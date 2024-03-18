@@ -1,8 +1,6 @@
 Analyzer:
   Model:
-    model_dir: models
-    model_name: birdnet_custom
-    apply_sigmoid: True 
+    model_path: birdnet_custom
     sigmoid_sensitivity: 1.0
     num_threads: 12
   

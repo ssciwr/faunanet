@@ -1,8 +1,6 @@
 Analyzer:
   Model:
-    model_dir: models
-    model_name: google_perch
-    apply_sigmoid: True 
+    model_path: google_perch
     sigmoid_sensitivity: 1.0
     num_threads: 12
   
