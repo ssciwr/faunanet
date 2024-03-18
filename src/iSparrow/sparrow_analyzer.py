@@ -15,77 +15,148 @@ class SparrowAnalyzer(Analyzer):
 
     """
 
+    def _check_classifier_path_integrity(
+        self, classifier_model_path: str, classifier_labels_path: str
+    ):
+        """checks if custom classifier/labels are both given if one is present and the files they point to exist"""
+
+        if (classifier_model_path is not None and classifier_labels_path is None) or (
+            classifier_model_path is None and classifier_labels_path is not None
+        ):
+            raise AnalyzerConfigurationError(
+                "Model and label file paths must be specified to use a custom classifier"
+            )
+
+        if (
+            classifier_model_path is not None
+            and Path(classifier_model_path).exists() is False
+        ):
+            raise AnalyzerConfigurationError(
+                "Custom classifier model could not be found at the provided path"
+            )
+
+        if (
+            classifier_model_path is not None
+            and Path(classifier_labels_path).exists() is False
+        ):
+            raise AnalyzerConfigurationError(
+                "Custom classifier labels could not be found at the provided path"
+            )
+
     def __init__(
         self,
-        model,
         apply_sigmoid: bool = True,
         sigmoid_sensitivity: float = 1.0,
-        custom_species_list_path=None,
-        custom_species_list=None,
+        num_threads: int = 1,
+        custom_species_list_path: str = None,
+        custom_species_list: list = None,
+        classifier_model_path: str = None,
+        classifier_labels_path: str = None,
+        default_model_path: str = None,
+        default_labels_path: str = None,
     ):
         """
         __init__ Construct a new custom analyer from parameters or use defaults for those that are not provided.
 
         Args:
-            model: Instance of a class derived from sparrow_models.ModelBase that represents a machine learning model for species identification
             apply_sigmoid (bool, optional): Whether to apply a sigmoid function to the final predictions. Defaults to True.
             sigmoid_sensitivity (float, optional): Sigmoid parameter. Defaults to 1.0.
+            num_threads (int, optional): Number of threads to use for analysis. Defaults to 1.
+            custom_species_list_path (str, optional): _description_. Defaults to None.
+            custom_species_list (str, optional): _description_. Defaults to None.
+            classifier_model_path (str, optional): _description_. Defaults to None.
+            classifier_labels_path (str, optional): _description_. Defaults to None.
+            default_model_path (str, optional): _description_. Defaults to None.
+            default_labels_path (str, optional): _description_. Defaults to None.
+
+        Raises:
+            AnalyzerConfigurationError: If any paths for default model are invalid.
+            AnalyzerConfigurationError: If any paths for custom model are invalid or inconsistent.
+            AnalyzerConfigurationError: If species list path is inconsistent
+
         """
+        # path checks
 
-        self.apply_sigmoid = apply_sigmoid
-        self.sigmoid_sensitivity = sigmoid_sensitivity
-        self.model = model
+        # check custom classifier paths through function due to higher complexity
+        self._check_classifier_path_integrity(
+            classifier_model_path, classifier_labels_path
+        )
 
+        # make sure species list paths exists
         if (
             custom_species_list_path is not None
             and Path(custom_species_list_path).exists() is False
         ):
             raise AnalyzerConfigurationError("Custom species list path does not exist")
 
+        # make sure default model is found
+        if Path(default_model_path).exists() is False:
+            raise AnalyzerConfigurationError(
+                "Error, default model could not be found at provided path"
+            )
+
+        if Path(default_labels_path).exists() is False:
+            raise AnalyzerConfigurationError(
+                "Error, default label could not be found at provided path"
+            )
+
+        self.apply_sigmoid = apply_sigmoid
+        self.sigmoid_sensitivity = sigmoid_sensitivity
+        self.num_threads = num_threads
+        self.custom_species_list_path = custom_species_list_path
+        self.custom_species_list = custom_species_list
+        self.classifier_model_path = classifier_model_path
+        self.classifier_labels_path = classifier_labels_path
+        self.default_model_path = default_model_path
+        self.default_labels_path = default_labels_path
+
         super().__init__(
             custom_species_list_path=custom_species_list_path,
             custom_species_list=custom_species_list,
+            classifier_model_path=self.classifier_model_path,
+            classifier_labels_path=self.classifier_labels_path,
         )
-
-    # README: these are there to retain compatibility with birdnetlib
-    @property
-    def labels(self):
-        return self.model.labels
-
-    @property
-    def default_model_path(self):
-        return self.model.default_model_path
-
-    @property
-    def default_labels_path(self):
-        return self.model.default_labels_path
-
-    @property
-    def num_threads(self):
-        return self.model.num_threads
-
-    @property
-    def classifier_model_path(self):
-        return self.model.classifier_model_path
-
-    @property
-    def classifier_labels_path(self):
-        return self.model.classifier_labels_path
 
     # README: these need to be overloaded because the base class uses hardcoded paths here. We don't.
     def load_model(self):
         """
-        load_model _summary_
-
+        load_model Override of the base class load model to get the correct paths and make sure that we have multithreading
         """
-        self.model.load_model()
+        self.interpreter = tflite.Interpreter(
+            model_path=str(self.default_model_path), num_threads=self.num_threads
+        )
+        self.interpreter.allocate_tensors()
+
+        # Get input and output tensors.
+        self.input_details = self.interpreter.get_input_details()
+        self.output_details = self.interpreter.get_output_details()
+
+        # Get input tensor index
+        self.input_layer_index = self.input_details[0]["index"]
+
+        # Get classification output or feature embeddings as output, depending on presence fo custom classifier
+        if self.use_custom_classifier:
+            self.output_layer_index = self.output_details[0]["index"] - 1
+        else:
+            self.output_layer_index = self.output_details[0]["index"]
+
+        print("Model loaded custom ")
 
     def load_labels(self):
         """
         load_labels Load labels for classes from file.
 
         """
-        self.model.load_labels()
+        labels_file_path = self.default_labels_path
+        if self.classifier_labels_path:
+            print("loading custom classifier labels")
+            labels_file_path = self.classifier_labels_path
+        labels = []
+        with open(labels_file_path, "r") as lfile:
+            for line in lfile.readlines():
+                labels.append(line.replace("\n", ""))
+        self.labels = labels
+        print("Labels loaded custom.")
 
     def get_embeddings(self, data: np.array) -> np.array:
         """
@@ -99,37 +170,67 @@ class SparrowAnalyzer(Analyzer):
         Returns:
             np.array: Feature embedding produces by the default birdnet CNN.
         """
-        return self.model.get_embeddings(data)
+        # this is what the "embeddings" function in the normal BirdNET library does.
+        # gets the feature embeddings from the
+        self.interpreter.resize_tensor_input(
+            self.input_layer_index, [len(data), *data[0].shape]
+        )
+        self.interpreter.allocate_tensors()
 
-    def predict(self, sample: np.array) -> np.array:
+        # Extract feature embeddings
+        self.interpreter.set_tensor(
+            self.input_layer_index, np.array(data, dtype="float32")
+        )
+        self.interpreter.invoke()
+        features = self.interpreter.get_tensor(self.output_layer_index)
+
+        return features
+
+    def predict_with_custom_classifier(self, sample: np.array) -> list:
         """
-        predict TODO
+        predict_with_custom_classifier Extract features from supplied audio sample and classify them into bird species the classifier is trained upon.
 
         Args:
-            sample (np.array): _description_
+            sample (np.array): Preprocessed audio sample
 
         Returns:
-            list: _description_
+            list: Probabilities with which the model thinks we have what species for each species known to it.
         """
+        # overrides the predict_with_custom_classifier in the 'Analyzer' class
+        # of birdnetlib with what the BirdNET-Analyzer system does.
+        # README: will be replaced in a later PR with a more concise implementation
 
-        predictions = self.model.predict(sample)
+        data = np.array([sample], dtype="float32")
 
+        input_details = self.custom_interpreter.get_input_details()
+
+        input_size = input_details[0]["shape"][-1]
+
+        feature_vector = self.get_embeddings(data) if input_size != 144000 else data
+
+        self.custom_interpreter.resize_tensor_input(
+            self.custom_input_layer_index,
+            [len(feature_vector), *feature_vector[0].shape],
+        )
+
+        self.custom_interpreter.allocate_tensors()
+
+        # Make a prediction
+        self.custom_interpreter.set_tensor(
+            self.custom_input_layer_index, np.array(feature_vector, dtype="float32")
+        )
+
+        self.custom_interpreter.invoke()
+
+        prediction = self.custom_interpreter.get_tensor(self.custom_output_layer_index)
+
+        # Logits or sigmoid activations?
         if self.apply_sigmoid:
-            predictions = self.flat_sigmoid(
-                np.array(predictions), sensitivity=-self.sigmoid_sensitivity
+            prediction = self.flat_sigmoid(
+                np.array(prediction), sensitivity=-self.sigmoid_sensitivity
             )
 
-        return predictions
-
-    # README: this function only exists for compatibility reasons with the base class' 'analyze_recording' method.
-    # This should be gotten rid of.
-    def predict_with_custom_classifier(self, sample: np.array) -> np.array:
-        return self.predict(sample)
-
-    def detections(self):
-        # TODO
-        # super().detections() # if we have a model that is birdnet, else use a custom thingy
-        pass
+        return prediction
 
 
 def analyzer_from_config(sparrow_dir: str, cfg: dict) -> SparrowAnalyzer:
