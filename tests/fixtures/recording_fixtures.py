@@ -40,6 +40,7 @@ class RecordingFixture:
         # import preprocessor definition that we need
 
         pp = utils.load_module(
+            "pp",
             str(
                 self.models_folder
                 / Path(self.cfg["Analyzer"]["Model"]["model_path"])
@@ -48,6 +49,7 @@ class RecordingFixture:
         )
 
         ppd = utils.load_module(
+            "ppd",
             str(
                 self.models_folder
                 / Path(self.cfg["Analyzer"]["Model"]["model_path"])

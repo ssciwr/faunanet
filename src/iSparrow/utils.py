@@ -128,7 +128,7 @@ def load_model_from_file_torch(path: str):
     raise NotImplementedError("torch models are not yet supported")
 
 
-def load_module(path: str):
+def load_module(alias: str, path: str):
     """
     load_module _summary_
 
@@ -138,7 +138,7 @@ def load_module(path: str):
     Returns:
         _type_: _description_
     """
-    spec = importlib.util.spec_from_file_location("pp", path)
+    spec = importlib.util.spec_from_file_location(alias, path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

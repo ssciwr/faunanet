@@ -27,4 +27,31 @@ def test_default_model_construction(model_fx):
     )
     assert model.sensitivity == pytest.approx(1.0)
     assert model.input_layer_index == 0
-    assert model.output_layer_index == 546
+    assert model.output_layer_index == 546 # last
+
+
+def test_custom_model_construction(model_fx):
+    mfx = model_fx
+
+    model = mfx.custom_module.Model.from_cfg(
+        mfx.sparrow_folder, mfx.custom_cfg["Analyzer"]["Model"]
+    )
+
+    assert model.model_path == str(
+        Path.home()
+        / Path("iSparrow")
+        / Path("models")
+        / Path("birdnet_custom")
+        / "model.tflite"
+    )
+    assert model.labels_path == str(
+        Path.home()
+        / Path("iSparrow")
+        / Path("models")
+        / Path("birdnet_custom")
+        / "labels.txt"
+    )
+    assert model.sensitivity == pytest.approx(1.0)
+    assert model.input_layer_index == 0
+    assert model.output_layer_index == 545 # second to last
+

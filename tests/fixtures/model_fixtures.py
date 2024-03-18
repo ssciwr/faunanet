@@ -39,27 +39,30 @@ class ModelFixture:
             self.gogole_cfg = yaml.safe_load(file)
 
         self.default_module = utils.load_module(
+            "model_default",
             str(
                 self.models_folder
                 / Path(self.default_cfg["Analyzer"]["Model"]["model_path"])
                 / "model.py"
-            )
+            ),
         )
 
         self.custom_module = utils.load_module(
+            "model_custom",
             str(
                 self.models_folder
                 / Path(self.custom_cfg["Analyzer"]["Model"]["model_path"])
                 / "model.py"
-            )
+            ),
         )
 
         self.google_module = utils.load_module(
+            "model_google",
             str(
                 self.models_folder
                 / Path(self.gogole_cfg["Analyzer"]["Model"]["model_path"])
                 / "model.py"
-            )
+            ),
         )
 
 

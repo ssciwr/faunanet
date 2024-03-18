@@ -9,7 +9,7 @@ from src.iSparrow.sparrow_model_base import ModelBase
 import src.iSparrow.utils as utils
 
 
-class BirdnetCustomModel(ModelBase):
+class Model(ModelBase):
 
     def _check_classifier_path_integrity(
         self, classifier_model_path: str, classifier_labels_path: str
@@ -28,7 +28,7 @@ class BirdnetCustomModel(ModelBase):
             and Path(classifier_model_path).exists() is False
         ):
             raise AnalyzerConfigurationError(
-                "Custom classifier model could not be found at the provided path"
+                f"Custom classifier model could not be found at the provided path {classifier_model_path}"
             )
 
         if (
@@ -36,7 +36,7 @@ class BirdnetCustomModel(ModelBase):
             and Path(classifier_labels_path).exists() is False
         ):
             raise AnalyzerConfigurationError(
-                "Custom classifier labels could not be found at the provided path"
+                f"Custom classifier labels could not be found at the provided path {classifier_labels_path}"
             )
 
     #
@@ -61,12 +61,14 @@ class BirdnetCustomModel(ModelBase):
             custom_species_list (_type_, optional): _description_. Defaults to None.
             num_threads (int, optional): _description_. Defaults to 1.
         """
-        self.default_model_path = str(Path(default_model_path) / "models.tflite")
+        self.default_model_path = str(Path(default_model_path) / "model.tflite")
         self.default_labels_path = str(Path(default_model_path) / "labels.txt")
 
-        self.classifier_model_path = str(Path(classifier_model_path) / "models.tflite")
+        self.classifier_model_path = str(Path(classifier_model_path) / "model.tflite")
         self.classifier_labels_path = str(Path(classifier_model_path) / "labels.txt")
 
+        self.sensitivity = sigmoid_sensitivity
+        
         # check custom classifier paths through function due to higher complexity
         self._check_classifier_path_integrity(
             self.classifier_model_path, self.classifier_labels_path
@@ -78,8 +80,8 @@ class BirdnetCustomModel(ModelBase):
 
         # use the super class for handling the default models and load the custom ones in this one
         super().__init__(
-            model_path=self.default_model_path,
-            labels_path=self.default_labels_path,
+            model_path=self.classifier_model_path,
+            labels_path=self.classifier_labels_path,
             num_threads=num_threads,
         )
 
@@ -105,16 +107,13 @@ class BirdnetCustomModel(ModelBase):
         self.input_layer_index = input_details[0]["index"]
 
         # Get classification output or feature embeddings as output, depending on presence fo custom classifier
-        if self.use_custom_classifier:
-            self.output_layer_index = output_details[0]["index"] - 1
-        else:
-            self.output_layer_index = output_details[0]["index"]
+        self.output_layer_index = output_details[0]["index"] - 1
 
         print("Default model loaded ")
 
         # now load the custom classifier
         self.custom_interpreter = utils.load_model_from_file_tflite(
-            self.custom_classifier_model_path, self.num_threads
+            self.classifier_model_path, self.num_threads
         )
 
         input_details = self.custom_interpreter.get_input_details()
@@ -242,6 +241,9 @@ class BirdnetCustomModel(ModelBase):
             _type_: _description_
         """
 
-        cfg["model_path"] = str(Path(sparrow_dir) / Path(cfg["model_path"]))
+        # preprocess config because we need two models here
+        cfg["default_model_path"] = str(Path(sparrow_dir) / Path("models") / Path("birdnet_default"))
+        cfg["classifier_model_path"] = str(Path(sparrow_dir) / Path("models") / Path(cfg["model_path"]))
 
+        del cfg["model_path"]
         return cls(**cfg)

@@ -30,6 +30,7 @@ def make_preprocessor(cfg_name: str):
     # needs respective catches for wrong paths/nonexistant files etc
     # README: I'm not entirely sure how robust this is...
     module = utils.load_module(
+        "pp",
         str(
             models_folder
             / Path(cfg["Analyzer"]["Model"]["model_path"])
