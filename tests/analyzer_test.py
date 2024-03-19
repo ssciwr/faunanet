@@ -4,8 +4,6 @@ from birdnetlib.analyzer import AnalyzerConfigurationError
 from pathlib import Path
 
 # README: this is only there because SonarCloud wants it...
-BIRDNET_MODEL_NAME = "model.tflite"
-BIRDNET_LABELS_NAME = "labels.txt"
 
 
 def test_analyzer_construction_default(analyzer_fx):
@@ -23,13 +21,13 @@ def test_analyzer_construction_default(analyzer_fx):
         tv.sparrow_folder
         / Path("models")
         / Path("birdnet_default")
-        / Path(BIRDNET_MODEL_NAME)
+        / Path("model.tflite")
     )
     assert analyzer.default_labels_path == str(
         tv.sparrow_folder
         / Path("models")
         / Path("birdnet_default")
-        / Path(BIRDNET_LABELS_NAME)
+        / Path("labels.txt")
     )
 
 
@@ -48,13 +46,13 @@ def test_analyzer_construction_missing_nodes(analyzer_fx):
         tv.sparrow_folder
         / Path("models")
         / Path("birdnet_default")
-        / Path(BIRDNET_MODEL_NAME)
+        / Path("model.tflite")
     )
     assert analyzer.default_labels_path == str(
         tv.sparrow_folder
         / Path("models")
         / Path("birdnet_default")
-        / Path(BIRDNET_LABELS_NAME)
+        / Path("labels.txt")
     )
 
 
@@ -71,28 +69,25 @@ def test_analyzer_custom_model(analyzer_fx):
         tv.sparrow_folder
         / Path("models")
         / Path("birdnet_custom")
-        / Path(BIRDNET_MODEL_NAME)
+        / Path("model.tflite")
     )
 
     assert analyzer.classifier_labels_path == str(
-        tv.sparrow_folder
-        / Path("models")
-        / Path("birdnet_custom")
-        / Path(BIRDNET_LABELS_NAME)
+        tv.sparrow_folder / Path("models") / Path("birdnet_custom") / Path("labels.txt")
     )
 
     assert analyzer.default_model_path == str(
         tv.sparrow_folder
         / Path("models")
         / Path("birdnet_default")
-        / Path(BIRDNET_MODEL_NAME)
+        / Path("model.tflite")
     )
 
     assert analyzer.default_labels_path == str(
         tv.sparrow_folder
         / Path("models")
         / Path("birdnet_default")
-        / Path(BIRDNET_LABELS_NAME)
+        / Path("labels.txt")
     )
 
 
