@@ -67,12 +67,24 @@ class Model(ModelBase):
             )
         )
 
-        probabilities = tf.nn.softmax(logits).numpy()[0]
+        confidence = tf.nn.softmax(logits).numpy()[0]
 
-        # probabilities = tf.nn.sigmoid(logits).numpy()[0]
-        results.loc[:, "probabilities"] = probabilities
+        results.loc[:, "confidence"] = confidence
 
         return results
+
+    def _sigmoid(self, logits: np.array, sensitivity: float = -1):
+        """
+        _sigmoid Apply a simple sigmoid to output logits to map them to probabilities
+
+        Args:
+            logits (np.array): Raw output from a the inference function of the loaded model.
+            sensitivity (float, optional): Sigmoid parameter. Defaults to -1.
+
+        Returns:
+            np.array: Model output mapped to [0,1] to get interpretable probability
+        """
+        return 1 / (1.0 + np.exp(sensitivity * np.clip(logits, -15, 15)))
 
     @classmethod
     def from_cfg(cls, sparrow_folder: str, cfg: dict):

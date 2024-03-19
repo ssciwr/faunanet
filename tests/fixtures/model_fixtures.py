@@ -6,6 +6,7 @@ from src.iSparrow import utils
 from pathlib import Path
 import yaml
 import pytest
+import pandas as pd
 
 
 class ModelFixture:
@@ -93,9 +94,24 @@ class ModelFixture:
 
         ppg = self.google_pp.Preprocessor()
 
-        data_google = ppg.read_audio_data(self.sparrow_folder / "example" / "soundscape.wav")
+        data_google = ppg.read_audio_data(
+            self.sparrow_folder / "example" / "soundscape.wav"
+        )
 
         self.data_google = ppg.process_audio_data(data_google)
+
+        # read data made with birdnet-Analyzer for cross checking
+        self.default_analysis_results = (
+            pd.read_csv(self.testpath / Path("default_results.csv"))
+            .loc[:, ["scientific_name", "confidence"]]
+            .sort_values(by="confidence", ascending=False)
+        )
+
+        self.custom_analysis_results = (
+            pd.read_csv(self.testpath / Path("custom_results.csv"))
+            .loc[:, ["scientific_name", "confidence"]]
+            .sort_values(by="confidence", ascending=False)
+        )
 
 
 @pytest.fixture

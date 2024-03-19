@@ -5,6 +5,9 @@ from birdnetlib.analyzer import AnalyzerConfigurationError
 from pathlib import Path
 from pandas.testing import assert_frame_equal
 
+pd.set_option("display.max_columns", None)
+
+
 def test_default_model_construction(model_fx):
     mfx = model_fx
 
@@ -120,9 +123,21 @@ def test_default_model_predict(model_fx):
 
         final_results.extend(p_sorted)
 
-    # TODO: make this better/more thorough
-    assert final_results[0][0] == "Abroscopus schisticeps_Black-faced Warbler"
-    assert final_results[0][1] == pytest.approx(0.99999964)
+    df = pd.DataFrame(
+        final_results, columns=["scientific_name", "confidence"]
+    ).sort_values(by="confidence", ascending=False)
+
+    # remove common name from label
+    df.loc[:, "scientific_name"] = df["scientific_name"].apply(
+        lambda x: x.split("_")[0]
+    )
+
+    # assert that results are equivalent to the previous once/the ones obtained with birdnet-Analyzer
+    assert_frame_equal(
+        df.reset_index(drop=True),
+        mfx.default_analysis_results.reset_index(drop=True),
+        check_dtype=False,
+    )
 
 
 def test_custom_model_predict(model_fx):
@@ -144,10 +159,21 @@ def test_custom_model_predict(model_fx):
         p_sorted = [i for i in p_sorted if i[1] >= 0.25]
         final_results.extend(p_sorted)
 
-    print(final_results[0])
-    # TODO: check that this is actually different from the default (if it actually is)
-    assert final_results[0][0] == "Poecile atricapillus_Black-capped Chickadee"
-    assert final_results[0][1] == pytest.approx(0.95653343)
+    df = pd.DataFrame(
+        final_results, columns=["scientific_name", "confidence"]
+    ).sort_values(by="confidence", ascending=False)
+
+    # remove common name from label
+    df.loc[:, "scientific_name"] = df["scientific_name"].apply(
+        lambda x: x.split("_")[0]
+    )
+
+    # assert that results are equivalent to the previous once/the ones obtained with birdnet-Analyzer
+    assert_frame_equal(
+        df.reset_index(drop=True),
+        mfx.custom_analysis_results.reset_index(drop=True),
+        check_dtype=False,
+    )
 
 
 def test_google_model_predict(model_fx):
@@ -158,18 +184,26 @@ def test_google_model_predict(model_fx):
     )
 
     final_results = []
-    for chunk in mfx.data_google:
+    start = 0
+    for chunk in mfx.data_google[0:3]:  # use only the first 3 chunks to limit runtime
 
         results = model.predict(chunk)
 
-        results = results.sort_values(by="probabilities", ascending=False)
+        results = results.sort_values(by="confidence", ascending=False)
+
+        results.loc[:, "start"] = start
+
+        results.loc[:, "end"] = start + 5
 
         final_results.append(results)
 
-    final_results = pd.concat(final_results)
+        start += 5
 
-    print(final_results.loc[:, ["scientific_name", "probabilities"]])
+    final_results = pd.concat(final_results)
+    final_results = final_results.loc[final_results["confidence"] > 0.25, :]
+
+    print(final_results)
     assert final_results["scientific_name"].iloc[0] == "Poecile carolinensis"
-    assert final_results["probabilities"].iloc[0] == pytest.approx(0.5022050)
-    assert final_results["scientific_name"].iloc[1] == "Poecile weigoldicus"
-    assert final_results["probabilities"].iloc[1] == pytest.approx(0.1517491)
+    assert final_results["confidence"].iloc[0] == pytest.approx(0.5022050)
+    assert final_results["scientific_name"].iloc[1] == "Turdus viscivorus"
+    assert final_results["confidence"].iloc[1] == pytest.approx(0.817928)

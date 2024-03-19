@@ -116,13 +116,16 @@ class Model(ModelBase):
             self.input_layer_index, np.array(data, dtype="float32")
         )
         self.interpreter.invoke()
+
         prediction = self.interpreter.get_tensor(self.output_layer_index)
 
-        return self._sigmoid(np.array(prediction), sensitivity=self.sensitivity)
+        confidence = self._sigmoid(np.array(prediction), sensitivity=-self.sensitivity)
+
+        return confidence
 
     def _sigmoid(self, logits: np.array, sensitivity: float = -1):
         """
-        _sigmoid Apply a simple sigmoid to output logits to map to probabilities
+        _sigmoid Apply a simple sigmoid to output logits to map them to probabilities
 
         Args:
             logits (np.array): Raw output from a the inference function of the loaded model.

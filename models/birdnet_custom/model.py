@@ -213,9 +213,9 @@ class Model(ModelBase):
         prediction = self.custom_interpreter.get_tensor(self.custom_output_layer_index)
 
         # map to probabilities
-        probabilities = self._sigmoid(np.array(prediction), -self.sensitivity)
+        confidence = self._sigmoid(np.array(prediction), -self.sensitivity)
 
-        return probabilities
+        return confidence
 
     def _sigmoid(self, x, sensitivity=-1):
         """
