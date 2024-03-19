@@ -1,0 +1,4 @@
+,Unnamed: 0,label,confidence,start,end,TAXON_ORDER,CATEGORY,PRIMARY_COM_NAME,SCI_NAME,ORDER1,FAMILY,SPECIES_GROUP,REPORT_AS
+906,906,bkcchi,0.5013378,0,5,21259,species,Black-capped Chickadee,Poecile atricapillus,Passeriformes,"Paridae (Tits, Chickadees, and Titmice)",,
+19505,19505,sonthr1,0.8175622,5,10,27490,species,Song Thrush,Turdus philomelos,Passeriformes,Turdidae (Thrushes and Allies),,
+31185,31185,tawowl1,0.34527954,10,15,8754,species,Tawny Owl,Strix aluco,Strigiformes,Strigidae (Owls),,

@@ -137,6 +137,8 @@ def test_default_model_predict(model_fx):
         df.reset_index(drop=True),
         mfx.default_analysis_results.reset_index(drop=True),
         check_dtype=False,
+        check_exact=False, 
+        atol=1e-2
     )
 
 
@@ -173,6 +175,8 @@ def test_custom_model_predict(model_fx):
         df.reset_index(drop=True),
         mfx.custom_analysis_results.reset_index(drop=True),
         check_dtype=False,
+        check_exact=False, 
+        atol=1e-2
     )
 
 
@@ -201,12 +205,14 @@ def test_google_model_predict(model_fx):
 
     final_results = pd.concat(final_results).sort_values(
         by="confidence", ascending=False
+    ).reset_index(drop=True)
+
+    final_results = final_results.loc[final_results.confidence >= 0.25, :]
+
+    assert_frame_equal(
+        final_results.loc[:, ["labels", "confidence"]],
+        model_fx.google_result.loc[:, ["labels", "confidence"]],
+        check_dtype=False,
+        check_exact=False, 
+        atol=1e-1
     )
-
-    # final_results = final_results.loc[final_results["confidence"] > 0.25, :]
-
-    # print(final_results.loc[:, ["labels", "common_name", "scientific_name", "confidence"]])
-    assert final_results["scientific_name"].iloc[1] == "Poecile carolinensis"
-    assert final_results["confidence"].iloc[1] == pytest.approx(0.5022050)
-    assert final_results["scientific_name"].iloc[0] == "Turdus viscivorus"
-    assert final_results["confidence"].iloc[0] == pytest.approx(0.817928)

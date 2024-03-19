@@ -113,6 +113,16 @@ class ModelFixture:
             .sort_values(by="confidence", ascending=False)
         )
 
+        self.google_result = (
+            (
+                pd.read_csv(
+                    self.testpath / Path("google_results_minconf025.csv")
+                ).sort_values(by="confidence", ascending=False)
+            )
+            .reset_index(drop=False)
+            .rename(columns={"SCI_NAME": "scientific_name", "label":"labels"})
+        )
+
 
 @pytest.fixture
 def model_fx():
