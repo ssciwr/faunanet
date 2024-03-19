@@ -20,7 +20,9 @@ dependencies = [
     "pandas", 
     "birdnetlib==0.15.0", 
     "pooch", 
-    "resampy" # for audio loading
+    "resampy", # for audio loading
+    "tensorflow-hub",
+    "validators"
 ]
 
 
