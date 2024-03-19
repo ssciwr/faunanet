@@ -16,7 +16,11 @@ class Model(ModelBase):
     """
 
     def __init__(
-        self, model_path: str, num_threads: int = 1, sigmoid_sensitivity: float = 1.0
+        self,
+        model_path: str,
+        num_threads: int = 1,
+        sigmoid_sensitivity: float = 1.0,
+        species_list_file: str = None,
     ):
         """
         __init__ Create a new model instance that uses birdnet-analyzer models for bird species classification
@@ -92,6 +96,10 @@ class Model(ModelBase):
                 labels.append(line.replace("\n", ""))
         self.labels = labels
         print("Default labels loaded.")
+
+    def load_species_list(self):
+        # TODO
+        pass
 
     def predict(self, sample: np.array) -> np.array:
         """

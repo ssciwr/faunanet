@@ -49,23 +49,11 @@ class Model(ModelBase):
         self,
         default_model_path: str = None,
         model_path: str = None,
-        custom_species_list_path: str = None,
-        custom_species_list: list = None,
+        species_list_file: str = None,
         sigmoid_sensitivity: float = 1.0,
         num_threads: int = 1,
     ):
-        """
-        __init__ _summary_
 
-        _extended_summary_
-
-        Args:
-            default_model_path (_type_, optional): _description_. Defaults to None.
-            model_path (_type_, optional): _description_. Defaults to None.
-            custom_species_list_path (_type_, optional): _description_. Defaults to None.
-            custom_species_list (_type_, optional): _description_. Defaults to None.
-            num_threads (int, optional): _description_. Defaults to 1.
-        """
         self.default_model_path = str(Path(default_model_path) / "model.tflite")
         self.default_labels_path = str(Path(default_model_path) / "labels.txt")
 
@@ -145,6 +133,10 @@ class Model(ModelBase):
                 labels.append(line.replace("\n", ""))
         self.labels = labels
         print("Labels loaded.")
+
+    def load_species_list(self):
+        # TODO
+        pass
 
     def get_embeddings(self, data: np.array) -> np.array:
         """

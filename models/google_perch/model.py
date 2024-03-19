@@ -14,7 +14,7 @@ import pandas as pd
 
 class Model(ModelBase):
 
-    def __init__(self, model_path: str, num_threads: int = 1):
+    def __init__(self, model_path: str, num_threads: int = 1, species_list_file=None):
         """
         __init__ Create a new Model instance using the google perch model.
 
@@ -24,8 +24,18 @@ class Model(ModelBase):
         """
         labels_path = str(Path(model_path) / "labels.txt")
 
+        species_list_path = None
+
+        if species_list_file is not None:
+            species_list_path = str(Path(model_path) / species_list_file)
+
+        self.class_mask = None  # used later
+
         super().__init__(
-            model_path, labels_path, num_threads
+            model_path,
+            labels_path,
+            num_threads=num_threads,
+            species_list_path=species_list_path,
         )  # num_threads doesn't do anything here.
 
         self.model_path = str(
@@ -46,6 +56,27 @@ class Model(ModelBase):
         self.labels = pd.read_csv(
             self.labels_path,
         )
+
+    def load_species_list(self):
+        """
+        load_species_list Produce a mask that only takes into account the relevant species given by the species list file supplied to the constructor.
+        """
+
+        print("prepare species list")
+
+        # this is particular to this model here
+        labels = self.labels["labels"].to_list()
+
+        relevant_labels = set(
+            pd.read_csv(self.species_list_path).loc[:, "primary_label"].unique()
+        )
+
+        # make boolean mask for probabilities
+        self.class_mask = np.array(
+            [1 if label in relevant_labels else 0 for label in labels]
+        )
+
+        print("done")
 
     def predict(self, data: np.array):
         """
@@ -68,6 +99,11 @@ class Model(ModelBase):
         )
 
         confidence = tf.nn.softmax(logits).numpy()[0]
+
+        # set all the species to zero confidence that are not in the species list provided
+
+        if self.class_mask is not None:
+            confidence[self.class_mask == 0] = 0
 
         results.loc[:, "confidence"] = confidence
 

@@ -199,11 +199,14 @@ def test_google_model_predict(model_fx):
 
         start += 5
 
-    final_results = pd.concat(final_results)
-    final_results = final_results.loc[final_results["confidence"] > 0.25, :]
+    final_results = pd.concat(final_results).sort_values(
+        by="confidence", ascending=False
+    )
 
-    print(final_results)
-    assert final_results["scientific_name"].iloc[0] == "Poecile carolinensis"
-    assert final_results["confidence"].iloc[0] == pytest.approx(0.5022050)
-    assert final_results["scientific_name"].iloc[1] == "Turdus viscivorus"
-    assert final_results["confidence"].iloc[1] == pytest.approx(0.817928)
+    # final_results = final_results.loc[final_results["confidence"] > 0.25, :]
+
+    # print(final_results.loc[:, ["labels", "common_name", "scientific_name", "confidence"]])
+    assert final_results["scientific_name"].iloc[1] == "Poecile carolinensis"
+    assert final_results["confidence"].iloc[1] == pytest.approx(0.5022050)
+    assert final_results["scientific_name"].iloc[0] == "Turdus viscivorus"
+    assert final_results["confidence"].iloc[0] == pytest.approx(0.817928)

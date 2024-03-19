@@ -2,7 +2,7 @@ Analyzer:
   Model:
     model_path: google_perch
     num_threads: 12
-  
+    # species_list_file: train_metadata.csv
   min_conf: 0.25
 
 Data:
