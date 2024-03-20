@@ -12,7 +12,7 @@ def test_default_model_construction(model_fx):
     mfx = model_fx
 
     model = mfx.default_module.Model.from_cfg(
-        mfx.sparrow_folder, mfx.default_cfg["Analyzer"]["Model"]
+        mfx.sparrow_folder, mfx.default_cfg["Analysis"]["Model"]
     )
 
     assert model.model_path == str(
@@ -38,7 +38,7 @@ def test_custom_model_construction(model_fx):
     mfx = model_fx
 
     model = mfx.custom_module.Model.from_cfg(
-        mfx.sparrow_folder, mfx.custom_cfg["Analyzer"]["Model"]
+        mfx.sparrow_folder, mfx.custom_cfg["Analysis"]["Model"]
     )
 
     assert model.default_model_path == str(
@@ -80,7 +80,7 @@ def test_google_model_construction(model_fx):
     mfx = model_fx
 
     model = mfx.google_module.Model.from_cfg(
-        mfx.sparrow_folder, mfx.google_cfg["Analyzer"]["Model"]
+        mfx.sparrow_folder, mfx.google_cfg["Analysis"]["Model"]
     )
 
     assert model.model_path == str(
@@ -104,7 +104,7 @@ def test_default_model_predict(model_fx):
     mfx = model_fx
 
     model = mfx.default_module.Model.from_cfg(
-        mfx.sparrow_folder, mfx.default_cfg["Analyzer"]["Model"]
+        mfx.sparrow_folder, mfx.default_cfg["Analysis"]["Model"]
     )
 
     final_results = []
@@ -132,7 +132,7 @@ def test_default_model_predict(model_fx):
         lambda x: x.split("_")[0]
     )
 
-    # assert that results are equivalent to the previous once/the ones obtained with birdnet-Analyzer
+    # assert that results are equivalent to the previous once/the ones obtained with birdnet-Analysis
     assert_frame_equal(
         df.reset_index(drop=True),
         mfx.default_analysis_results.reset_index(drop=True),
@@ -146,7 +146,7 @@ def test_custom_model_predict(model_fx):
     mfx = model_fx
 
     model = mfx.custom_module.Model.from_cfg(
-        mfx.sparrow_folder, mfx.custom_cfg["Analyzer"]["Model"]
+        mfx.sparrow_folder, mfx.custom_cfg["Analysis"]["Model"]
     )
 
     final_results = []
@@ -170,7 +170,7 @@ def test_custom_model_predict(model_fx):
         lambda x: x.split("_")[0]
     )
 
-    # assert that results are equivalent to the previous once/the ones obtained with birdnet-Analyzer
+    # assert that results are equivalent to the previous once/the ones obtained with birdnet-Analysis
     assert_frame_equal(
         df.reset_index(drop=True),
         mfx.custom_analysis_results.reset_index(drop=True),
@@ -184,7 +184,7 @@ def test_google_model_predict(model_fx):
     mfx = model_fx
 
     model = mfx.google_module.Model.from_cfg(
-        mfx.sparrow_folder, mfx.google_cfg["Analyzer"]["Model"]
+        mfx.sparrow_folder, mfx.google_cfg["Analysis"]["Model"]
     )
 
     final_results = []
@@ -201,6 +201,8 @@ def test_google_model_predict(model_fx):
         .sort_values(by="confidence", ascending=False)
         .reset_index(drop=True)
     )
+
+    print(final_results)
 
     final_results = final_results.loc[final_results.confidence >= 0.25, :]
 

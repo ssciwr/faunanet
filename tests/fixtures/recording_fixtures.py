@@ -6,7 +6,6 @@ import pandas as pd
 
 sys.path.append("../src/iSparrow")
 
-from src.iSparrow import sparrow_analyzer as spa
 from src.iSparrow import sparrow_recording as spc
 from src.iSparrow import utils
 
@@ -32,44 +31,86 @@ class RecordingFixture:
         self.example_folder = self.sparrow_folder / "example"
 
         with open(self.testpath / "cfg_custom.yml", "r") as file:
-            self.cfg = yaml.safe_load(file)
+            self.custom_cfg = yaml.safe_load(file)
 
         with open(self.testpath / "cfg_default.yml", "r") as file:
             self.default_cfg = yaml.safe_load(file)
 
+        with open(self.testpath / "cfg_google.yml", "r") as file:
+            self.google_cfg = yaml.safe_load(file)
         # import preprocessor definition that we need
 
         pp = utils.load_module(
             "pp",
             str(
                 self.models_folder
-                / Path(self.cfg["Analyzer"]["Model"]["model_path"])
+                / Path(self.custom_cfg["Analysis"]["Model"]["model_path"])
                 / "preprocessor.py"
-            )
+            ),
         )
 
         ppd = utils.load_module(
             "ppd",
             str(
                 self.models_folder
-                / Path(self.cfg["Analyzer"]["Model"]["model_path"])
+                / Path(self.default_cfg["Analysis"]["Model"]["model_path"])
                 / "preprocessor.py"
-            )
+            ),
         )
 
-        self.preprocessor = pp.Preprocessor.from_cfg(self.cfg["Data"]["Preprocessor"])
-
-        self.analyzer = spa.SparrowAnalyzer.from_cfg(
-            str(self.sparrow_folder), self.cfg["Analyzer"]
+        ppg = utils.load_module(
+            "ppd",
+            str(
+                self.models_folder
+                / Path(self.google_cfg["Analysis"]["Model"]["model_path"])
+                / "preprocessor.py"
+            ),
         )
 
-        self.default_analyzer = spa.SparrowAnalyzer.from_cfg(
-            str(self.sparrow_folder), self.default_cfg["Analyzer"]
+        cmm = utils.load_module(
+            "cmm",
+            str(
+                self.models_folder
+                / Path(self.custom_cfg["Analysis"]["Model"]["model_path"])
+                / "model.py"
+            ),
+        )
+
+        dmm = utils.load_module(
+            "dmm",
+            str(
+                self.models_folder
+                / Path(self.default_cfg["Analysis"]["Model"]["model_path"])
+                / "model.py"
+            ),
+        )
+
+        gmm = utils.load_module(
+            "gmm",
+            str(
+                self.models_folder
+                / Path(self.google_cfg["Analysis"]["Model"]["model_path"])
+                / "model.py"
+            ),
+        )
+
+        self.custom_preprocessor = pp.Preprocessor.from_cfg(
+            self.custom_cfg["Data"]["Preprocessor"]
         )
 
         self.default_preprocessor = ppd.Preprocessor.from_cfg(
             self.default_cfg["Data"]["Preprocessor"]
         )
+
+        self.google_preprocessor = ppg.Preprocessor.from_cfg(
+            self.google_cfg["Data"]["Preprocessor"]
+        )
+
+        self.model = cmm.Model.from_cfg(self.custom_cfg["Analysis"]["Model"])
+
+        self.default_model = dmm.Model.from_cfg(self.default_cfg["Analysis"]["Model"])
+
+        self.google_model = gmm.Model.from_cfg(self.google_cfg["Analysis"]["Model"])
 
         self.good_file = self.example_folder / "soundscape.wav"
 
@@ -85,8 +126,11 @@ class RecordingFixture:
             self.testpath / Path("default_results.csv")
         )
 
+        self.google_analysis_results = pd.read_csv(
+            self.testpath / Path("google_results_minconf025.csv")
+        )
+
 
 @pytest.fixture
 def recording_fx():
-
     return RecordingFixture()

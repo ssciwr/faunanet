@@ -43,7 +43,7 @@ class ModelFixture:
             "model_default",
             str(
                 self.models_folder
-                / Path(self.default_cfg["Analyzer"]["Model"]["model_path"])
+                / Path(self.default_cfg["Analysis"]["Model"]["model_path"])
                 / "model.py"
             ),
         )
@@ -52,7 +52,7 @@ class ModelFixture:
             "pp_default",
             str(
                 self.models_folder
-                / Path(self.default_cfg["Analyzer"]["Model"]["model_path"])
+                / Path(self.default_cfg["Analysis"]["Model"]["model_path"])
                 / "preprocessor.py"
             ),
         )
@@ -61,7 +61,7 @@ class ModelFixture:
             "model_custom",
             str(
                 self.models_folder
-                / Path(self.custom_cfg["Analyzer"]["Model"]["model_path"])
+                / Path(self.custom_cfg["Analysis"]["Model"]["model_path"])
                 / "model.py"
             ),
         )
@@ -70,7 +70,7 @@ class ModelFixture:
             "model_google",
             str(
                 self.models_folder
-                / Path(self.google_cfg["Analyzer"]["Model"]["model_path"])
+                / Path(self.google_cfg["Analysis"]["Model"]["model_path"])
                 / "model.py"
             ),
         )
@@ -79,7 +79,7 @@ class ModelFixture:
             "pp_google",
             str(
                 self.models_folder
-                / Path(self.google_cfg["Analyzer"]["Model"]["model_path"])
+                / Path(self.google_cfg["Analysis"]["Model"]["model_path"])
                 / "preprocessor.py"
             ),
         )
@@ -100,7 +100,7 @@ class ModelFixture:
 
         self.data_google = ppg.process_audio_data(data_google)
 
-        # read data made with birdnet-Analyzer for cross checking
+        # read data made with birdnet-Analysis for cross checking
         self.default_analysis_results = (
             pd.read_csv(self.testpath / Path("default_results.csv"))
             .loc[:, ["scientific_name", "confidence"]]
@@ -120,7 +120,7 @@ class ModelFixture:
                 ).sort_values(by="confidence", ascending=False)
             )
             .reset_index(drop=False)
-            .rename(columns={"SCI_NAME": "scientific_name", "label":"labels"})
+            .rename(columns={"SCI_NAME": "scientific_name", "label": "labels"})
         )
 
 
