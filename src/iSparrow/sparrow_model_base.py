@@ -44,6 +44,8 @@ class ModelBase(ABC):
 
         self.sensitivity = sensitivity
 
+        self.results = None
+
         self.load_model()
 
         self.load_labels()
@@ -118,29 +120,37 @@ class ModelBase(ABC):
         pass
 
     def analyze_recording(self, recording):
+        """
+        analyze_recording _summary_
+
+        Args:
+            recording (_type_): _description_
+        """
         start = 0
         end = recording.sample_secs
         results = {}
         for c in recording.chunks:
-            predictions = self.model.predict(c)
 
-            labeled_predictions = list(zip(self.model.labels, predictions))
+            # make predictions and put together with labels
+            predictions = self.predict(c)[0]
 
-            # Sort by score
-            labeled_predictions = sorted(
+            labeled_predictions = list(zip(self.labels, predictions))
+
+            # Sort by score and filter
+            sorted_predictions = sorted(
                 labeled_predictions, key=operator.itemgetter(1), reverse=True
             )
 
             # Filter by recording.minimum_confidence so not to needlessly store full array for each chunk.
-            labeled_predictions_sorted = [
-                i for i in labeled_predictions if i[1] >= recording.minimum_confidence
+            labeled_predictions_filtered = [
+                i for i in sorted_predictions if i[1] >= recording.minimum_confidence
             ]
 
             # Store results
-            results[str(start) + "-" + str(end)] = labeled_predictions_sorted
+            results[(start, end)] = labeled_predictions_filtered
 
             # Increment start and end
             start += recording.sample_secs - recording.overlap
             end = start + recording.sample_secs
 
-        return results
+            self.results = results

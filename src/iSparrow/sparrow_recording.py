@@ -6,6 +6,7 @@ from birdnetlib.main import RecordingBase
 from .preprocessor_base import PreprocessorBase
 from .sparrow_model_base import ModelBase
 from . import utils
+import warnings
 
 
 class SparrowRecording(RecordingBase):
@@ -128,3 +129,33 @@ class SparrowRecording(RecordingBase):
         del cfg["Analysis"]["Model"]
 
         return cls(preprocessor, model, **(defaults | cfg["Analysis"]))
+
+    @property
+    def detections(self):
+        # overrides the detections method of the base class to make things a bit simpler and remove stuff
+        # that is currently not supported here.
+
+        if not self.analyzed:
+            warnings.warn(
+                "'analyze' method has not been called. Call .analyze() before accessing detections.",
+                RuntimeWarning,
+            )
+
+        qualified_detections = []
+
+        # allow_list = self.analyzer.custom_species_list
+        for (start, end), labeled_predictions in self.model.results.items():
+
+            # README: this needs to include allowed species later
+            for label, confidence in labeled_predictions:
+                if confidence > self.minimum_confidence:
+                    qualified_detections.append(
+                        {
+                            "start": start,
+                            "end": end,
+                            "label": label,
+                            "confidence": confidence,
+                        }
+                    )
+
+        return qualified_detections

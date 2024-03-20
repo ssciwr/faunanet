@@ -39,6 +39,7 @@ class Preprocessor(ppb.PreprocessorBase):
         self.resample_type = resample_type
         self.duration = 0
         self.actual_sampling_rate = 0
+        self.chunks = []
         super().__init__("google_perch")
 
     def read_audio_data(self, path: str) -> np.array:

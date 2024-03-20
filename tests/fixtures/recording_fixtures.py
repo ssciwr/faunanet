@@ -59,7 +59,7 @@ class RecordingFixture:
         )
 
         ppg = utils.load_module(
-            "ppd",
+            "ppg",
             str(
                 self.models_folder
                 / Path(self.google_cfg["Analysis"]["Model"]["model_path"])

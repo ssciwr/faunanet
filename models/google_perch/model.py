@@ -86,7 +86,7 @@ class Model(ModelBase):
             )
         )
 
-        results = tf.nn.softmax(logits).numpy()[0]
+        results = tf.nn.softmax(logits).numpy()
 
         return results
 

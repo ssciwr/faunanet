@@ -190,7 +190,7 @@ def test_google_model_predict(model_fx):
     final_results = []
     for chunk in mfx.data_google[0:3]:  # use only the first 3 chunks to limit runtime
 
-        results = model.predict(chunk)
+        results = model.predict(chunk)[0]
 
         results = list(zip(model.labels, results))
 
