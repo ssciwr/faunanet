@@ -127,9 +127,9 @@ class ModelBase(ABC):
             recording (_type_): _description_
         """
         start = 0
-        end = recording.sample_secs
+        end = recording.processor.sample_secs
         results = {}
-        for c in recording.chunks:
+        for c in recording.processor.chunks:
 
             # make predictions and put together with labels
             predictions = self.predict(c)[0]
@@ -150,7 +150,7 @@ class ModelBase(ABC):
             results[(start, end)] = labeled_predictions_filtered
 
             # Increment start and end
-            start += recording.sample_secs - recording.overlap
-            end = start + recording.sample_secs
+            start += recording.processor.sample_secs - recording.processor.overlap
+            end = start + recording.processor.sample_secs
 
             self.results = results

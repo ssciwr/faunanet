@@ -209,5 +209,5 @@ def test_google_model_predict(model_fx):
         model_fx.google_result.loc[:, ["labels", "confidence"]],
         check_dtype=False,
         check_exact=False,
-        atol=1e-1,
+        atol=1e-2,
     )

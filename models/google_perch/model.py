@@ -73,7 +73,6 @@ class Model(ModelBase):
         Returns:
             list: List of (label, inferred_probability)
         """
-        # FIXME: this does work programmatically, but gives awful results
 
         results = self.labels.copy()
 
@@ -87,7 +86,6 @@ class Model(ModelBase):
         )
 
         results = tf.nn.softmax(logits).numpy()
-
         return results
 
     @classmethod

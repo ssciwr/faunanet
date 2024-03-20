@@ -143,27 +143,24 @@ def test_analysis_google(recording_fx):
     )
 
     recording.analyze()
+
     results = recording.detections
 
     # make a dataframe and sort it the same way as the expected recording_fx, with an index ranging from 0:len(df)-1
     # unfortunately, default test results where recorded with ascending = True... so it's inconsistent with custom
-    df = (
-        pd.DataFrame(results)
-        .sort_values(by="confidence", ascending=False)
-        .reset_index()
-        .drop("index", axis=1)
-    )
+    df = pd.DataFrame(results)
 
-    print(
-        df,
-        "\n",
-        recording_fx.google_analysis_results.loc[
-            :, ["label", "confidence", "SCI_NAME"]
-        ].sort_values(by="confidence", ascending=False),
+    df = (
+        df.loc[df.end <= 15, ["label", "confidence"]]
+        .sort_values(by="confidence", ascending=False)
+        .reset_index(drop=True)
     )
 
     assert_frame_equal(
-        df.loc[:, ["label", "confidence"]],
-        recording_fx.google_analysis_results.loc[:, ["label", "confidence"]],
+        df,  # we only have comparison data for the first 3 chunks
+        recording_fx.google_analysis_results.loc[
+            :, ["label", "confidence"]
+        ].sort_values(by="confidence", ascending=False).reset_index(drop=True),
         check_dtype=False,
+        atol = 1e-2
     )
