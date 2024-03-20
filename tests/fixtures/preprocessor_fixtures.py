@@ -33,9 +33,9 @@ def make_preprocessor(cfg_name: str):
         "pp",
         str(
             models_folder
-            / Path(cfg["Analyzer"]["Model"]["model_path"])
+            / Path(cfg["Analysis"]["Model"]["model_path"])
             / "preprocessor.py"
-        )
+        ),
     )
 
     preprocessor = module.Preprocessor.from_cfg(cfg["Data"]["Preprocessor"])

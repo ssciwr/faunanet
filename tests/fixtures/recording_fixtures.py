@@ -106,11 +106,17 @@ class RecordingFixture:
             self.google_cfg["Data"]["Preprocessor"]
         )
 
-        self.model = cmm.Model.from_cfg(self.custom_cfg["Analysis"]["Model"])
+        self.custom_model = cmm.Model.from_cfg(
+            self.sparrow_folder, self.custom_cfg["Analysis"]["Model"]
+        )
 
-        self.default_model = dmm.Model.from_cfg(self.default_cfg["Analysis"]["Model"])
+        self.default_model = dmm.Model.from_cfg(
+            self.sparrow_folder, self.default_cfg["Analysis"]["Model"]
+        )
 
-        self.google_model = gmm.Model.from_cfg(self.google_cfg["Analysis"]["Model"])
+        self.google_model = gmm.Model.from_cfg(
+            self.sparrow_folder, self.google_cfg["Analysis"]["Model"]
+        )
 
         self.good_file = self.example_folder / "soundscape.wav"
 
