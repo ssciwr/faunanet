@@ -192,17 +192,15 @@ def test_google_model_predict(model_fx):
 
         results = model.predict(chunk)
 
+        results = list(zip(model.labels, results))
+
         final_results.extend(results)
 
     final_results = (
-        pd.DataFrame(
-            list(zip(model.labels, final_results)), columns=["labels", "confidence"]
-        )
+        pd.DataFrame(final_results, columns=["labels", "confidence"])
         .sort_values(by="confidence", ascending=False)
         .reset_index(drop=True)
     )
-
-    print(final_results)
 
     final_results = final_results.loc[final_results.confidence >= 0.25, :]
 
