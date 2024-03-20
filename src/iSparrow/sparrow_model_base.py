@@ -1,16 +1,19 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from pathlib import Path
-
+import operator
 from . import utils
 
 
 class ModelBase(ABC):
     """
-    ModelBase _summary_
+    ModelBase Base model class for iSparrow. Every model that iSparrow can use must derive from this class.
 
-    Args:
-        ABC (_type_): _description_
+    Attributes:
+        model_path (str): path to the model file used, or the url used to load it
+        labels_path (str): path to the labels file read for having labels
+        species_list_path (str|None): Path to a restricted list of species labels if used, else None
+        sensitivity (float, defaults to 1.0): Parameter of the sigmoid activation function used to produce classification probabilities.
     """
 
     def __init__(
@@ -111,5 +114,33 @@ class ModelBase(ABC):
         pass
 
     @abstractmethod
-    def predict(self, data: np.array) -> np.array:
+    def predict(self, data: np.array) -> list:
         pass
+
+    def analyze_recording(self, recording):
+        start = 0
+        end = recording.sample_secs
+        results = {}
+        for c in recording.chunks:
+            predictions = self.model.predict(c)
+
+            labeled_predictions = list(zip(self.model.labels, predictions))
+
+            # Sort by score
+            labeled_predictions = sorted(
+                labeled_predictions, key=operator.itemgetter(1), reverse=True
+            )
+
+            # Filter by recording.minimum_confidence so not to needlessly store full array for each chunk.
+            labeled_predictions_sorted = [
+                i for i in labeled_predictions if i[1] >= recording.minimum_confidence
+            ]
+
+            # Store results
+            results[str(start) + "-" + str(end)] = labeled_predictions_sorted
+
+            # Increment start and end
+            start += recording.sample_secs - recording.overlap
+            end = start + recording.sample_secs
+
+        return results

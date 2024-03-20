@@ -1,4 +1,4 @@
-Analyzer:
+Analysis:
   Model:
     model_path: "birdnet_custom"
     sigmoid_sensitivity: 1.0

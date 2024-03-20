@@ -1,4 +1,4 @@
-Analyzer:
+Analysis:
   Model:
     model_path: google_perch
     num_threads: 12

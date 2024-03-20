@@ -3,8 +3,9 @@ import numpy as np
 from pathlib import Path
 import datetime
 from birdnetlib.main import RecordingBase
-from birdnetlib.analyzer import Analyzer
 from .preprocessor_base import PreprocessorBase
+from .sparrow_model_base import ModelBase
+from . import utils
 
 
 class SparrowRecording(RecordingBase):
@@ -19,8 +20,8 @@ class SparrowRecording(RecordingBase):
 
     def __init__(
         self,
-        analyzer: Analyzer,
         preprocessor: PreprocessorBase,
+        model: ModelBase,
         path: str,
         week_48: int = -1,
         date: datetime = None,
@@ -45,13 +46,14 @@ class SparrowRecording(RecordingBase):
             return_all_detections (bool, optional): Ignore confidence and return all detections we got. Defaults to False.
         """
         self.processor = preprocessor
+        self.model = model
         self.path = path
         p = Path(self.path)
         self.filestem = p.stem
 
-        # README: This call will change later, as some of the members will live in the analyzer/model in future PR
+        # TODO: can we get rid of the analyzer thing completely?
         super().__init__(
-            analyzer,
+            model,
             week_48=week_48,
             date=date,
             sensitivity=1.0,
@@ -90,3 +92,39 @@ class SparrowRecording(RecordingBase):
         rawdata = self.processor.read_audio_data(self.path)
 
         return self.process_audio_data(rawdata)
+
+    @classmethod
+    def from_cfg(cls, sparrow_path: str, cfg: dict):
+        # README: sparrow path needed still -> can we get rid of it in some way?
+        # config.py/.yml written upon install or something....
+        # future PR when installing/packaging is done
+
+        # load appropriate modules: preprocessor, model
+
+        module_path = Path(sparrow_path) / Path("models") / cfg["Model"]["model_path"]
+
+        preproc_m = utils.load_module("pp", str(module_path / "preprocessor.py"))
+
+        model_m = utils.load_module("mm", str(module_path / "model.py"))
+
+        # make preprocessor instance
+        preprocessor = preproc_m.Preprocessor.from_cfg(cfg["Data"]["Preprocessor"])
+
+        # make model instance
+        model = model_m.Model.from_cfg(cfg["Analysis"]["Model"])
+
+        # make recording instance and return
+
+        defaults = {
+            "path": None,
+            "week_48": -1,
+            "date": None,
+            "lat": None,
+            "lon": None,
+            "return_all_detections": False,
+            "min_conf": 0.25,
+        }
+
+        del cfg["Analysis"]["Model"]
+
+        return cls(preprocessor, model, **(defaults | cfg["Analysis"]))
