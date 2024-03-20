@@ -8,16 +8,7 @@ sys.path.append("../src/iSparrow")
 
 from src.iSparrow import sparrow_analyzer as spa
 from src.iSparrow import sparrow_recording as spc
-import importlib
-
-import importlib.util
-
-
-def load_module(path: str):
-    spec = importlib.util.spec_from_file_location("pp", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+from src.iSparrow import utils
 
 
 class RecordingFixture:
@@ -40,7 +31,7 @@ class RecordingFixture:
 
         self.example_folder = self.sparrow_folder / "example"
 
-        with open(self.testpath / "cfg.yml", "r") as file:
+        with open(self.testpath / "cfg_custom.yml", "r") as file:
             self.cfg = yaml.safe_load(file)
 
         with open(self.testpath / "cfg_default.yml", "r") as file:
@@ -48,35 +39,35 @@ class RecordingFixture:
 
         # import preprocessor definition that we need
 
-        pp = load_module(
+        pp = utils.load_module(
+            "pp",
             str(
                 self.models_folder
-                / Path(self.cfg["Analyzer"]["Model"]["model_name"])
+                / Path(self.cfg["Analyzer"]["Model"]["model_path"])
                 / "preprocessor.py"
             )
         )
 
-        ppd = load_module(
+        ppd = utils.load_module(
+            "ppd",
             str(
                 self.models_folder
-                / Path(self.cfg["Analyzer"]["Model"]["model_name"])
+                / Path(self.cfg["Analyzer"]["Model"]["model_path"])
                 / "preprocessor.py"
             )
         )
 
-        self.preprocessor = pp.preprocessor_from_config(
-            self.cfg["Data"]["Preprocessor"]
-        )
+        self.preprocessor = pp.Preprocessor.from_cfg(self.cfg["Data"]["Preprocessor"])
 
-        self.analyzer = spa.analyzer_from_config(
+        self.analyzer = spa.SparrowAnalyzer.from_cfg(
             str(self.sparrow_folder), self.cfg["Analyzer"]
         )
 
-        self.default_analyzer = spa.analyzer_from_config(
+        self.default_analyzer = spa.SparrowAnalyzer.from_cfg(
             str(self.sparrow_folder), self.default_cfg["Analyzer"]
         )
 
-        self.default_preprocessor = ppd.preprocessor_from_config(
+        self.default_preprocessor = ppd.Preprocessor.from_cfg(
             self.default_cfg["Data"]["Preprocessor"]
         )
 

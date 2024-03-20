@@ -72,7 +72,6 @@ class Preprocessor(ppb.PreprocessorBase):
             print(e)
             raise AudioFormatError("Generic audio read error occurred from librosa.")
 
-        print(" data: ", len(data), rate, self.duration)
         return data
 
     def process_audio_data(self, rawdata: np.ndarray) -> list:
@@ -117,14 +116,26 @@ class Preprocessor(ppb.PreprocessorBase):
 
         return self.chunks
 
+    @classmethod
+    def from_cfg(cls, cfg: dict):
+        """
+        from_cfg Construct a new preprocessor from a given dictionary. This represents typically a config node read from a YAML file.
 
-def preprocessor_from_config(cfg: dict) -> Preprocessor:
-    """
-    preprocessor_from_config Construct a new preprocessor from a given dictionary. This represents typically a config node read from a YAML file.
+        Args:
+            cfg (dict): Config node read from a YAML file
 
-    Args:
-        cfg (dict): Config node read from a YAML file
+        Returns:  new preprocessor instance
+        """
+        allowed = [
+            "sample_rate",
+            "overlap",
+            "sample_secs",
+            "resample_type",
+            "duration",
+            "actual_sampling_rate",
+        ]
 
-    Returns:  new preprocessor instance
-    """
-    return Preprocessor(**cfg)
+        if len([key for key in cfg if key not in allowed]) > 0:
+            raise RuntimeError("Erroneous keyword arguments in preprocessor config")
+
+        return cls(**cfg)

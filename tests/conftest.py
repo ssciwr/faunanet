@@ -5,8 +5,9 @@ import yaml
 from pathlib import Path
 
 from .fixtures.recording_fixtures import recording_fx
-from .fixtures.preprocessor_fixtures import preprocessor_fx
+from .fixtures.preprocessor_fixtures import preprocessor_fx, preprocessor_fx_google
 from .fixtures.analyzer_fixtures import analyzer_fx
+from .fixtures.model_fixtures import model_fx
 
 
 # README: the below will later land in setup.py...
@@ -35,11 +36,13 @@ def read_yaml(path: str):
 
 def make_directories(base_cfg_dirs: dict):
     """
-    make_directories _summary_
+    make_directories Make all the directories for sparrow.
 
 
     Args:
-        base_cfg_dirs (dict): _description_
+        base_cfg_dirs (dict): Dictionary containing paths for the main install ("home"),
+        the directory where models are stored ("models"), the one where data may be stored ("data")
+        and the "output" directory to store inference results and potentially other data in ("output")
 
     Raises:
         KeyError: A folder given in the config does not exist
@@ -108,6 +111,8 @@ def download_model_files(isparrow_model_dir: str):
         "google_bird_classification/assets/genus.csv": None,
         "google_bird_classification/assets/label.csv": None,
         "google_bird_classification/assets/order.csv": None,
+        "google_bird_classification/labels.txt": None,
+        "google_bird_classification/train_metadata.csv": None,
     }
 
     models_data = pooch.create(
@@ -131,16 +136,9 @@ def download_model_files(isparrow_model_dir: str):
             ism / Path("birdnet_custom"),
         )
 
-    for name in [
-        "saved_model.pb",
-        "variables/variables.index",
-        "variables/variables.data-00000-of-00001",
-        "assets/family.csv",
-        "assets/genus.csv",
-        "assets/label.csv",
-        "assets/order.csv",
-    ]:
+    for name in ["saved_model.pb", "labels.txt", "train_metadata.csv"]:
         (ism / Path("google_perch")).mkdir(parents=True, exist_ok=True)
+
         shutil.copy(
             Path(
                 models_data.fetch(
@@ -148,6 +146,41 @@ def download_model_files(isparrow_model_dir: str):
                 )
             ),
             ism / Path("google_perch"),
+        )
+
+    # assets and variables need to live in separate directories to load the model correctly
+    for name in [
+        "variables/variables.index",
+        "variables/variables.data-00000-of-00001",
+    ]:
+
+        (ism / Path("google_perch") / "variables").mkdir(parents=True, exist_ok=True)
+
+        shutil.copy(
+            Path(
+                models_data.fetch(
+                    f"google_bird_classification/{name}", progressbar=False
+                )
+            ),
+            ism / Path("google_perch") / "variables",
+        )
+
+    for name in [
+        "assets/family.csv",
+        "assets/genus.csv",
+        "assets/label.csv",
+        "assets/order.csv",
+    ]:
+
+        (ism / Path("google_perch") / "assets").mkdir(parents=True, exist_ok=True)
+
+        shutil.copy(
+            Path(
+                models_data.fetch(
+                    f"google_bird_classification/{name}", progressbar=False
+                )
+            ),
+            ism / Path("google_perch") / "assets",
         )
 
 
@@ -199,6 +232,7 @@ def copy_files(modeldir):
         shutil.copy(
             local_pp_dir / Path(name) / "preprocessor.py", Path(modeldir) / Path(name)
         )
+        shutil.copy(local_pp_dir / Path(name) / "model.py", Path(modeldir) / Path(name))
         shutil.copy(
             local_pp_dir / Path(name) / "__init__.py", Path(modeldir) / Path(name)
         )

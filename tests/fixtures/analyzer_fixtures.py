@@ -25,8 +25,8 @@ class AnalyzerFixture:
 
         self.sparrow_folder = Path(cfg["home"]).expanduser()
 
-        with open(self.testpath / "cfg.yml", "r") as file:
-            self.cfg = yaml.safe_load(file)
+        with open(self.testpath / "cfg_custom.yml", "r") as file:
+            self.cfg_custom = yaml.safe_load(file)
 
         with open(self.testpath / "cfg_missing.yml", "r") as file:
             self.cfg_missing = yaml.safe_load(file)

@@ -1,4 +1,3 @@
 Analyzer:
   Model:
-    model_dir: models
-  
+    sigmoid_sensitivity: 1.  
