@@ -137,8 +137,8 @@ def test_default_model_predict(model_fx):
         df.reset_index(drop=True),
         mfx.default_analysis_results.reset_index(drop=True),
         check_dtype=False,
-        check_exact=False, 
-        atol=1e-2
+        check_exact=False,
+        atol=1e-2,
     )
 
 
@@ -175,8 +175,8 @@ def test_custom_model_predict(model_fx):
         df.reset_index(drop=True),
         mfx.custom_analysis_results.reset_index(drop=True),
         check_dtype=False,
-        check_exact=False, 
-        atol=1e-2
+        check_exact=False,
+        atol=1e-2,
     )
 
 
@@ -188,31 +188,24 @@ def test_google_model_predict(model_fx):
     )
 
     final_results = []
-    start = 0
     for chunk in mfx.data_google[0:3]:  # use only the first 3 chunks to limit runtime
 
         results = model.predict(chunk)
 
-        results = results.sort_values(by="confidence", ascending=False)
+        final_results.extend(results)
 
-        results.loc[:, "start"] = start
-
-        results.loc[:, "end"] = start + 5
-
-        final_results.append(results)
-
-        start += 5
-
-    final_results = pd.concat(final_results).sort_values(
-        by="confidence", ascending=False
-    ).reset_index(drop=True)
+    final_results = (
+        pd.DataFrame(final_results, columns=["labels", "confidence"])
+        .sort_values(by="confidence", ascending=False)
+        .reset_index(drop=True)
+    )
 
     final_results = final_results.loc[final_results.confidence >= 0.25, :]
 
     assert_frame_equal(
-        final_results.loc[:, ["labels", "confidence"]],
+        final_results,
         model_fx.google_result.loc[:, ["labels", "confidence"]],
         check_dtype=False,
-        check_exact=False, 
-        atol=1e-1
+        check_exact=False,
+        atol=1e-1,
     )

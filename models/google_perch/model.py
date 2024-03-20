@@ -24,6 +24,8 @@ class Model(ModelBase):
         """
         labels_path = str(Path(model_path) / "labels.txt")
 
+        model_path = str(Path(model_path) / "saved_model.pb")
+
         species_list_path = None
 
         if species_list_file is not None:
@@ -36,26 +38,10 @@ class Model(ModelBase):
             labels_path,
             num_threads=num_threads,
             species_list_path=species_list_path,
+            # sensitivity kwarg doesn't exist here
         )  # num_threads doesn't do anything here.
 
-        self.model_path = str(
-            Path(model_path) / "saved_model.pb"
-        )  # tensorflow wants to add the "saved_model.pb" itself, so we set the member after the superclass cstor
-
-    def load_model(self):
-        """
-        load_model Read the model from file.
-
-        """
-        self.model = tf.saved_model.load(self.model_path)
-
-    def load_labels(self):
-        """
-        load_labels Read the labels file as a pandas dataframe.
-        """
-        self.labels = pd.read_csv(
-            self.labels_path,
-        )
+    # tensorflow wants to add the "saved_model.pb" itself, so we set the member after the superclass cstor
 
     def load_species_list(self):
         """
@@ -83,7 +69,9 @@ class Model(ModelBase):
         predict Make inference about the bird species for the preprocessed data passed to this function as arguments.
 
         Args:
-            data (list): list of preprocessed data chunks
+            data (np.array): list of preprocessed data chunks
+        Returns:
+            list: List of (label, inferred_probability)
         """
         # FIXME: this does work programmatically, but gives awful results
 
@@ -98,37 +86,29 @@ class Model(ModelBase):
             )
         )
 
-        confidence = tf.nn.softmax(logits).numpy()[0]
+        results = tf.nn.softmax(logits).numpy()[0]
 
         # set all the species to zero confidence that are not in the species list provided
 
-        if self.class_mask is not None:
-            confidence[self.class_mask == 0] = 0
+        results = list(zip(self.labels, results))
 
-        results.loc[:, "confidence"] = confidence
+        if self.class_mask is not None:
+            # return only classes that have been marked as valid
+            results = [r for r, c in zip(results, self.class_mask) if c != 0]
 
         return results
-
-    def _sigmoid(self, logits: np.array, sensitivity: float = -1):
-        """
-        _sigmoid Apply a simple sigmoid to output logits to map them to probabilities
-
-        Args:
-            logits (np.array): Raw output from a the inference function of the loaded model.
-            sensitivity (float, optional): Sigmoid parameter. Defaults to -1.
-
-        Returns:
-            np.array: Model output mapped to [0,1] to get interpretable probability
-        """
-        return 1 / (1.0 + np.exp(sensitivity * np.clip(logits, -15, 15)))
 
     @classmethod
     def from_cfg(cls, sparrow_folder: str, cfg: dict):
         """
-        from_cfg _summary_
+        from_cfg Create a new instance from a dictionary containing keyword arguments. Usually loaded from a config file.
 
         Args:
-            cfg (dict): _description_
+            sparrow_dir (str): Installation directory of the Sparrow package
+            cfg (dict): Dictionary containing the keyword arguments
+
+        Returns:
+            Model: New model instance created with the supplied kwargs.
         """
 
         cfg["model_path"] = str(

@@ -32,7 +32,7 @@ def is_url(potential_url: str) -> bool:
 
 def load_model_from_file_tflite(path: str, num_threads: int = 1):
     """
-    load_tflite_from_file _summary_
+    load_model_from_file_tflite Load model from a .tflite file.
 
     Args:
         path (str): Path to a .tflite model file to load
@@ -55,7 +55,7 @@ def load_model_from_file_tflite(path: str, num_threads: int = 1):
         raise TFModelException(e)
 
 
-def load_model_from_file_pb(path: str):
+def load_model_from_file_pb(path: str, _):
     """
     load_model_from_file_pb Load a tensorflow model saved as .pb in tensorflow's saved_model format from file. The file to be loaded must be named 'saved_model.pb'
 
@@ -69,6 +69,10 @@ def load_model_from_file_pb(path: str):
     Returns:
         Tensorflow model: The loaded model
     """
+    if "." in Path(path).name or ".pb" in Path(path).name:
+        # tensorflow assumes a model file to be named "saved_model.pb" and the path given to be a directory
+        path = Path(path).parent
+
     if Path(path).exists() is False:
         raise FileNotFoundError("The desired model file does not exist")
 
@@ -79,7 +83,7 @@ def load_model_from_file_pb(path: str):
         raise TFModelException(e)
 
 
-def load_model_from_tensorflowhub(url: str):
+def load_model_from_tensorflowhub(url: str, _):
     """
     load_model_from_hub Download a tensorflow model from tensorflow hub, ready to be used
 
@@ -105,12 +109,12 @@ def load_model_from_tensorflowhub(url: str):
         raise TFModelException(e)
 
 
-def load_model_from_huggingfacehub(url: str):
+def load_model_from_huggingfacehub(url: str, _):
     # TODO
     raise NotImplementedError("Huggingface hub is not yet supported")
 
 
-def load_model_from_file_torch(path: str):
+def load_model_from_file_torch(path: str, _):
     """
     load_torch_model_from_file Load a torch model from file.
 
@@ -129,13 +133,13 @@ def load_model_from_file_torch(path: str):
 
 def load_module(alias: str, path: str):
     """
-    load_module _summary_
+    load_module Load a python module from 'path' with alias 'alias'
 
     Args:
-        path (str): _description_
+        path (str): Path to load the module from
 
     Returns:
-        _type_: _description_
+        module: Python module that has been loaded
     """
     spec = importlib.util.spec_from_file_location(alias, path)
     module = importlib.util.module_from_spec(spec)

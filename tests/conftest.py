@@ -36,11 +36,13 @@ def read_yaml(path: str):
 
 def make_directories(base_cfg_dirs: dict):
     """
-    make_directories _summary_
+    make_directories Make all the directories for sparrow.
 
 
     Args:
-        base_cfg_dirs (dict): _description_
+        base_cfg_dirs (dict): Dictionary containing paths for the main install ("home"),
+        the directory where models are stored ("models"), the one where data may be stored ("data")
+        and the "output" directory to store inference results and potentially other data in ("output")
 
     Raises:
         KeyError: A folder given in the config does not exist
@@ -261,7 +263,7 @@ def install(request):
 
     # remove again after usage
     def teardown():
-        # shutil.rmtree(str(home))
+        shutil.rmtree(str(home))
         shutil.rmtree(str(data))
         shutil.rmtree(str(output))
 

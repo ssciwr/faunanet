@@ -67,38 +67,40 @@ class Model(ModelBase):
             classifier_model_path, classifier_labels_path
         )
         # need to call this custom because the super class has no prefix..
-        self.custom_interpreter = None
-        self.custom_input_layer_index = 0
-        self.custom_output_layer_index = 0
+        self.custom_classifier = None
+        self.custom_input_layer_index = None
+        self.custom_output_layer_index = None
 
-        self.interpreter = None
-        self.input_layer_index = 0
-        self.output_layer_index = 0
+        self.input_layer_index = None
+        self.output_layer_index = None
 
         # use the super class for handling the default models and load the custom ones in this one
         super().__init__(
             model_path=classifier_model_path,
             labels_path=classifier_labels_path,
             num_threads=num_threads,
+            sensitivity=sigmoid_sensitivity,
         )
-
-        self.load_model()
-        self.load_labels()
 
     def load_model(self):
         """
-        load_model _summary_
+        load_model Load the default model for making feature embeddings and the custom classifier for classifying them into species.
+
         """
+
+        # this overrides the base method because we need to load the default models to provide
+        # the feature embeddings and the custom classifier to apply to them to get the actual
+        # classification
+
         # load the default model
-        print("model_paths: ", self.default_model_path, self.model_path)
-        self.interpreter = tflite.Interpreter(
-            model_path=str(self.default_model_path), num_threads=self.num_threads
+        self.model = utils.load_model_from_file_tflite(
+            self.default_model_path, num_threads=self.num_threads
         )
-        self.interpreter.allocate_tensors()
+        self.model.allocate_tensors()
 
         # Get input and output tensors.
-        input_details = self.interpreter.get_input_details()
-        output_details = self.interpreter.get_output_details()
+        input_details = self.model.get_input_details()
+        output_details = self.model.get_output_details()
 
         # Get input tensor index
         self.input_layer_index = input_details[0]["index"]
@@ -108,31 +110,19 @@ class Model(ModelBase):
         print("Default classifier loaded")
 
         # now load the custom classifier
-        self.custom_interpreter = tflite.Interpreter(
+        self.custom_classifier = tflite.Interpreter(
             model_path=str(self.model_path), num_threads=self.num_threads
         )
-        self.custom_interpreter.allocate_tensors()
+        self.custom_classifier.allocate_tensors()
 
         # Get input and output tensors.
-        custom_input_details = self.custom_interpreter.get_input_details()
-        custom_output_details = self.custom_interpreter.get_output_details()
+        custom_input_details = self.custom_classifier.get_input_details()
+        custom_output_details = self.custom_classifier.get_output_details()
 
         self.custom_input_layer_index = custom_input_details[0]["index"]
         self.custom_output_layer_index = custom_output_details[0]["index"]
 
         print("Custom classifier loaded")
-
-    def load_labels(self):
-        """
-        load_labels _summary_
-        """
-
-        labels = []
-        with open(self.labels_path, "r") as lfile:
-            for line in lfile.readlines():
-                labels.append(line.replace("\n", ""))
-        self.labels = labels
-        print("Labels loaded.")
 
     def load_species_list(self):
         # TODO
@@ -151,89 +141,70 @@ class Model(ModelBase):
             np.array: Feature embedding produces by the default birdnet CNN.
         """
         print(" get embeddings")
-        self.interpreter.resize_tensor_input(
+        self.model.resize_tensor_input(
             self.input_layer_index, [len(data), *data[0].shape]
         )
 
-        self.interpreter.allocate_tensors()
+        self.model.allocate_tensors()
 
         # Extract feature embeddings
-        self.interpreter.set_tensor(
-            self.input_layer_index, np.array(data, dtype="float32")
-        )
+        self.model.set_tensor(self.input_layer_index, np.array(data, dtype="float32"))
 
-        self.interpreter.invoke()
+        self.model.invoke()
 
-        features = self.interpreter.get_tensor(self.output_layer_index)
+        features = self.model.get_tensor(self.output_layer_index)
 
         return features
 
-    def predict(self, sample: list) -> np.array:
+    def predict(self, sample: np.array) -> np.array:
         """
-        predict _summary_
-
-        _extended_summary_
+        predict Make inference about the bird species for the preprocessed data passed to this function as arguments.
 
         Args:
-            sample (np.array): _description_
-
+            data (np.array): list of preprocessed data chunks
         Returns:
-            np.array: _description_
+            list: List of (label, inferred_probability)
         """
         data = np.array([sample], dtype="float32")
 
-        input_details = self.custom_interpreter.get_input_details()
+        input_details = self.custom_classifier.get_input_details()
 
         input_size = input_details[0]["shape"][-1]
 
         feature_vector = self.get_embeddings(data) if input_size != 144000 else data
 
-        self.custom_interpreter.resize_tensor_input(
+        self.custom_classifier.resize_tensor_input(
             self.custom_input_layer_index,
             [len(feature_vector), *feature_vector[0].shape],
         )
 
-        self.custom_interpreter.allocate_tensors()
+        self.custom_classifier.allocate_tensors()
 
         # Make a prediction
-        self.custom_interpreter.set_tensor(
+        self.custom_classifier.set_tensor(
             self.custom_input_layer_index, np.array(feature_vector, dtype="float32")
         )
 
-        self.custom_interpreter.invoke()
+        self.custom_classifier.invoke()
 
-        prediction = self.custom_interpreter.get_tensor(self.custom_output_layer_index)
+        prediction = self.custom_classifier.get_tensor(self.custom_output_layer_index)
 
         # map to probabilities
         confidence = self._sigmoid(np.array(prediction), -self.sensitivity)
 
         return confidence
 
-    def _sigmoid(self, x, sensitivity=-1):
-        """
-        _sigmoid Apply a simple sigmoid to output logits to map to probabilities
-
-        Args:
-            logits (np.array): Raw output from a the inference function of the loaded model.
-            sensitivity (float, optional): Sigmoid parameter. Defaults to -1.
-
-        Returns:
-            np.array: Model output mapped to [0,1] to get interpretable probability
-        """
-        return 1 / (1.0 + np.exp(sensitivity * np.clip(x, -15, 15)))
-
     @classmethod
     def from_cfg(cls, sparrow_dir: str, cfg: dict):
         """
-        from_cfg _summary_
-
-        _extended_summary_
+        from_cfg Create a new instance from a dictionary containing keyword arguments. Usually loaded from a config file.
 
         Args:
-            cfg (dict): _description_
+            sparrow_dir (str): Installation directory of the Sparrow package
+            cfg (dict): Dictionary containing the keyword arguments
 
         Returns:
-            _type_: _description_
+            Model: New model instance created with the supplied kwargs.
         """
 
         # preprocess config because we need two models here

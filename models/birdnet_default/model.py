@@ -35,47 +35,31 @@ class Model(ModelBase):
             AnalyzerConfigurationError: The labels file 'labels.txt' doesn't exist at the given path.
         """
 
-        self.num_threads = num_threads
+        labels_path = str(Path(model_path) / "labels.txt")
 
-        self.model_path = str(Path(model_path) / "model.tflite")
+        model_path = str(Path(model_path) / "model.tflite")
 
-        self.labels_path = str(Path(model_path) / "labels.txt")
-        self.sensitivity = sigmoid_sensitivity
-        self.interpreter = None
-        self.input_layer_index = 0
-        self.output_layer_index = 0
+        if species_list_file is not None:
 
-        # make sure species list paths exists
+            species_list_path = str(Path(model_path) / species_list_file)
 
-        # make sure default model is found
-        if Path(self.model_path).exists() is False:
-            raise AnalyzerConfigurationError(
-                f"Error, default model could not be found at provided path {self.model_path}"
-            )
+        else:
 
-        if Path(self.labels_path).exists() is False:
-            raise AnalyzerConfigurationError(
-                f"Error, default label could not be found at provided path {self.labels_path}"
-            )
+            species_list_path = None
 
-        self.load_model()
-        self.load_labels()
-
-    def load_model(self):
-        """
-        load_model Override of the base class load model to get the correct paths and make sure that we have multithreading.
-        """
-
-        self.interpreter = utils.load_model_from_file_tflite(
-            self.model_path, num_threads=self.num_threads
+        # base class loads the model and labels
+        super().__init__(
+            model_path,
+            labels_path,
+            num_threads=num_threads,
+            species_list_path=species_list_path,
+            sensitivity=sigmoid_sensitivity,
         )
 
-        self.interpreter.allocate_tensors()
+        # store input and output index to not have to retrieve them each time an inference is made
+        input_details = self.model.get_input_details()
 
-        # Get input and output tensors.
-        input_details = self.interpreter.get_input_details()
-
-        output_details = self.interpreter.get_output_details()
+        output_details = self.model.get_output_details()
 
         # Get input tensor index
         self.input_layer_index = input_details[0]["index"]
@@ -83,70 +67,48 @@ class Model(ModelBase):
         # Get classification output or feature embeddings as output, depending on presence fo custom classifier
         self.output_layer_index = output_details[0]["index"]
 
-        print("Default model loaded ")
-
-    # README: this overrides the load method of the base class to make sure we use the correct paths
-    def load_labels(self) -> None:
-        """
-        load_labels Load labels for classes from file.
-        """
-        labels = []
-        with open(self.labels_path, "r") as lfile:
-            for line in lfile.readlines():
-                labels.append(line.replace("\n", ""))
-        self.labels = labels
-        print("Default labels loaded.")
-
     def load_species_list(self):
         # TODO
         pass
 
     def predict(self, sample: np.array) -> np.array:
         """
-        predict _summary_
+        predict Make inference about the bird species for the preprocessed data passed to this function as arguments.
 
         Args:
-            sample (np.array): _description_
-
+            data (np.array): list of preprocessed data chunks
         Returns:
-            list: _description_
+            list: List of (label, inferred_probability)
         """
-
         data = np.array([sample], dtype="float32")
 
-        self.interpreter.resize_tensor_input(
+        self.model.resize_tensor_input(
             self.input_layer_index, [len(data), *data[0].shape]
         )
-        self.interpreter.allocate_tensors()
+        self.model.allocate_tensors()
 
         # Make a prediction (Audio only for now)
-        self.interpreter.set_tensor(
-            self.input_layer_index, np.array(data, dtype="float32")
-        )
-        self.interpreter.invoke()
+        self.model.set_tensor(self.input_layer_index, np.array(data, dtype="float32"))
+        self.model.invoke()
 
-        prediction = self.interpreter.get_tensor(self.output_layer_index)
+        prediction = self.model.get_tensor(self.output_layer_index)
 
         confidence = self._sigmoid(np.array(prediction), sensitivity=-self.sensitivity)
 
         return confidence
 
-    def _sigmoid(self, logits: np.array, sensitivity: float = -1):
-        """
-        _sigmoid Apply a simple sigmoid to output logits to map them to probabilities
-
-        Args:
-            logits (np.array): Raw output from a the inference function of the loaded model.
-            sensitivity (float, optional): Sigmoid parameter. Defaults to -1.
-
-        Returns:
-            np.array: Model output mapped to [0,1] to get interpretable probability
-        """
-        return 1 / (1.0 + np.exp(sensitivity * np.clip(logits, -15, 15)))
-
     @classmethod
     def from_cfg(cls, sparrow_folder: str, cfg: dict):
+        """
+        from_cfg Create a new instance from a dictionary containing keyword arguments. Usually loaded from a config file.
 
+        Args:
+            sparrow_dir (str): Installation directory of the Sparrow package
+            cfg (dict): Dictionary containing the keyword arguments
+
+        Returns:
+            Model: New model instance created with the supplied kwargs.
+        """
         cfg["model_path"] = str(
             Path(sparrow_folder) / Path("models") / cfg["model_path"]
         )
