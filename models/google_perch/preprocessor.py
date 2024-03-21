@@ -1,12 +1,9 @@
-import sys
 
-sys.path.append("../../src/iSparrow")
 import numpy as np
 
-from birdnetlib.exceptions import AudioFormatError
 from tensorflow.signal import frame as tf_split_signal_into_chunks
 
-from src.iSparrow import preprocessor_base as ppb
+from iSparrow import preprocessor_base as ppb
 
 
 # README: work in progress - will be completed in separate issue

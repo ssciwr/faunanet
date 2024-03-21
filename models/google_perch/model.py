@@ -1,13 +1,8 @@
-import sys
-
-sys.path.append("../../src/iSparrow")
 
 from pathlib import Path
 import numpy as np
 import tensorflow as tf
-from birdnetlib.analyzer import AnalyzerConfigurationError
-from src.iSparrow.sparrow_model_base import ModelBase
-import src.iSparrow.utils as utils
+from iSparrow.sparrow_model_base import ModelBase
 import pandas as pd
 
 

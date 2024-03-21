@@ -9,9 +9,8 @@ except Exception:
 
 from birdnetlib.analyzer import AnalyzerConfigurationError
 
-sys.path.append("../../src/iSparrow")
-from src.iSparrow.sparrow_model_base import ModelBase
-import src.iSparrow.utils as utils
+from iSparrow.sparrow_model_base import ModelBase
+from iSparrow import utils
 
 
 class Model(ModelBase):
