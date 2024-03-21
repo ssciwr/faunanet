@@ -22,7 +22,8 @@ dependencies = [
     "pooch", 
     "resampy", # for audio loading
     "tensorflow-hub",
-    "validators"
+    "validators", # test url validity 
+    "appdirs" # get cache dirs without os dependence etc
 ]
 
 
@@ -32,6 +33,7 @@ Repository = "https://github.com/ssciwr/iSparrow"
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
+
 
 
 # add additional stuff when needed, poetry support? 
