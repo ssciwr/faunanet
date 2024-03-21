@@ -52,7 +52,7 @@ class SparrowRecording(RecordingBase):
         p = Path(self.path)
         self.filestem = p.stem
 
-        # TODO: can we get rid of the analyzer thing completely?
+        # README: can we get rid of the Recording thing completely at some point
         super().__init__(
             model,
             week_48=week_48,
@@ -96,6 +96,16 @@ class SparrowRecording(RecordingBase):
 
     @classmethod
     def from_cfg(cls, sparrow_path: str, cfg: dict):
+        """
+        from_cfg Create a new SparrowRecording from a dictionary containing all keyword arguments. Usually, this is obtained by reading in a YAML config.
+
+        Args:
+            sparrow_path (str): Path to the sparrow installation
+            cfg (dict): keyword arguments for the Recording and its 'preprocessor' and 'model' attributes.
+
+        Returns:
+            SparrowRecording: New instance build with supplied kwargs.
+        """
         # README: sparrow path needed still -> can we get rid of it in some way?
         # config.py/.yml written upon install or something....
         # future PR when installing/packaging is done
@@ -132,8 +142,15 @@ class SparrowRecording(RecordingBase):
 
     @property
     def detections(self):
-        # overrides the detections method of the base class to make things a bit simpler and remove stuff
-        # that is currently not supported here.
+        """
+        detections Produce a list of tuples containting (start_time, end_time, label, detection_confidence) from the raw detections produced by the 'model' attribute of this class.
+        Also filters them by minimum confidence level.
+
+        Returns:
+            List(Tuples): A list containing a tuple (start, end, lable, confidence) for each detection with confidence > self.minimum_confidence.
+        """
+        # Readme: overrides the detections method of the base class to make things a bit simpler and remove stuff
+        # that is currently not supported here or which is too specific.
 
         if not self.analyzed:
             warnings.warn(
