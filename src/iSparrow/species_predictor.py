@@ -241,7 +241,7 @@ class SpeciesPredictorBase(SpeciesList):
                 "No results present, first generate a species list by calling 'predict'"
             )
 
-        self._write_to_file(Path(outpath, self.detections))
+        self._write_to_file(Path(outpath), self.detections)
 
     def _read_labels_file(self, filepath: Path) -> list:
         """
