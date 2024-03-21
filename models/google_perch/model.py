@@ -47,7 +47,7 @@ class Model(ModelBase):
         """
         load_species_list Produce a mask that only takes into account the relevant species given by the species list file supplied to the constructor.
         """
-
+        # FIXME: this needs to go into the new class
         print("prepare species list")
 
         # this is particular to this model here
