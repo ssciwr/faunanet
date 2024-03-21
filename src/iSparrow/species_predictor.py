@@ -63,7 +63,7 @@ class SpeciesPredictorBase(SpeciesList):
 
         self.read_from_file = False  # variable used for debugging mostly
 
-        if self.use_cache:
+        if SpeciesPredictorBase.cache_dir.exists() is False:
             SpeciesPredictorBase.cache_dir.mkdir(parents=True, exist_ok=True)
 
         super().__init__()  # super class handles model loading
@@ -158,7 +158,7 @@ class SpeciesPredictorBase(SpeciesList):
                 "Either week or date must be given for species list prediction"
             )
 
-        if week is not -1 and date is not None:
+        if week != -1 and date is not None:
 
             warnings.warn(
                 "Both date and week given for species list prediction. Using date to determine week.",
@@ -270,4 +270,5 @@ class SpeciesPredictorBase(SpeciesList):
         clear_cache Remove the cache folder completely
 
         """
-        rmtree(str(cls.cache_dir))
+        if cls.cache_dir.exists():
+            rmtree(str(cls.cache_dir))
