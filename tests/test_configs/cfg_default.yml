@@ -1,17 +1,21 @@
 Analysis:
+
   Model:
     model_path: birdnet_default
     sigmoid_sensitivity: 1.0
     num_threads: 12
-  Species_presence: 
-    use: true 
+
+  SpeciesPresence: 
     latitude: 
     longitude: 
     week: 
     date: 
     threshold: 0.3
-
+    num_threads: 2
+    use_cache: true
+    
   min_conf: 0.25
+  use_species_presence_model: true 
 
 Data:
   # input: example/soundscape.wav

@@ -18,7 +18,7 @@ class SpeciesPredictorBase(SpeciesList):
         self,
         model_path: str,
         use_cache: bool = True,
-        threshold: float = 0.0,
+        threshold: float = 0.03,
         num_threads: int = 1,
     ):
         """
@@ -71,13 +71,13 @@ class SpeciesPredictorBase(SpeciesList):
 
         # Get input tensor index
         self.meta_input_layer_index = self.meta_input_details[0]["index"]
-        self.meta_output_layer_ind
+        self.meta_output_layer_index = self.meta_output_details[0]["index"]
 
     def load_labels(self):
         """
         load_species_list_model Load the full species labels list used by the prediction model that should be restricted.
         """
-        # README: this assumes there is only one label per line and nothing else.
+        # README: this assumes there is only one label per line and nothing else -> fix by using pandas?
         self.labels = self._read_labels_file(self.labels_path)
 
     def predict_species_list(
@@ -113,6 +113,7 @@ class SpeciesPredictorBase(SpeciesList):
             threshold=self.threshold,
         )
 
+    # README: coordinates are not members becaues this is intended to be used from within another class that holds those
     def predict(
         self,
         latitude: float,
