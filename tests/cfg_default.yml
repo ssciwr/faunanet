@@ -3,7 +3,14 @@ Analysis:
     model_path: birdnet_default
     sigmoid_sensitivity: 1.0
     num_threads: 12
-  
+  Species_presence: 
+    use: true 
+    latitude: 
+    longitude: 
+    week: 
+    date: 
+    threshold: 0.3
+
   min_conf: 0.25
 
 Data:
