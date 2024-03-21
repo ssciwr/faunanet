@@ -30,50 +30,14 @@ class Preprocessor(ppb.PreprocessorBase):
             sample_secs (int, optional): Length of chunks to be analyzed at once. Defaults to 3.0.
             resample_type (str, optional): Resampling method used when reading from file. Defaults to "kaiser_fast".
         """
-        self.sample_rate = sample_rate
-        self.overlap = overlap
-        self.sample_secs = sample_secs
-        self.resample_type = resample_type
-        self.duration = 0
-        self.actual_sampling_rate = 0
-        self.chunks = []
-        super().__init__("birdnet_defaults_preprocessor")
 
-    def read_audio_data(self, path: str) -> np.ndarray:
-        """
-        read_audio_data Read in audio data, resample and return the resampled raw data, adding members for actual sampling rate and duration of audio file.
-        Args:
-            path (str): Path to the audio file to be analyzed
-
-        Raises:
-            AudioFormatError: When the format of the audio file is unknown
-
-        Returns:
-            np.ndarray: resampled raw data
-        """
-
-        print("read audio file custom")
-        try:
-            data, rate = librosa.load(
-                path, sr=self.sample_rate, mono=True, res_type=self.resample_type
-            )
-
-            self.duration = librosa.get_duration(y=data, sr=self.sample_rate)
-            self.actual_sampling_rate = rate
-
-        # README: on macos, the Exception below is thrown, no ubuntu the AudioFormatError... ??
-        except audioread.exceptions.NoBackendError as e:
-            print(e)
-            raise AudioFormatError("Audio format could not be opened.")
-        except FileNotFoundError as e:
-            print(e)
-            raise e
-        except Exception as e:
-            print(e)
-            raise AudioFormatError("Generic audio read error occurred from librosa.")
-
-        print(" data: ", len(data), rate, self.duration)
-        return data
+        super().__init__(
+            "birdnet_defaults_preprocessor",
+            sample_rate=sample_rate,
+            overlap=overlap,
+            sample_secs=sample_secs,
+            resample_type=resample_type,
+        )
 
     def process_audio_data(self, rawdata: np.ndarray) -> list:
         """

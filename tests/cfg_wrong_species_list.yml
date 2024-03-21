@@ -1,4 +1,4 @@
-Analyzer:
+Analysis:
   Model:
     model_dir: models
     model_name: birdnet_custom

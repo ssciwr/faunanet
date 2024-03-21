@@ -3,8 +3,10 @@ import numpy as np
 from pathlib import Path
 import datetime
 from birdnetlib.main import RecordingBase
-from birdnetlib.analyzer import Analyzer
 from .preprocessor_base import PreprocessorBase
+from .sparrow_model_base import ModelBase
+from . import utils
+import warnings
 
 
 class SparrowRecording(RecordingBase):
@@ -19,8 +21,8 @@ class SparrowRecording(RecordingBase):
 
     def __init__(
         self,
-        analyzer: Analyzer,
         preprocessor: PreprocessorBase,
+        model: ModelBase,
         path: str,
         week_48: int = -1,
         date: datetime = None,
@@ -45,13 +47,14 @@ class SparrowRecording(RecordingBase):
             return_all_detections (bool, optional): Ignore confidence and return all detections we got. Defaults to False.
         """
         self.processor = preprocessor
+        self.model = model
         self.path = path
         p = Path(self.path)
         self.filestem = p.stem
 
-        # README: This call will change later, as some of the members will live in the analyzer/model in future PR
+        # README: can we get rid of the Recording thing completely at some point
         super().__init__(
-            analyzer,
+            model,
             week_48=week_48,
             date=date,
             sensitivity=1.0,
@@ -90,3 +93,86 @@ class SparrowRecording(RecordingBase):
         rawdata = self.processor.read_audio_data(self.path)
 
         return self.process_audio_data(rawdata)
+
+    @classmethod
+    def from_cfg(cls, sparrow_path: str, cfg: dict):
+        """
+        from_cfg Create a new SparrowRecording from a dictionary containing all keyword arguments. Usually, this is obtained by reading in a YAML config.
+
+        Args:
+            sparrow_path (str): Path to the sparrow installation
+            cfg (dict): keyword arguments for the Recording and its 'preprocessor' and 'model' attributes.
+
+        Returns:
+            SparrowRecording: New instance build with supplied kwargs.
+        """
+        # README: sparrow path needed still -> can we get rid of it in some way?
+        # config.py/.yml written upon install or something....
+        # future PR when installing/packaging is done
+
+        # load appropriate modules: preprocessor, model
+
+        module_path = Path(sparrow_path) / Path("models") / cfg["Model"]["model_path"]
+
+        preproc_m = utils.load_module("pp", str(module_path / "preprocessor.py"))
+
+        model_m = utils.load_module("mm", str(module_path / "model.py"))
+
+        # make preprocessor instance
+        preprocessor = preproc_m.Preprocessor.from_cfg(cfg["Data"]["Preprocessor"])
+
+        # make model instance
+        model = model_m.Model.from_cfg(cfg["Analysis"]["Model"])
+
+        # make recording instance and return
+
+        defaults = {
+            "path": None,
+            "week_48": -1,
+            "date": None,
+            "lat": None,
+            "lon": None,
+            "return_all_detections": False,
+            "min_conf": 0.25,
+        }
+
+        del cfg["Analysis"]["Model"]
+
+        return cls(preprocessor, model, **(defaults | cfg["Analysis"]))
+
+    @property
+    def detections(self):
+        """
+        detections Produce a list of tuples containting (start_time, end_time, label, detection_confidence) from the raw detections produced by the 'model' attribute of this class.
+        Also filters them by minimum confidence level.
+
+        Returns:
+            List(Tuples): A list containing a tuple (start, end, lable, confidence) for each detection with confidence > self.minimum_confidence.
+        """
+        # Readme: overrides the detections method of the base class to make things a bit simpler and remove stuff
+        # that is currently not supported here or which is too specific.
+
+        if not self.analyzed:
+            warnings.warn(
+                "'analyze' method has not been called. Call .analyze() before accessing detections.",
+                RuntimeWarning,
+            )
+
+        qualified_detections = []
+
+        # allow_list = self.analyzer.custom_species_list
+        for (start, end), labeled_predictions in self.model.results.items():
+
+            # README: this needs to include allowed species later
+            for label, confidence in labeled_predictions:
+                if confidence > self.minimum_confidence:
+                    qualified_detections.append(
+                        {
+                            "start": start,
+                            "end": end,
+                            "label": label,
+                            "confidence": confidence,
+                        }
+                    )
+
+        return qualified_detections

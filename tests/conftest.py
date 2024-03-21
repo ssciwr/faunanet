@@ -6,7 +6,6 @@ from pathlib import Path
 
 from .fixtures.recording_fixtures import recording_fx
 from .fixtures.preprocessor_fixtures import preprocessor_fx, preprocessor_fx_google
-from .fixtures.analyzer_fixtures import analyzer_fx
 from .fixtures.model_fixtures import model_fx
 
 

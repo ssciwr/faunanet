@@ -1,4 +1,4 @@
-Analyzer:
+Analysis:
   Model:
     model_path: google_perch
     num_threads: 12
@@ -11,6 +11,5 @@ Data:
   # Parameters taken from https://www.kaggle.com/models/google/bird-vocalization-classifier/frameworks/TensorFlow2/variations/bird-vocalization-classifier/versions/2
   Preprocessor: 
     sample_rate: 32000
-    overlap: 0.0
     sample_secs: 5.0
     resample_type: kaiser_fast

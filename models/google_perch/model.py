@@ -6,7 +6,6 @@ from pathlib import Path
 import numpy as np
 import tensorflow as tf
 from birdnetlib.analyzer import AnalyzerConfigurationError
-import csv
 from src.iSparrow.sparrow_model_base import ModelBase
 import src.iSparrow.utils as utils
 import pandas as pd
@@ -34,6 +33,7 @@ class Model(ModelBase):
         self.class_mask = None  # used later
 
         super().__init__(
+            "google_perch_model",
             model_path,
             labels_path,
             num_threads=num_threads,
@@ -73,7 +73,6 @@ class Model(ModelBase):
         Returns:
             list: List of (label, inferred_probability)
         """
-        # FIXME: this does work programmatically, but gives awful results
 
         results = self.labels.copy()
 
@@ -86,16 +85,7 @@ class Model(ModelBase):
             )
         )
 
-        results = tf.nn.softmax(logits).numpy()[0]
-
-        # set all the species to zero confidence that are not in the species list provided
-
-        results = list(zip(self.labels, results))
-
-        if self.class_mask is not None:
-            # return only classes that have been marked as valid
-            results = [r for r, c in zip(results, self.class_mask) if c != 0]
-
+        results = tf.nn.softmax(logits).numpy()
         return results
 
     @classmethod

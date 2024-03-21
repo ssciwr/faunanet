@@ -1,20 +1,24 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from pathlib import Path
-
+import operator
 from . import utils
 
 
 class ModelBase(ABC):
     """
-    ModelBase _summary_
+    ModelBase Base model class for iSparrow. Every model that iSparrow can use must derive from this class.
 
-    Args:
-        ABC (_type_): _description_
+    Attributes:
+        model_path (str): path to the model file used, or the url used to load it
+        labels_path (str): path to the labels file read for having labels
+        species_list_path (str|None): Path to a restricted list of species labels if used, else None
+        sensitivity (float, defaults to 1.0): Parameter of the sigmoid activation function used to produce classification probabilities.
     """
 
     def __init__(
         self,
+        name: str,
         model_path: str,
         labels_path: str,
         num_threads: int = 1,
@@ -33,6 +37,8 @@ class ModelBase(ABC):
         if species_list_path is not None and Path(species_list_path).exists() is False:
             raise FileNotFoundError(f"No file found at {species_list_path}")
 
+        self.name = name
+
         self.model_path = model_path
 
         self.labels_path = labels_path
@@ -40,6 +46,8 @@ class ModelBase(ABC):
         self.species_list_path = species_list_path
 
         self.sensitivity = sensitivity
+
+        self.results = None
 
         self.load_model()
 
@@ -111,5 +119,41 @@ class ModelBase(ABC):
         pass
 
     @abstractmethod
-    def predict(self, data: np.array) -> np.array:
+    def predict(self, data: np.array) -> list:
         pass
+
+    def analyze_recording(self, recording):
+        """
+        analyze_recording _summary_
+
+        Args:
+            recording (_type_): _description_
+        """
+        start = 0
+        end = recording.processor.sample_secs
+        results = {}
+        for c in recording.processor.chunks:
+
+            # make predictions and put together with labels
+            predictions = self.predict(c)[0]
+
+            labeled_predictions = list(zip(self.labels, predictions))
+
+            # Sort by score and filter
+            sorted_predictions = sorted(
+                labeled_predictions, key=operator.itemgetter(1), reverse=True
+            )
+
+            # Filter by recording.minimum_confidence so not to needlessly store full array for each chunk.
+            labeled_predictions_filtered = [
+                i for i in sorted_predictions if i[1] >= recording.minimum_confidence
+            ]
+
+            # Store results
+            results[(start, end)] = labeled_predictions_filtered
+
+            # Increment start and end
+            start += recording.processor.sample_secs - recording.processor.overlap
+            end = start + recording.processor.sample_secs
+
+            self.results = results
