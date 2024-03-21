@@ -76,6 +76,7 @@ class Model(ModelBase):
 
         # use the super class for handling the default models and load the custom ones in this one
         super().__init__(
+            "birdnet_custom_model",
             model_path=classifier_model_path,
             labels_path=classifier_labels_path,
             num_threads=num_threads,

@@ -6,7 +6,6 @@ from pathlib import Path
 import numpy as np
 import tensorflow as tf
 from birdnetlib.analyzer import AnalyzerConfigurationError
-import csv
 from src.iSparrow.sparrow_model_base import ModelBase
 import src.iSparrow.utils as utils
 import pandas as pd
@@ -34,6 +33,7 @@ class Model(ModelBase):
         self.class_mask = None  # used later
 
         super().__init__(
+            "google_perch_model",
             model_path,
             labels_path,
             num_threads=num_threads,

@@ -18,6 +18,7 @@ class ModelBase(ABC):
 
     def __init__(
         self,
+        name: str,
         model_path: str,
         labels_path: str,
         num_threads: int = 1,
@@ -35,6 +36,8 @@ class ModelBase(ABC):
 
         if species_list_path is not None and Path(species_list_path).exists() is False:
             raise FileNotFoundError(f"No file found at {species_list_path}")
+
+        self.name = name
 
         self.model_path = model_path
 
