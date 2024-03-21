@@ -170,12 +170,16 @@ class SpeciesPredictorBase(SpeciesList):
 
             detections = self.detections
 
-            if self.use_cache:  # store when requested
-                self._write_to_cache(
+            if self.use_cache:  # store when requested. Round given coords to 2 decimals
+                self._write_to_file(
                     detections,
                     Path(self.cache_dir)
                     / Path("iSparrow")
-                    / Path(str(self.latitude) + "_" + str(self.longitude)),
+                    / Path(
+                        str(round(self.latitude, 2))
+                        + "_"
+                        + str(round(self.longitude, 2))
+                    ),
                 )
 
             return detections
@@ -194,6 +198,23 @@ class SpeciesPredictorBase(SpeciesList):
             for scientific_name, common_name, _ in self.results
         ]
 
+    def export(self, outpath: str):
+        """
+        export Export a generated species list to file residing at 'outputpath'
+
+        Args:
+            outpath (str): absolute path to the output file.
+
+        Raises:
+            RuntimeError: When there is no stored specieslist to write to file.
+        """
+        if len(self.results) == 0:
+            raise RuntimeError(
+                "No results present, first generate a species list by calling 'predict'"
+            )
+
+        self._write_to_file(Path(outpath, self.detections))
+
     def _read_labels_file(self, filepath: Path) -> list:
         """
         _read_labels_file Reads labels.txt file. Only single-column files are supported.
@@ -201,9 +222,10 @@ class SpeciesPredictorBase(SpeciesList):
         """
         with open(filepath, "r") as lfile:
             read_data = [line.replace("\n", "") for line in lfile.readlines()]
+
         return read_data
 
-    def _write_to_cache(self, containing_folder: Path, formatted_results: list):
+    def _write_to_file(self, containing_folder: Path, formatted_results: list):
         """Write produced species list to 'containing_folder' within the cache_dir path held by the caller. Creates directories as necessary"""
 
         dir = containing_folder.mkdir(parents=True, exist_ok=True)
