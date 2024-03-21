@@ -2,8 +2,7 @@ import sys
 
 sys.path.append("../../src/iSparrow")
 import numpy as np
-import librosa
-import audioread
+
 from birdnetlib.exceptions import AudioFormatError
 from tensorflow.signal import frame as tf_split_signal_into_chunks
 
@@ -21,7 +20,6 @@ class Preprocessor(ppb.PreprocessorBase):
         self,
         sample_rate: int = 32000,
         sample_secs: float = 5.0,
-        overlap: float = 0.0,
         resample_type: str = "kaiser_fast",
     ):
         """
@@ -29,58 +27,16 @@ class Preprocessor(ppb.PreprocessorBase):
 
         Args:
             sample_rate (int, optional): The sample rate used to resample the read audio file. Defaults to 48000.
-            overlap (float, optional): Overlap between chunks to be analyzed. Defaults to 0.0.
             sample_secs (float, optional): Length of chunks to be analyzed at once. Defaults to 3.0.
             resample_type (str, optional): Resampling method used when reading from file. Defaults to "kaiser_fast".
         """
-        self.sample_rate = sample_rate
-        self.overlap = overlap
-        self.sample_secs = sample_secs
-        self.resample_type = resample_type
-        self.duration = 0
-        self.actual_sampling_rate = 0
-        self.chunks = []
-        super().__init__("google_perch")
-
-    def read_audio_data(self, path: str) -> np.array:
-        """
-        read_audio_data Read in audio data, resample and return the resampled raw data, adding members for actual sampling rate and duration of audio file.
-        Args:
-            path (str): Path to the audio file to be analyzed
-
-        Raises:
-            AudioFormatError: When the format of the audio file is unknown
-
-        Returns:
-            np.ndarray: resampled raw data
-        """
-
-        print("read audio file custom")
-
-        try:
-            data, rate = librosa.load(
-                path, sr=self.sample_rate, mono=True, res_type=self.resample_type
-            )
-
-            self.duration = librosa.get_duration(y=data, sr=self.sample_rate)
-            self.actual_sampling_rate = rate
-
-        except audioread.exceptions.NoBackendError as e:
-            print(e)
-            raise AudioFormatError("Audio format could not be opened.")
-        except FileNotFoundError as e:
-            print(e)
-            raise e
-        except Exception as e:
-            print(e)
-            raise AudioFormatError("Generic audio read error occurred from librosa.")
-
-        if self.actual_sampling_rate != self.sample_rate:
-            raise RuntimeError(
-                "Error, sampling rate from resampling and desired sampling rate don't match"
-            )
-
-        return data
+        # README: this class does not have an overlap attribute because the model it works with does not want it.
+        super().__init__(
+            "google_perch",
+            sample_rate=sample_rate,
+            sample_secs=sample_secs,
+            resample_type=resample_type,
+        )
 
     def process_audio_data(self, rawdata: np.array) -> np.array:
         """
@@ -123,7 +79,6 @@ class Preprocessor(ppb.PreprocessorBase):
         # make sure there are no more than the allowed keyword arguments in the cfg
         allowed = [
             "sample_rate",
-            "overlap",
             "sample_secs",
             "resample_type",
             "duration",
