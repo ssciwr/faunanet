@@ -17,36 +17,50 @@ class SpeciesPredictorBase(SpeciesList):
     def __init__(
         self,
         model_path: str,
-        latitude: float,
-        longitude: float,
-        week_48: int = None,
-        date: datetime = None,
         use_cache: bool = True,
-        from_file_only: bool = False,
         threshold: float = 0.0,
         num_threads: int = 1,
     ):
-        self.model_path = Path(model_path) / "species_range_model.tflite"
+        """
+        __init__ Create a new SpeciesPredictorBase instance.
 
-        self.labels_path = Path(model_path) / "labels.txt"
+        Args:
+            model_path (str): _description_
+            use_cache (bool, optional): _description_. Defaults to True.
+            num_threads (int, optional): _description_. Defaults to 1.
+        """
+
+        if (Path(model_path) / "species_range_model.tflite").exists() is False:
+            raise FileNotFoundError(
+                "The 'model' file for the species presence predictor could not be found."
+            )
+
+        self.model_path = str(Path(model_path) / "species_range_model.tflite")
+
+        if (Path(model_path) / "labels.txt").exists() is False:
+            raise FileNotFoundError(
+                "The 'labels' file for the species presence predictor could not be found."
+            )
+
+        self.labels_path = str(Path(model_path) / "labels.txt")
 
         self.use_cache = use_cache
 
         self.num_threads = num_threads
 
+        self.threshold = threshold
+
         self.results = []
 
-        if week_48 is not None and date is not None:
-            warnings.warn(
-                "Both `week` and `date` have been set, using `date` and ignoring `week`"
-            )
-
-        # have plattform independent cache for the lists
+        # have plattform independent cache for the produced species list
         self.cache_dir = user_cache_dir()
 
-        super.__init__()
+        super.__init__()  # super class handles model loadin
 
     def load_species_list_model(self):
+        """
+        load_species_list_model Load the default species presence model used by Birdnet-Analyzer.
+        """
         self.meta_interpreter = utils.load_model_from_file_tflite(
             self.model_path, self.num_threads
         )
@@ -60,6 +74,9 @@ class SpeciesPredictorBase(SpeciesList):
         self.meta_output_layer_ind
 
     def load_labels(self):
+        """
+        load_species_list_model Load the full species labels list used by the prediction model that should be restricted.
+        """
         # README: this assumes there is only one label per line and nothing else.
         self.labels = self._read_labels_file(self.labels_path)
 
@@ -69,10 +86,9 @@ class SpeciesPredictorBase(SpeciesList):
         longitude: float,
         date: datetime.date = None,
         week: int = -1,  # default from birdnetlib.required for their remapping logic to the format neede by birdnet analyzer. Why?
-        threshold: float = 0.3,
     ):
         """
-        predict_species_list Apply the model for species presence prediction at (longitude, latitude) coordinates at date 'date' (will be converted to a week) or within a given week. Override this in a derived  class if you want to customize how species presence is restricted.
+        predict_species_list Apply the model for species presence prediction at (longitude, latitude) coordinates at date 'date' (will be converted to a week) or within a given week, using a confidence threshold to mark species as present. Override this in a derived  class if you want to customize how species presence is restricted.
 
         Args:
             latitude (float): Latitude value for location coordinate
@@ -94,7 +110,7 @@ class SpeciesPredictorBase(SpeciesList):
             lat=latitude,
             date=date,
             week_48=week,
-            threshold=threshold,
+            threshold=self.threshold,
         )
 
     def predict(
@@ -102,10 +118,24 @@ class SpeciesPredictorBase(SpeciesList):
         latitude: float,
         longitude: float,
         date: datetime.date = None,
-        week: int = None,
-        threshold: float = 0.3,
-    ):
+        week: int = -1,
+    ) -> list:
+        """
+        predict Predict the presence of species in the original label set using coordinates (latitude, longitude) and a timestep (week within a year), using a supplied threshold to set a confidence limit to mark a species as present. if `use_cache` is true in the caller, attempts to use a cached species list instead of computing a new one.
+        Otherwise, the arguments are passed internally to the 'predict_species_list' function which then creates a new list. Override in a derived class to customize behavior.
+        Args:
+            latitude (float): Latitude value for location coordinate
+            longitude (float): Longitude value for location coordinate
+            date (datetime.date, optional): Date to restrict the species presence to. If both 'week' and 'date' are present, the week will be computed from the date. Defaults to None.
+            week (int, optional): Week to restrict the species presence. If both 'week' and 'date' are present, the week will be computed from the date. Defaults to -1.
+            threshold (float, optional): Detection threshold to mark a species as being present. Defaults to 0.3.
 
+        Raises:
+            ValueError: When week and date are both None. One of both needs to be present.
+
+        Returns:
+            list: List of label names according to the formatting applied in the 'detections' function.
+        """
         if week is None and date is None:
             raise ValueError(
                 "Either week or date must be given for species list prediction"
@@ -136,13 +166,7 @@ class SpeciesPredictorBase(SpeciesList):
         else:
 
             # provides raw species presence data in self.result
-            self.predict(
-                latitude=latitude,
-                longitude=longitude,
-                week=week,
-                date=date,
-                threshold=threshold,
-            )
+            self.predict(latitude=latitude, longitude=longitude, week=week, date=date)
 
             detections = self.detections
 
@@ -159,7 +183,7 @@ class SpeciesPredictorBase(SpeciesList):
     @property
     def detections(self) -> list:
         """
-        detections Turn raw species presences prediction results into the labels format used by the model. Override this method in a derived class to get custom formats.
+        detections Turn raw species presences prediction results into the labels format used by the model. Override this method in a derived class to get custom formats for different models
 
         Returns:
             list: Predicted species in the format needed by the model
@@ -171,11 +195,17 @@ class SpeciesPredictorBase(SpeciesList):
         ]
 
     def _read_labels_file(self, filepath: Path) -> list:
+        """
+        _read_labels_file Reads labels.txt file. Only single-column files are supported.
+
+        """
         with open(filepath, "r") as lfile:
             read_data = [line.replace("\n", "") for line in lfile.readlines()]
         return read_data
 
     def _write_to_cache(self, containing_folder: Path, formatted_results: list):
+        """Write produced species list to 'containing_folder' within the cache_dir path held by the caller. Creates directories as necessary"""
+
         dir = containing_folder.mkdir(parents=True, exist_ok=True)
 
         with open(dir / "species_list.txt", "w") as output:
