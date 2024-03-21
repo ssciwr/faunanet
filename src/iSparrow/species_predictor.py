@@ -30,12 +30,12 @@ class SpeciesPredictorBase(SpeciesList):
             num_threads (int, optional): _description_. Defaults to 1.
         """
 
-        if (Path(model_path) / "species_range_model.tflite").exists() is False:
+        if (Path(model_path) / "species_presence_model.tflite").exists() is False:
             raise FileNotFoundError(
                 "The 'model' file for the species presence predictor could not be found."
             )
 
-        self.model_path = str(Path(model_path) / "species_range_model.tflite")
+        self.model_path = str(Path(model_path) / "species_presence_model.tflite")
 
         if (Path(model_path) / "labels.txt").exists() is False:
             raise FileNotFoundError(
