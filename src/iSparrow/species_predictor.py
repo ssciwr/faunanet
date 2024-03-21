@@ -4,7 +4,7 @@ import csv
 import datetime
 from birdnetlib.species import SpeciesList
 from birdnetlib.utils import return_week_48_from_datetime
-
+from shutil import rmtree
 import warnings
 from . import utils
 
@@ -14,11 +14,13 @@ from . import utils
 
 class SpeciesPredictorBase(SpeciesList):
 
+    # make this a class attribute since it´s the same always
+    cache_dir = user_cache_dir() / Path("iSparrow") / Path("species_lists")
+
     def __init__(
         self,
         model_path: str,
         use_cache: bool = True,
-        threshold: float = 0.03,
         num_threads: int = 1,
     ):
         """
@@ -30,32 +32,41 @@ class SpeciesPredictorBase(SpeciesList):
             num_threads (int, optional): _description_. Defaults to 1.
         """
 
-        if (Path(model_path) / "species_presence_model.tflite").exists() is False:
+        if Path(model_path).exists() is False:
             raise FileNotFoundError(
-                "The 'model' file for the species presence predictor could not be found."
+                "The model folder for the species presenece predictor could not be found"
             )
 
-        self.model_path = str(Path(model_path) / "species_presence_model.tflite")
+        labels_path = Path(model_path) / "labels.txt"
 
-        if (Path(model_path) / "labels.txt").exists() is False:
+        if labels_path.exists() is False:
             raise FileNotFoundError(
-                "The 'labels' file for the species presence predictor could not be found."
+                "The 'labels' file for the species presence predictor could not be found"
             )
 
-        self.labels_path = str(Path(model_path) / "labels.txt")
+        model_path = Path(model_path) / "species_presence_model.tflite"
+
+        if model_path.exists() is False:
+            raise FileNotFoundError(
+                "The 'model' file for the species presence predictor could not be found"
+            )
+
+        self.model_path = str(model_path)
+
+        self.labels_path = str(labels_path)
 
         self.use_cache = use_cache
 
         self.num_threads = num_threads
 
-        self.threshold = threshold
-
         self.results = []
 
-        # have plattform independent cache for the produced species list
-        self.cache_dir = user_cache_dir()
+        self.read_from_file = False  # variable used for debugging mostly
 
-        super.__init__()  # super class handles model loadin
+        if self.use_cache:
+            SpeciesPredictorBase.cache_dir.mkdir(parents=True, exist_ok=True)
+
+        super().__init__()  # super class handles model loading
 
     def load_species_list_model(self):
         """
@@ -86,6 +97,7 @@ class SpeciesPredictorBase(SpeciesList):
         longitude: float,
         date: datetime.date = None,
         week: int = -1,  # default from birdnetlib.required for their remapping logic to the format neede by birdnet analyzer. Why?
+        threshold: float = 0.03,
     ):
         """
         predict_species_list Apply the model for species presence prediction at (longitude, latitude) coordinates at date 'date' (will be converted to a week) or within a given week, using a confidence threshold to mark species as present. Override this in a derived  class if you want to customize how species presence is restricted.
@@ -95,7 +107,7 @@ class SpeciesPredictorBase(SpeciesList):
             longitude (float): Longitude value for location coordinate
             date (datetime.date, optional): Date to restrict the species presence to. If both 'week' and 'date' are present, the week will be computed from the date. Defaults to None.
             week (int, optional): Week to restrict the species presence. If both 'week' and 'date' are present, the week will be computed from the date. Defaults to -1.
-            threshold (float, optional): Detection threshold to mark a species as being present. Defaults to 0.3.
+            threshold (float, optional): Detection threshold to mark a species as being present. Defaults to 0.03.
         """
         self.results = []
 
@@ -110,7 +122,7 @@ class SpeciesPredictorBase(SpeciesList):
             lat=latitude,
             date=date,
             week_48=week,
-            threshold=self.threshold,
+            threshold=threshold,
         )
 
     # README: coordinates are not members becaues this is intended to be used from within another class that holds those
@@ -120,6 +132,7 @@ class SpeciesPredictorBase(SpeciesList):
         longitude: float,
         date: datetime.date = None,
         week: int = -1,
+        threshold: float = 0.03,
     ) -> list:
         """
         predict Predict the presence of species in the original label set using coordinates (latitude, longitude) and a timestep (week within a year), using a supplied threshold to set a confidence limit to mark a species as present. if `use_cache` is true in the caller, attempts to use a cached species list instead of computing a new one.
@@ -129,7 +142,7 @@ class SpeciesPredictorBase(SpeciesList):
             longitude (float): Longitude value for location coordinate
             date (datetime.date, optional): Date to restrict the species presence to. If both 'week' and 'date' are present, the week will be computed from the date. Defaults to None.
             week (int, optional): Week to restrict the species presence. If both 'week' and 'date' are present, the week will be computed from the date. Defaults to -1.
-            threshold (float, optional): Detection threshold to mark a species as being present. Defaults to 0.3.
+            threshold (float, optional): Detection threshold to mark a species as being present. Defaults to 0.03.
 
         Raises:
             ValueError: When week and date are both None. One of both needs to be present.
@@ -137,15 +150,20 @@ class SpeciesPredictorBase(SpeciesList):
         Returns:
             list: List of label names according to the formatting applied in the 'detections' function.
         """
+
+        self.read_from_file = False
+
         if week is None and date is None:
             raise ValueError(
                 "Either week or date must be given for species list prediction"
             )
 
-        if week is not None and date is not None:
+        if week is not -1 and date is not None:
+
             warnings.warn(
-                "Both date and week given for species list prediction. Using date to determine week."
-            )
+                "Both date and week given for species list prediction. Using date to determine week.",
+                category=UserWarning,
+            )  # TODO: add better warning category for redundant variables
 
         if date is not None:
 
@@ -154,36 +172,40 @@ class SpeciesPredictorBase(SpeciesList):
             )  # not optimal, this is called in ´return_results' again.
 
         # when we want to use cached results, we first check if we computed a list for this location and date before
-        if self.use_cache and (
-            Path(str(latitude) + "_" + str(longitude) + "_" + str(week))
-            in Path(self.cache_dir).iterdir()
-        ):
-            return self._read_labels_file(
-                Path(self.cache_dir)
-                / Path(str(latitude) + "_" + str(longitude) + "_" + str(week))
-                / "species_list.txt"
-            )
+        cache_folder = Path(str(latitude) + "_" + str(longitude) + "_" + str(week))
 
-        else:
+        if self.use_cache:
 
-            # provides raw species presence data in self.result
-            self.predict(latitude=latitude, longitude=longitude, week=week, date=date)
+            if (
+                SpeciesPredictorBase.cache_dir / cache_folder / "species_list.txt"
+            ).exists():
+                self.read_from_file = True
 
-            detections = self.detections
-
-            if self.use_cache:  # store when requested. Round given coords to 2 decimals
-                self._write_to_file(
-                    detections,
-                    Path(self.cache_dir)
-                    / Path("iSparrow")
-                    / Path(
-                        str(round(self.latitude, 2))
-                        + "_"
-                        + str(round(self.longitude, 2))
-                    ),
+                return self._read_labels_file(
+                    Path(SpeciesPredictorBase.cache_dir)
+                    / cache_folder
+                    / "species_list.txt"
                 )
 
-            return detections
+        # provides raw species presence data in self.result
+        self.predict_species_list(
+            latitude=latitude,
+            longitude=longitude,
+            week=week,
+            date=date,
+            threshold=threshold,
+        )
+
+        detections = self.detections
+
+        if self.use_cache:  # store when requested. Round given coords to 2 decimals
+
+            self._write_to_file(
+                Path(SpeciesPredictorBase.cache_dir) / cache_folder,
+                detections,
+            )
+
+        return detections
 
     @property
     def detections(self) -> list:
@@ -194,10 +216,15 @@ class SpeciesPredictorBase(SpeciesList):
             list: Predicted species in the format needed by the model
         """
         # transform the species list into the birdnet format.
-        return [
-            "{scientific_name}_{common_name}"
-            for scientific_name, common_name, _ in self.results
-        ]
+
+        detections = []
+        for dictionary in self.results:
+            sn = dictionary["scientific_name"]
+            cn = dictionary["common_name"]
+
+            detections.append(f"{sn}_{cn}")
+
+        return detections
 
     def export(self, outpath: str):
         """
@@ -229,8 +256,18 @@ class SpeciesPredictorBase(SpeciesList):
     def _write_to_file(self, containing_folder: Path, formatted_results: list):
         """Write produced species list to 'containing_folder' within the cache_dir path held by the caller. Creates directories as necessary"""
 
-        dir = containing_folder.mkdir(parents=True, exist_ok=True)
+        containing_folder.mkdir(parents=True, exist_ok=True)
 
-        with open(dir / "species_list.txt", "w") as output:
-            writer = csv.writer(output)
-            writer.writerows(formatted_results)
+        with open(containing_folder / "species_list.txt", "w") as output:
+            for row in formatted_results:
+                output.write(row + "\n")
+
+    @classmethod
+    def clear_cache(
+        cls,
+    ):
+        """
+        clear_cache Remove the cache folder completely
+
+        """
+        rmtree(str(cls.cache_dir))
