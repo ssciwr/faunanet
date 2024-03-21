@@ -49,7 +49,6 @@ class Model(ModelBase):
         self,
         default_model_path: str = None,
         model_path: str = None,
-        species_list_file: str = None,
         sigmoid_sensitivity: float = 1.0,
         num_threads: int = 1,
     ):
