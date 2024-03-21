@@ -62,3 +62,9 @@ Acanthis flammea_Common Redpoll
 Buteo lagopus_Rough-legged Hawk
 Circus hudsonius_Northern Harrier
 Larus marinus_Great Black-backed Gull
+
+
+# lat: 42.5
+# lon: -76.45
+# week: 4
+# threshold: 0.03
