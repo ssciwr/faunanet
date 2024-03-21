@@ -30,13 +30,15 @@ class RecordingFixture:
 
         self.example_folder = self.sparrow_folder / "example"
 
-        with open(self.testpath / "cfg_custom.yml", "r") as file:
+        with open(self.testpath / Path("test_configs") / "cfg_custom.yml", "r") as file:
             self.custom_cfg = yaml.safe_load(file)
 
-        with open(self.testpath / "cfg_default.yml", "r") as file:
+        with open(
+            self.testpath / Path("test_configs") / "cfg_default.yml", "r"
+        ) as file:
             self.default_cfg = yaml.safe_load(file)
 
-        with open(self.testpath / "cfg_google.yml", "r") as file:
+        with open(self.testpath / Path("test_configs") / "cfg_google.yml", "r") as file:
             self.google_cfg = yaml.safe_load(file)
         # import preprocessor definition that we need
 
@@ -125,15 +127,17 @@ class RecordingFixture:
         self.trimmed_file = self.example_folder / "trimmed.wav"
 
         self.custom_analysis_results = pd.read_csv(
-            self.testpath / Path("custom_results.csv")
+            self.testpath / Path("stored_test_results") / Path("custom_results.csv")
         )
 
         self.default_analysis_results = pd.read_csv(
-            self.testpath / Path("default_results.csv")
+            self.testpath / Path("stored_test_results") / Path("default_results.csv")
         )
 
         self.google_analysis_results = pd.read_csv(
-            self.testpath / Path("google_results_minconf025.csv")
+            self.testpath
+            / Path("stored_test_results")
+            / Path("google_results_minconf025.csv")
         )
 
 

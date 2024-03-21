@@ -23,7 +23,7 @@ def make_preprocessor(cfg_name: str):
     models_folder = sparrow_folder / "models"
     example_folder = sparrow_folder / "example"
 
-    with open(testpath / cfg_name, "r") as file:
+    with open(testpath / Path("test_configs") / cfg_name, "r") as file:
         cfg = yaml.safe_load(file)
 
     # README: in later versions when a 'exchange_model'function is present somewhere, this
