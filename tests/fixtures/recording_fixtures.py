@@ -146,16 +146,16 @@ class RecordingFixture:
             .tolist()
         )
 
-        self.detections_with_restricted_list = pd.read_csv(
-            self.testpath
-            / Path("stored_test_results")
-            / Path("default_results_species_filtered.csv"),
-            comment="#",
+        self.detections_with_restricted_list = (
+            pd.read_csv(
+                self.testpath
+                / Path("stored_test_results")
+                / Path("default_results_species_filtered.csv"),
+                comment="#",
+            )
+            .sort_values(by="confidence", ascending=False)
+            .reset_index(drop=True)
         )
-
-        self.detections_with_restricted_list = self.detections_with_restricted_list.loc[
-            self.detections_with_restricted_list.confidence >= 0.25, :
-        ]
 
 
 @pytest.fixture

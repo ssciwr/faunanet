@@ -290,7 +290,7 @@ def test_species_list_restriction(recording_fx):
 
     assert_frame_equal(
         df.loc[:, ["common_name", "confidence"]],
-        recording_fx.detections_with_restricted_list.reset_index(drop=True).loc[
+        recording_fx.detections_with_restricted_list.loc[
             :, ["common_name", "confidence"]
         ],
         check_dtype=False,

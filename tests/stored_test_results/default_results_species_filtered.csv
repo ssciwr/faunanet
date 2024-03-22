@@ -1,34 +1,24 @@
-begin,end,species_code,common_name,confidence
-0.0,3.0,bkcchi,Black-capped Chickadee,0.8141
-42.0,45.0,daejun,Dark-eyed Junco,0.7375
-9.0,12.0,houfin,House Finch,0.6394
-54.0,57.0,houfin,House Finch,0.6071
-72.0,75.0,houfin,House Finch,0.5638
-60.0,63.0,daejun,Dark-eyed Junco,0.555
-96.0,99.0,amegfi,American Goldfinch,0.4765
-33.0,36.0,daejun,Dark-eyed Junco,0.4591
-102.0,105.0,houfin,House Finch,0.4459
-18.0,21.0,blujay,Blue Jay,0.4353
-90.0,93.0,amegfi,American Goldfinch,0.419
-117.0,120.0,amegfi,American Goldfinch,0.3924
-36.0,39.0,daejun,Dark-eyed Junco,0.3537
-21.0,24.0,blujay,Blue Jay,0.3291
-93.0,96.0,houfin,House Finch,0.3168
-3.0,6.0,bkcchi,Black-capped Chickadee,0.3083
-69.0,72.0,houfin,House Finch,0.2915
-84.0,87.0,houfin,House Finch,0.2801
-51.0,54.0,houfin,House Finch,0.2564
-78.0,81.0,houfin,House Finch,0.2561
-39.0,42.0,houfin,House Finch,0.2533
-27.0,30.0,daejun,Dark-eyed Junco,0.2187
-21.0,24.0,houfin,House Finch,0.1867
-6.0,9.0,tuftit,Tufted Titmouse,0.1864
-105.0,108.0,bkcchi,Black-capped Chickadee,0.179
-24.0,27.0,blujay,Blue Jay,0.1749
-57.0,60.0,houfin,House Finch,0.1615
-99.0,102.0,houfin,House Finch,0.1574
-48.0,51.0,blujay,Blue Jay,0.1293
+species_code,common_name,confidence
+bkcchi,Black-capped Chickadee,0.8141
+bkcchi,Black-capped Chickadee,0.3083
+houfin,House Finch,0.6394
+blujay,Blue Jay,0.4353
+blujay,Blue Jay,0.3291
+daejun,Dark-eyed Junco,0.4591
+daejun,Dark-eyed Junco,0.3537
+houfin,House Finch,0.2533
+daejun,Dark-eyed Junco,0.7375
+houfin,House Finch,0.2564
+houfin,House Finch,0.6071
+daejun,Dark-eyed Junco,0.5550
+houfin,House Finch,0.2915
+houfin,House Finch,0.5638
+houfin,House Finch,0.2561
+houfin,House Finch,0.2801
+amegfi,American Goldfinch,0.4190
+houfin,House Finch,0.3168
+amegfi,American Goldfinch,0.4765
+houfin,House Finch,0.4459
+amegfi,American Goldfinch,0.3924
 
-# lon: 42.5
-# lat: -76.45
-# week: 4
+# python3 analyze.py --i ~/Downloads/soundscape.wav --o ~/Downloads/soundscape_results.csv --lat 42.5 --lon -76.45 --week 4 --sensitivity 1.0 --sf_thresh 0.03 --min_conf 0.25
