@@ -136,6 +136,27 @@ class RecordingFixture:
             / Path("google_results_minconf025.csv")
         )
 
+        self.allowed_species_should = (
+            pd.read_csv(
+                self.testpath / Path("stored_test_results") / Path("species_list.txt"),
+                comment="#",
+                header=None,
+            )
+            .squeeze()
+            .tolist()
+        )
+
+        self.detections_with_restricted_list = pd.read_csv(
+            self.testpath
+            / Path("stored_test_results")
+            / Path("default_results_species_filtered.csv"),
+            comment="#",
+        )
+
+        self.detections_with_restricted_list = self.detections_with_restricted_list.loc[
+            self.detections_with_restricted_list.confidence >= 0.25, :
+        ]
+
 
 @pytest.fixture
 def recording_fx():

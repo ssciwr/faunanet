@@ -21,6 +21,15 @@ class SparrowRecording(RecordingBase):
         RecordingBase (birdnetlib.RecordingBase): See documentation of the birdnetlib.RecordingBase class
     """
 
+    def _check_model_system_viability(self, names_of_objects: list):
+
+        # README: 'week' argument is not used because it doubles with 'date', and daily timestamps are more useful for data collection in general
+        if all(name == names_of_objects[0] for name in names_of_objects) is False:
+
+            raise ValueError(
+                "Found different 'name' attributes for model, preprocessor and species predictor. Make sure the supplied model, preprocessor and species predictor are compatible to each other (species_predictor may be 'None' if not used)."
+            )
+
     def __init__(
         self,
         preprocessor: PreprocessorBase,
@@ -58,18 +67,14 @@ class SparrowRecording(RecordingBase):
         self.allowed_species = []
 
         # make sure that all the system components are compatible. Based on name tags. Still a bit susceptible. Fix?
-        names = [
-            model.name,
-            preprocessor.name,
-            model.name if species_predictor is None else species_predictor.name,
-        ]
 
-        # README: 'week' argument is not used because it doubles with 'date', and daily timestamps are more useful for data collection in general
-        if all(name == names[0] for name in names) is False:
-
-            raise ValueError(
-                "Found different 'name' attributes for model, preprocessor and species predictor. Make sure the supplied model, preprocessor and species predictor are compatible to each other (species_predictor may be 'None' if not used)."
+        self._check_model_system_viability(
+            (
+                model.name,
+                preprocessor.name,
+                model.name if species_predictor is None else species_predictor.name,
             )
+        )
 
         species_predictor_args = [lat, lon, species_predictor, date]
 
@@ -113,6 +118,40 @@ class SparrowRecording(RecordingBase):
     @property
     def chunks(self):
         return self.processor.chunks
+
+    def set_analyzer(
+        self,
+        model: ModelBase,
+        preprocessor: PreprocessorBase,
+        species_predictor: SpeciesPredictorBase = None,
+    ):
+        """
+        set_analyzer Replace the internally used model and preprocessor.
+
+        Args:
+            model (ModelBase): The classifier model to use
+            preprocessor (PreprocessorBase): The preprocessor to use
+        """
+
+        self._check_model_system_viability(
+            (
+                model.name,
+                preprocessor.name,
+                model.name if species_predictor is None else species_predictor.name,
+            )
+        )
+
+        self.analyzer = model
+
+        self.processor = preprocessor
+
+        if species_predictor is not None:
+            self.species_predictor = species_predictor
+
+        self.analyzed = False
+
+    def use_model(self, model_name: str):
+        raise NotImplementedError("Not yet implemented")
 
     def restrict_species_list(
         self,
