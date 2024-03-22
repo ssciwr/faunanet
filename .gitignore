@@ -115,6 +115,8 @@ cython_debug/
 
 # ipython notebooks - ocassionally used for testing/debugging... 
 *.ipynb
+# but unignore those that live in the examples directory 
+!notebooks/*.ipynb
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

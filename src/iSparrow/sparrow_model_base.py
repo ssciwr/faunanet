@@ -129,6 +129,7 @@ class ModelBase(ABC):
         Args:
             recording (_type_): _description_
         """
+        print("name of model: ", self.name)
         start = 0
         end = recording.processor.sample_secs
         results = {}

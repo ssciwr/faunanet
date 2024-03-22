@@ -1,10 +1,7 @@
 import pytest
 from pathlib import Path
 import yaml
-import sys
-
-sys.path.append("../src/iSparrow")
-from src.iSparrow import utils
+from iSparrow import utils
 
 
 def make_preprocessor(cfg_name: str):

@@ -59,25 +59,25 @@ def test_analysis_custom(recording_fx):
         min_conf=0.25,
     )
 
-    assert recording.model.model_path == str(
+    assert recording.analyzer.model_path == str(
         recording_fx.sparrow_folder
         / Path("models")
         / Path("birdnet_custom")
         / Path("model.tflite")
     )
-    assert recording.model.labels_path == str(
+    assert recording.analyzer.labels_path == str(
         recording_fx.sparrow_folder
         / Path("models")
         / Path("birdnet_custom")
         / Path("labels.txt")
     )
-    assert recording.model.default_model_path == str(
+    assert recording.analyzer.default_model_path == str(
         recording_fx.sparrow_folder
         / Path("models")
         / Path("birdnet_default")
         / Path("model.tflite")
     )
-    assert recording.model.default_labels_path == str(
+    assert recording.analyzer.default_labels_path == str(
         recording_fx.sparrow_folder
         / Path("models")
         / Path("birdnet_default")
@@ -158,9 +158,58 @@ def test_analysis_google(recording_fx):
 
     assert_frame_equal(
         df,  # we only have comparison data for the first 3 chunks
-        recording_fx.google_analysis_results.loc[
-            :, ["label", "confidence"]
-        ].sort_values(by="confidence", ascending=False).reset_index(drop=True),
+        recording_fx.google_analysis_results.loc[:, ["label", "confidence"]]
+        .sort_values(by="confidence", ascending=False)
+        .reset_index(drop=True),
         check_dtype=False,
-        atol = 1e-2
+        atol=1e-2,
+    )
+
+
+def test_model_exchange(recording_fx):
+
+    # do analysis with google model and check it's ok again...
+    recording = spc.SparrowRecording(
+        recording_fx.google_preprocessor,
+        recording_fx.google_model,
+        recording_fx.good_file,
+        min_conf=0.25,
+    )
+    assert recording.analyzer.name == "google_perch_model"
+
+    recording.analyze()
+
+    # results of analysis not explicitly needed here, we know what comes out from previous test
+
+    # make a dataframe and sort it the same way as the expected recording_fx, with an index ranging from 0:len(df)-1
+    # unfortunately, default test results where recorded with ascending = True... so it's inconsistent with custom
+
+    # then switch to default model..
+    recording.set_analyzer(
+        recording_fx.default_model, recording_fx.default_preprocessor
+    )
+
+    assert recording.analyzer.name == "birdnet_default_model"
+
+    recording.analyze()
+
+    results = recording.detections
+
+    #  and check it's ok as well
+    df = (
+        pd.DataFrame(results)
+        .loc[:, ["label", "confidence"]]
+        .sort_values(by="confidence", ascending=True)
+        .reset_index()
+        .drop("index", axis=1)
+    )
+
+    assert results != recording_fx.google_analysis_results.to_dict(
+        orient="records"
+    )  # make sure the results changed indeed
+
+    assert_frame_equal(
+        df,
+        recording_fx.default_analysis_results.loc[:, ["label", "confidence"]],
+        check_dtype=False,
     )
