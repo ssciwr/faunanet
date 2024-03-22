@@ -139,13 +139,13 @@ class SparrowRecording(RecordingBase):
 
         return cls(preprocessor, model, **(defaults | cfg["Analysis"]))
 
-    def set_model_system(self, model, preprocessor): 
-        
-        self.analyzer = model 
-        self.processor = preprocessor 
-        self.analyzed = False 
+    def set_analyzer(self, model, preprocessor):
 
-    def use_model(self, model_name: str): 
+        self.analyzer = model
+        self.processor = preprocessor
+        self.analyzed = False
+
+    def use_model(self, model_name: str):
         raise NotImplementedError("Not yet implemented")
 
     @property

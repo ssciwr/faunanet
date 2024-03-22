@@ -164,3 +164,64 @@ def test_analysis_google(recording_fx):
         check_dtype=False,
         atol=1e-2,
     )
+
+
+def test_model_exchange(recording_fx):
+
+    # do analysis with google model and check it's ok again...
+    recording = spc.SparrowRecording(
+        recording_fx.google_preprocessor,
+        recording_fx.google_model,
+        recording_fx.good_file,
+        min_conf=0.25,
+    )
+    assert recording.analyzer.name == "google_perch_model"
+
+    recording.analyze()
+
+    results = recording.detections
+
+    # make a dataframe and sort it the same way as the expected recording_fx, with an index ranging from 0:len(df)-1
+    # unfortunately, default test results where recorded with ascending = True... so it's inconsistent with custom
+    df = pd.DataFrame(results)
+
+    df = (
+        df.loc[df.end <= 15, ["label", "confidence"]]
+        .sort_values(by="confidence", ascending=False)
+        .reset_index(drop=True)
+    )
+
+    assert_frame_equal(
+        df,  # we only have comparison data for the first 3 chunks
+        recording_fx.google_analysis_results.loc[:, ["label", "confidence"]]
+        .sort_values(by="confidence", ascending=False)
+        .reset_index(drop=True),
+        check_dtype=False,
+        atol=1e-2,
+    )
+
+    # then switch to default model..
+    recording.set_analyzer(
+        recording_fx.default_model, recording_fx.default_preprocessor
+    )
+
+    assert recording.analyzer.name == "birdnet_default_model"
+
+    recording.analyze()
+
+    results = recording.detections
+
+    #  and check it's ok as well
+    df = (
+        pd.DataFrame(results)
+        .loc[:, ["label", "confidence"]]
+        .sort_values(by="confidence", ascending=True)
+        .reset_index()
+        .drop("index", axis=1)
+    )
+
+    assert_frame_equal(
+        df,
+        recording_fx.default_analysis_results.loc[:, ["label", "confidence"]],
+        check_dtype=False,
+    )
