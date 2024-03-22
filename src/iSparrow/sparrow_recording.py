@@ -131,7 +131,7 @@ class SparrowRecording(RecordingBase):
             "date": None,
             "lat": None,
             "lon": None,
-            "return_all_detections": False,
+            "return_all_detections": False,  # ignored here
             "min_conf": 0.25,
         }
 
