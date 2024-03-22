@@ -47,7 +47,6 @@ class SparrowRecording(RecordingBase):
             return_all_detections (bool, optional): Ignore confidence and return all detections we got. Defaults to False.
         """
         self.processor = preprocessor
-        self.model = model
         self.path = path
         p = Path(self.path)
         self.filestem = p.stem
@@ -140,6 +139,15 @@ class SparrowRecording(RecordingBase):
 
         return cls(preprocessor, model, **(defaults | cfg["Analysis"]))
 
+    def set_model_system(self, model, preprocessor): 
+        
+        self.analyzer = model 
+        self.processor = preprocessor 
+        self.analyzed = False 
+
+    def use_model(self, model_name: str): 
+        raise NotImplementedError("Not yet implemented")
+
     @property
     def detections(self):
         """
@@ -161,7 +169,7 @@ class SparrowRecording(RecordingBase):
         qualified_detections = []
 
         # allow_list = self.analyzer.custom_species_list
-        for (start, end), labeled_predictions in self.model.results.items():
+        for (start, end), labeled_predictions in self.analyzer.results.items():
 
             # README: this needs to include allowed species later
             for label, confidence in labeled_predictions:
