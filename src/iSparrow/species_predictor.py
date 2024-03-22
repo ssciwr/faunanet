@@ -63,6 +63,8 @@ class SpeciesPredictorBase(SpeciesList):
 
         self.read_from_file = False  # variable used for debugging mostly
 
+        self.name = "birdnet_default"
+
         if SpeciesPredictorBase.cache_dir.exists() is False:
             SpeciesPredictorBase.cache_dir.mkdir(parents=True, exist_ok=True)
 
