@@ -26,7 +26,7 @@ class Preprocessor(ppb.PreprocessorBase):
         """
 
         super().__init__(
-            "birdnet_defaults_preprocessor",
+            "birdnet_custom",
             sample_rate=sample_rate,
             overlap=overlap,
             sample_secs=sample_secs,

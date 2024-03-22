@@ -59,7 +59,17 @@ class SparrowRecording(RecordingBase):
         self.species_predictor = None
         self.allowed_species = []
 
-        # TODO: find a way to catch incompatible preprocessor, model, species_predictor combos. Maybe by giving them all the same names and checking on that basis
+        # make sure that all the system components are compatible. Based on name tags. Still a bit susceptible. Fix?
+        names = [
+            model.name,
+            preprocessor.name,
+            model.name if species_predictor is None else species_predictor.name,
+        ]
+
+        if all(name == names[0] for name in names) is False:
+            raise ValueError(
+                "Found different 'name' attributes for model, preprocessor and species predictor. Make sure the supplied model, preprocessor and species predictor are compatible to each other (species_predictor may be 'None' if not used)."
+            )
 
         # check that necessary info is present for species predictor
         if all(var is not None for var in [lat, lon, species_predictor]) and (

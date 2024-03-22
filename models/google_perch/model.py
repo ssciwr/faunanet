@@ -22,7 +22,7 @@ class Model(ModelBase):
         self.class_mask = None  # used later
 
         super().__init__(
-            "google_perch_model",
+            "google_perch",
             model_path,
             labels_path,
             num_threads=num_threads,

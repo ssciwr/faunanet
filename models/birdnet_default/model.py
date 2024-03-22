@@ -38,7 +38,7 @@ class Model(ModelBase):
 
         # base class loads the model and labels
         super().__init__(
-            "birdnet_default_model",
+            "birdnet_default",
             model_path,
             labels_path,
             num_threads=num_threads,
