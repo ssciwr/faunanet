@@ -59,25 +59,25 @@ def test_analysis_custom(recording_fx):
         min_conf=0.25,
     )
 
-    assert recording.model.model_path == str(
+    assert recording.analyzer.model_path == str(
         recording_fx.sparrow_folder
         / Path("models")
         / Path("birdnet_custom")
         / Path("model.tflite")
     )
-    assert recording.model.labels_path == str(
+    assert recording.analyzer.labels_path == str(
         recording_fx.sparrow_folder
         / Path("models")
         / Path("birdnet_custom")
         / Path("labels.txt")
     )
-    assert recording.model.default_model_path == str(
+    assert recording.analyzer.default_model_path == str(
         recording_fx.sparrow_folder
         / Path("models")
         / Path("birdnet_default")
         / Path("model.tflite")
     )
-    assert recording.model.default_labels_path == str(
+    assert recording.analyzer.default_labels_path == str(
         recording_fx.sparrow_folder
         / Path("models")
         / Path("birdnet_default")
@@ -158,9 +158,9 @@ def test_analysis_google(recording_fx):
 
     assert_frame_equal(
         df,  # we only have comparison data for the first 3 chunks
-        recording_fx.google_analysis_results.loc[
-            :, ["label", "confidence"]
-        ].sort_values(by="confidence", ascending=False).reset_index(drop=True),
+        recording_fx.google_analysis_results.loc[:, ["label", "confidence"]]
+        .sort_values(by="confidence", ascending=False)
+        .reset_index(drop=True),
         check_dtype=False,
-        atol = 1e-2
+        atol=1e-2,
     )

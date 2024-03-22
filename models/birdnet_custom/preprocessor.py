@@ -1,4 +1,3 @@
-# import sys
 import numpy as np
 import iSparrow.preprocessor_base as ppb
 
