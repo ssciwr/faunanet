@@ -1,13 +1,9 @@
 import pytest
 from pathlib import Path
 import yaml
-import sys
 import pandas as pd
 
-sys.path.append("../src/iSparrow")
-
-from src.iSparrow import sparrow_recording as spc
-from src.iSparrow import utils
+from iSparrow import utils
 
 
 class RecordingFixture:

@@ -1,8 +1,4 @@
-import sys
-
-sys.path.append("../src/iSparrow")
-from src.iSparrow import utils
-
+from iSparrow import utils
 from pathlib import Path
 import yaml
 import pytest

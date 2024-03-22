@@ -1,11 +1,5 @@
-import sys
 import numpy as np
-import librosa
-import audioread
-from birdnetlib.exceptions import AudioFormatError
-
-sys.path.append("../../src/iSparrow")
-from src.iSparrow import preprocessor_base as ppb
+import iSparrow.preprocessor_base as ppb
 
 
 class Preprocessor(ppb.PreprocessorBase):
