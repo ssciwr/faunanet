@@ -6,7 +6,7 @@ import warnings
 
 from birdnetlib.main import RecordingBase
 from iSparrow.preprocessor_base import PreprocessorBase
-from iSparro.sparrow_model_base import ModelBase
+from iSparrow.sparrow_model_base import ModelBase
 import iSparrow.utils as utils
 from iSparrow.species_predictor import SpeciesPredictorBase
 
@@ -26,7 +26,6 @@ class SparrowRecording(RecordingBase):
         preprocessor: PreprocessorBase,
         model: ModelBase,
         path: str,
-        week_48: int = -1,
         date: datetime = None,
         lat: float = None,
         lon: float = None,
@@ -42,7 +41,6 @@ class SparrowRecording(RecordingBase):
             analyzer (Analyzer): Analyzer object to use. Contains model to use for analysis as well as result post processing.
             preprocessor (PreprocessorBase): Preprocessor object to use. Must adhere to the interface defined in iSparrow.preprocessor_base.
             path (str): Path to the audio file to be analyzed
-            week_48 (int, optional): Week in the calendar. Defaults to -1. Only applied if `model` is the birdnet default model.
             date (datetime, optional): Date of recording. Alternative to 'week'. Defaults to None. Only applied if `model` is the birdnet default model.
             sensitivity (float, optional): Detection sensitivity. Defaults to 1.0.
             lat (float, optional): Latitude. If latitude and longitude are given, the species list is predicted first.  Defaults to None. Only applied if `model` is the birdnet default model.
@@ -52,7 +50,7 @@ class SparrowRecording(RecordingBase):
             species_predictor: An instance of a class derived from `SpeciesPredictorBase`. Only applicable if `model` is the birdnet default model.
         """
         self.processor = preprocessor
-        self.model = model
+        self.analyzer = model
         self.path = path
         p = Path(self.path)
         self.filestem = p.stem
@@ -66,25 +64,32 @@ class SparrowRecording(RecordingBase):
             model.name if species_predictor is None else species_predictor.name,
         ]
 
+        # README: 'week' argument is not used because it doubles with 'date', and daily timestamps are more useful for data collection in general
         if all(name == names[0] for name in names) is False:
+
             raise ValueError(
                 "Found different 'name' attributes for model, preprocessor and species predictor. Make sure the supplied model, preprocessor and species predictor are compatible to each other (species_predictor may be 'None' if not used)."
             )
 
-        # check that necessary info is present for species predictor
-        if all(var is not None for var in [lat, lon, species_predictor]) and (
-            date is not None or week_48 != -1
-        ):
+        species_predictor_args = [lat, lon, species_predictor, date]
+
+        # check that necessary info is present for species predictor: nothing necessary is None and a date variable is given
+        if all(var is not None for var in species_predictor_args):
+
             self.species_predictor = species_predictor
 
             self.allowed_species = self.species_predictor.predict(
                 latitude=lat,
                 longitude=lon,
                 date=date,
-                week=week_48,
                 threshold=species_presence_threshold,
             )
-        else:
+
+        # when any of the species predictor stuff is None and something else is not,
+        # we have an incompatible combination.
+        if any(var is None for var in species_predictor_args) and any(
+            var is not None for var in species_predictor_args
+        ):
             raise ValueError(
                 "A full set of (lat, lon, date/week_48) must be given to use the species presence predictor and the passed species predictor must not be 'None'."
             )
@@ -114,7 +119,6 @@ class SparrowRecording(RecordingBase):
         lat: float,
         lon: float,
         date: datetime = None,
-        week: int = -1,
         species_presence_threshold: float = 0.03,
     ):
         # this abstracts away the underlying species predictor model and is useful when reusing the recording or
@@ -133,7 +137,6 @@ class SparrowRecording(RecordingBase):
             latitude=lat,
             longitude=lon,
             date=date,
-            week=week,
             threshold=species_presence_threshold,
         )
 
@@ -228,7 +231,7 @@ class SparrowRecording(RecordingBase):
             self.allowed_species
         )  # convert to set for lookup speed. Useful? (maybe for bigger lists...)
 
-        for (start, end), labeled_predictions in self.model.results.items():
+        for (start, end), labeled_predictions in self.analyzer.results.items():
 
             for label, confidence in labeled_predictions:
                 if confidence > self.minimum_confidence:

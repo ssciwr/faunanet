@@ -1,6 +1,5 @@
 from appdirs import user_cache_dir
 from pathlib import Path
-import csv
 import datetime
 from birdnetlib.species import SpeciesList
 from birdnetlib.utils import return_week_48_from_datetime
@@ -98,7 +97,6 @@ class SpeciesPredictorBase(SpeciesList):
         latitude: float,
         longitude: float,
         date: datetime.date = None,
-        week: int = -1,  # default from birdnetlib.required for their remapping logic to the format neede by birdnet analyzer. Why?
         threshold: float = 0.03,
     ):
         """
@@ -108,7 +106,6 @@ class SpeciesPredictorBase(SpeciesList):
             latitude (float): Latitude value for location coordinate
             longitude (float): Longitude value for location coordinate
             date (datetime.date, optional): Date to restrict the species presence to. If both 'week' and 'date' are present, the week will be computed from the date. Defaults to None.
-            week (int, optional): Week to restrict the species presence. If both 'week' and 'date' are present, the week will be computed from the date. Defaults to -1.
             threshold (float, optional): Detection threshold to mark a species as being present. Defaults to 0.03.
         """
         self.results = []
@@ -123,7 +120,6 @@ class SpeciesPredictorBase(SpeciesList):
             lon=longitude,
             lat=latitude,
             date=date,
-            week_48=week,
             threshold=threshold,
         )
 
@@ -133,7 +129,6 @@ class SpeciesPredictorBase(SpeciesList):
         latitude: float,
         longitude: float,
         date: datetime.date = None,
-        week: int = -1,
         threshold: float = 0.03,
     ) -> list:
         """
@@ -154,18 +149,6 @@ class SpeciesPredictorBase(SpeciesList):
         """
 
         self.read_from_file = False
-
-        if week is None and date is None:
-            raise ValueError(
-                "Either week or date must be given for species list prediction"
-            )
-
-        if week != -1 and date is not None:
-
-            warnings.warn(
-                "Both date and week given for species list prediction. Using date to determine week.",
-                category=UserWarning,
-            )  # TODO: add better warning category for redundant variables
 
         if date is not None:
 
@@ -193,7 +176,6 @@ class SpeciesPredictorBase(SpeciesList):
         self.predict_species_list(
             latitude=latitude,
             longitude=longitude,
-            week=week,
             date=date,
             threshold=threshold,
         )

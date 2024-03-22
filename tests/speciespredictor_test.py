@@ -44,6 +44,8 @@ def test_species_predictor_construction(recording_fx, finalizer):
         num_threads=p_cfg["num_threads"],
     )
 
+    assert predictor.name == "birdnet_default"
+
     assert predictor.model_path == str(
         Path(model_path) / "species_presence_model.tflite"
     )
@@ -127,12 +129,6 @@ def test_species_predictor_run(recording_fx, finalizer):
     assert predictor.read_from_file == False
 
     date = datetime(day=10, month=6, year=2021)
-
-    with pytest.warns(
-        UserWarning,
-        match="Both date and week given for species list prediction. Using date to determine week.",
-    ):
-        predictor.predict(p_cfg["latitude"], p_cfg["longitude"], date=date, week=22)
 
 
 def test_cached_species_predictor_run(recording_fx, finalizer):

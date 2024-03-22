@@ -175,7 +175,7 @@ def test_model_exchange(recording_fx):
         recording_fx.good_file,
         min_conf=0.25,
     )
-    assert recording.analyzer.name == "google_perch_model"
+    assert recording.analyzer.name == "google_perch"
 
     recording.analyze()
 

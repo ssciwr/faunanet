@@ -15,7 +15,7 @@ def test_preprocessor_constructions_birdnet(preprocessor_fx):
     assert preprocessor.actual_sampling_rate == pytest.approx(
         0.0
     )  # unknown at this point, hence zero
-    assert preprocessor.name == "birdnet_defaults_preprocessor"
+    assert preprocessor.name == "birdnet_default"
 
 
 def test_preprocessor_read_birdnet(preprocessor_fx):
