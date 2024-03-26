@@ -4,7 +4,6 @@ import datetime
 from birdnetlib.species import SpeciesList
 from birdnetlib.utils import return_week_48_from_datetime
 from shutil import rmtree
-import warnings
 from . import utils
 
 # README: Would be more logically consistent to have this inherit from Sparrow's `ModelBase` class,

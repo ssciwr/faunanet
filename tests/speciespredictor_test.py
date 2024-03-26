@@ -1,8 +1,4 @@
-import sys
-
-sys.path.append("../src/iSparrow")
-from src.iSparrow import utils
-from src.iSparrow import species_predictor as sp
+from iSparrow import species_predictor as sp
 
 from pathlib import Path
 import yaml
@@ -62,7 +58,7 @@ def test_species_predictor_construction(recording_fx, finalizer):
 
     assert predictor.meta_output_layer_index == 81
 
-    assert predictor.read_from_file == False
+    assert predictor.read_from_file is False
 
     model_path = str(Path(recording_fx.models_folder) / "model_that_doesn't exist")
 
@@ -114,7 +110,7 @@ def test_species_predictor_run(recording_fx, finalizer):
         num_threads=p_cfg["num_threads"],
     )
 
-    assert predictor.read_from_file == False
+    assert predictor.read_from_file is False
 
     date_raw = p_cfg["date"].split("/")
 
