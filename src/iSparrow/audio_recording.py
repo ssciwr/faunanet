@@ -2,8 +2,6 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 import subprocess
 from pathlib import Path
-import warnings
-import platform
 import pyaudio
 import wave
 
@@ -31,20 +29,15 @@ class RecorderBase(ABC):
         self.mode = mode
 
     @abstractmethod
-    def start(
-        self,
-        stdin=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-    ):
+    def start(self, stop_condition: callable = lambda x: False):
         pass
 
     @abstractmethod
-    def stream_audio(self, chunksize="auto"):
+    def stream_audio(self):
         pass
 
     @abstractmethod
-    def stop(self, timeout: int = 30):
+    def stop(self):
         pass
 
 
@@ -55,7 +48,7 @@ class Recorder(RecorderBase):
         output_folder: str = None,
         length_s: int = 15,
         sample_rate: int = 32000,
-        num_format: str = pyaudio.paFloat32,
+        num_format: str = pyaudio.paInt16,
         file_type: str = "wav",
         channels: int = 1,
         mode="record",
