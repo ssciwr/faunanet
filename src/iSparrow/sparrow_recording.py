@@ -69,11 +69,11 @@ class SparrowRecording(RecordingBase):
         # make sure that all the system components are compatible. Based on name tags. Still a bit susceptible. Fix?
 
         self._check_model_system_viability(
-            (
+            [
                 model.name,
                 preprocessor.name,
                 model.name if species_predictor is None else species_predictor.name,
-            )
+            ]
         )
 
         species_predictor_args = [lat, lon, species_predictor, date]
@@ -134,11 +134,11 @@ class SparrowRecording(RecordingBase):
         """
 
         self._check_model_system_viability(
-            (
+            [
                 model.name,
                 preprocessor.name,
                 model.name if species_predictor is None else species_predictor.name,
-            )
+            ]
         )
 
         self.analyzer = model

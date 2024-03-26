@@ -126,9 +126,7 @@ def test_species_predictor_run(recording_fx, finalizer):
 
     assert detections == detections_should
 
-    assert predictor.read_from_file == False
-
-    date = datetime(day=10, month=6, year=2021)
+    assert predictor.read_from_file is False
 
 
 def test_cached_species_predictor_run(recording_fx, finalizer):
