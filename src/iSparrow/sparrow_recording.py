@@ -108,7 +108,7 @@ class SparrowRecording(RecordingBase):
             sensitivity=1.0,
             min_conf=min_conf,
             overlap=0.0,
-            # return_all_detections=False, # not used. Set min_conf to 0 for the same effect
+            return_all_detections=False,  # not used in Sparrow. Set min_conf to 0 for the same effect
         )
 
     @property
