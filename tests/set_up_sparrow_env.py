@@ -99,6 +99,7 @@ def download_model_files(isparrow_model_dir: str):
     model_file_names = {
         "birdnet_default_v2.4/model.tflite": "sha256:55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
         "birdnet_custom_v2.4/model.tflite": "sha256:5eee37652430c54490321e0d2096d55817b4ac4da2301b594f03fcb9d52af741",
+        "birdnet_default_v2.4/species_presence_model.tflite": "sha256:1226f23fc20362617deb09178f366111b70cf085c2c82893f2814e5acedce6c2",
         "google_bird_classification/saved_model.pb": "sha256:c6bdf0c2659f6d4713c670b92cceb083f8c1b401aee79ef6912614a1d89b6f97",
         "google_bird_classification/variables/variables.index": None,
         "google_bird_classification/variables/variables.data-00000-of-00001": "sha256:d967ea7bfaccdcfe4ff59f8d9f3bdec69181e4e79fd7abebf692100efcdfcc56",
@@ -121,7 +122,7 @@ def download_model_files(isparrow_model_dir: str):
         registry=(model_file_names | label_file_names),
     )
 
-    for name in ["model.tflite", "labels.txt"]:
+    for name in ["model.tflite", "labels.txt", "species_presence_model.tflite"]:
         (ism / Path("birdnet_default")).mkdir(parents=True, exist_ok=True)
         shutil.copy(
             Path(models_data.fetch(f"birdnet_default_v2.4/{name}", progressbar=False)),

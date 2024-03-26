@@ -47,7 +47,6 @@ class Model(ModelBase):
         self,
         default_model_path: str = None,
         model_path: str = None,
-        species_list_file: str = None,
         sigmoid_sensitivity: float = 1.0,
         num_threads: int = 1,
     ):
@@ -74,7 +73,7 @@ class Model(ModelBase):
 
         # use the super class for handling the default models and load the custom ones in this one
         super().__init__(
-            "birdnet_custom_model",
+            "birdnet_custom",
             model_path=classifier_model_path,
             labels_path=classifier_labels_path,
             num_threads=num_threads,

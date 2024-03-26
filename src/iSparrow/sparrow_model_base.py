@@ -22,7 +22,6 @@ class ModelBase(ABC):
         model_path: str,
         labels_path: str,
         num_threads: int = 1,
-        species_list_path: str = None,
         sensitivity: float = 1.0,
     ):
         self.num_threads = num_threads
@@ -31,19 +30,14 @@ class ModelBase(ABC):
             if Path(model_path).exists() is False:
                 raise FileNotFoundError(f"No model file at {model_path}")
 
-            if Path(labels_path).exists() is False:
-                raise FileNotFoundError(f"No labels file at {labels_path}")
-
-        if species_list_path is not None and Path(species_list_path).exists() is False:
-            raise FileNotFoundError(f"No file found at {species_list_path}")
+        if Path(labels_path).exists() is False:
+            raise FileNotFoundError(f"No labels file at {labels_path}")
 
         self.name = name
 
         self.model_path = model_path
 
         self.labels_path = labels_path
-
-        self.species_list_path = species_list_path
 
         self.sensitivity = sensitivity
 
@@ -52,9 +46,6 @@ class ModelBase(ABC):
         self.load_model()
 
         self.load_labels()
-
-        if self.species_list_path is not None:
-            self.load_species_list()
 
     def _sigmoid(self, logits: np.array, sensitivity: float = -1):
         """
@@ -113,10 +104,6 @@ class ModelBase(ABC):
                 raise ValueError(
                     "Error, url to load model cannot be handled - does it use hugginface? "
                 )
-
-    @abstractmethod
-    def load_species_list(self):
-        pass
 
     @abstractmethod
     def predict(self, data: np.array) -> list:

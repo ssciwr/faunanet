@@ -1,0 +1,24 @@
+species_code,common_name,confidence
+bkcchi,Black-capped Chickadee,0.8141
+bkcchi,Black-capped Chickadee,0.3083
+houfin,House Finch,0.6394
+blujay,Blue Jay,0.4353
+blujay,Blue Jay,0.3291
+daejun,Dark-eyed Junco,0.4591
+daejun,Dark-eyed Junco,0.3537
+houfin,House Finch,0.2533
+daejun,Dark-eyed Junco,0.7375
+houfin,House Finch,0.2564
+houfin,House Finch,0.6071
+daejun,Dark-eyed Junco,0.5550
+houfin,House Finch,0.2915
+houfin,House Finch,0.5638
+houfin,House Finch,0.2561
+houfin,House Finch,0.2801
+amegfi,American Goldfinch,0.4190
+houfin,House Finch,0.3168
+amegfi,American Goldfinch,0.4765
+houfin,House Finch,0.4459
+amegfi,American Goldfinch,0.3924
+
+# python3 analyze.py --i ~/Downloads/soundscape.wav --o ~/Downloads/soundscape_results.csv --lat 42.5 --lon -76.45 --week 4 --sensitivity 1.0 --sf_thresh 0.03 --min_conf 0.25

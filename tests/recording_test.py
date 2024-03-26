@@ -2,7 +2,9 @@ import pytest
 import pandas as pd
 from pandas.testing import assert_frame_equal
 from pathlib import Path
+from datetime import datetime
 from src.iSparrow import sparrow_recording as spc
+from src.iSparrow import species_predictor as spp
 
 
 def test_recording_construction_default(recording_fx):
@@ -18,6 +20,8 @@ def test_recording_construction_default(recording_fx):
     assert recording.filestem == "soundscape"
     assert recording.chunks == []
     assert recording.minimum_confidence == pytest.approx(0.25)
+    assert recording.allowed_species == []
+    assert recording.species_predictor is None
 
 
 def test_recording_construction_custom(recording_fx):
@@ -33,6 +37,8 @@ def test_recording_construction_custom(recording_fx):
     assert recording.filestem == "soundscape"
     assert recording.chunks == []
     assert recording.minimum_confidence == pytest.approx(0.25)
+    assert recording.allowed_species == []
+    assert recording.species_predictor is None
 
 
 def test_recording_construction_google(recording_fx):
@@ -48,6 +54,26 @@ def test_recording_construction_google(recording_fx):
     assert recording.filestem == "soundscape"
     assert recording.chunks == []
     assert recording.minimum_confidence == pytest.approx(0.25)
+    assert recording.allowed_species == []
+    assert recording.species_predictor is None
+
+
+def test_recording_construction_inconsistent(recording_fx):
+
+    # with pytest.raises(ValueError) as e_info:
+
+    # this is an ugly attempt to make sonarcloud happy, the pytest 'with' statement was not accepted
+    try:  # will definitely throw
+        spc.SparrowRecording(
+            recording_fx.default_preprocessor,
+            recording_fx.google_model,
+            recording_fx.good_file,
+        )
+    except Exception as e_info:
+        assert (
+            str(e_info)
+            == "Found different 'name' attributes for model, preprocessor and species predictor. Make sure the supplied model, preprocessor and species predictor are compatible to each other (species_predictor may be 'None' if not used)."
+        )
 
 
 def test_analysis_custom(recording_fx):
@@ -175,7 +201,8 @@ def test_model_exchange(recording_fx):
         recording_fx.good_file,
         min_conf=0.25,
     )
-    assert recording.analyzer.name == "google_perch_model"
+    assert recording.analyzer.name == "google_perch"
+    assert recording.processor.name == "google_perch"
 
     recording.analyze()
 
@@ -189,7 +216,8 @@ def test_model_exchange(recording_fx):
         recording_fx.default_model, recording_fx.default_preprocessor
     )
 
-    assert recording.analyzer.name == "birdnet_default_model"
+    assert recording.analyzer.name == "birdnet_default"
+    assert recording.processor.name == "birdnet_default"
 
     recording.analyze()
 
@@ -212,4 +240,59 @@ def test_model_exchange(recording_fx):
         df,
         recording_fx.default_analysis_results.loc[:, ["label", "confidence"]],
         check_dtype=False,
+    )
+
+
+def test_species_list_restriction(recording_fx):
+    p_cfg = recording_fx.default_cfg["Analysis"]["SpeciesPresence"]
+
+    date_raw = p_cfg["date"].split("/")
+
+    date = datetime(day=int(date_raw[0]), month=int(date_raw[1]), year=int(date_raw[2]))
+
+    species_predictor_model_path = recording_fx.sparrow_folder / Path(
+        recording_fx.default_cfg["Analysis"]["Model"]["model_path"]
+    )
+
+    recording = spc.SparrowRecording(
+        recording_fx.default_preprocessor,
+        recording_fx.default_model,
+        recording_fx.good_file,
+        date=date,
+        lat=p_cfg["latitude"],
+        lon=p_cfg["longitude"],
+        species_presence_threshold=p_cfg["threshold"],
+        species_predictor=spp.SpeciesPredictorBase(
+            species_predictor_model_path, use_cache=False, num_threads=3
+        ),
+    )
+
+    assert recording.species_predictor is not None
+    assert recording.species_predictor.name == "birdnet_default"
+    assert recording.species_predictor.name == "birdnet_default"
+    assert recording.species_predictor.name == "birdnet_default"
+
+    assert recording.species_predictor.num_threads == 3
+    assert recording.species_predictor.use_cache is False
+    assert recording.allowed_species == recording_fx.allowed_species_should
+
+    recording.analyze()
+
+    # need to do some post processing before comparison to make output formats compatible
+
+    df = (
+        pd.DataFrame(recording.detections)
+        .sort_values(by="confidence", ascending=False)
+        .reset_index(drop=True)
+    )
+
+    df.loc[:, "common_name"] = df.loc[:, "label"].apply(lambda x: x.split("_")[1])
+
+    assert_frame_equal(
+        df.loc[:, ["common_name", "confidence"]],
+        recording_fx.detections_with_restricted_list.loc[
+            :, ["common_name", "confidence"]
+        ],
+        check_dtype=False,
+        atol=1e-2,
     )

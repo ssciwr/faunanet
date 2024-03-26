@@ -1,4 +1,3 @@
-
 from iSparrow import utils
 from pathlib import Path
 import yaml
@@ -24,16 +23,20 @@ class ModelFixture:
         self.sparrow_folder = Path(cfg["home"]).expanduser()
         self.models_folder = self.sparrow_folder / "models"
 
-        with open(self.testpath / "cfg_custom.yml", "r") as file:
+        with open(self.testpath / Path("test_configs") / "cfg_custom.yml", "r") as file:
             self.custom_cfg = yaml.safe_load(file)
 
-        with open(self.testpath / "cfg_default.yml", "r") as file:
+        with open(
+            self.testpath / Path("test_configs") / "cfg_default.yml", "r"
+        ) as file:
             self.default_cfg = yaml.safe_load(file)
 
-        with open(self.testpath / "cfg_wrong_model.yml", "r") as file:
+        with open(
+            self.testpath / Path("test_configs") / "cfg_wrong_model.yml", "r"
+        ) as file:
             self.cfg_wrong_model = yaml.safe_load(file)
 
-        with open(self.testpath / "cfg_google.yml", "r") as file:
+        with open(self.testpath / Path("test_configs") / "cfg_google.yml", "r") as file:
             self.google_cfg = yaml.safe_load(file)
 
         self.default_module = utils.load_module(
@@ -99,13 +102,19 @@ class ModelFixture:
 
         # read data made with birdnet-Analysis for cross checking
         self.default_analysis_results = (
-            pd.read_csv(self.testpath / Path("default_results.csv"))
+            pd.read_csv(
+                self.testpath
+                / Path("stored_test_results")
+                / Path("default_results.csv")
+            )
             .loc[:, ["scientific_name", "confidence"]]
             .sort_values(by="confidence", ascending=False)
         )
 
         self.custom_analysis_results = (
-            pd.read_csv(self.testpath / Path("custom_results.csv"))
+            pd.read_csv(
+                self.testpath / Path("stored_test_results") / Path("custom_results.csv")
+            )
             .loc[:, ["scientific_name", "confidence"]]
             .sort_values(by="confidence", ascending=False)
         )
@@ -113,7 +122,9 @@ class ModelFixture:
         self.google_result = (
             (
                 pd.read_csv(
-                    self.testpath / Path("google_results_minconf025.csv")
+                    self.testpath
+                    / Path("stored_test_results")
+                    / Path("google_results_minconf025.csv")
                 ).sort_values(by="confidence", ascending=False)
             )
             .reset_index(drop=False)

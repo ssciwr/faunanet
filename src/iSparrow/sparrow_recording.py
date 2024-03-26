@@ -2,11 +2,13 @@ import os
 import numpy as np
 from pathlib import Path
 import datetime
-from birdnetlib.main import RecordingBase
-from .preprocessor_base import PreprocessorBase
-from .sparrow_model_base import ModelBase
-from . import utils
 import warnings
+
+from birdnetlib.main import RecordingBase
+from iSparrow.preprocessor_base import PreprocessorBase
+from iSparrow.sparrow_model_base import ModelBase
+import iSparrow.utils as utils
+from iSparrow.species_predictor import SpeciesPredictorBase
 
 
 class SparrowRecording(RecordingBase):
@@ -19,18 +21,28 @@ class SparrowRecording(RecordingBase):
         RecordingBase (birdnetlib.RecordingBase): See documentation of the birdnetlib.RecordingBase class
     """
 
+    def _check_model_system_viability(self, names_of_objects: list):
+
+        # README: 'week' argument is not used because it doubles with 'date', and daily timestamps are more useful for data collection in general
+        if all(name == names_of_objects[0] for name in names_of_objects) is False:
+
+            raise ValueError(
+                "Found different 'name' attributes for model, preprocessor and species predictor. Make sure the supplied model, preprocessor and species predictor are compatible to each other (species_predictor may be 'None' if not used)."
+            )
+
     def __init__(
         self,
         preprocessor: PreprocessorBase,
         model: ModelBase,
         path: str,
-        week_48: int = -1,
         date: datetime = None,
         lat: float = None,
         lon: float = None,
-        return_all_detections: bool = False,
+        species_presence_threshold: float = 0.03,
         min_conf: float = 0.25,
+        species_predictor: SpeciesPredictorBase = None,
     ):
+        # README: The arguments lon, lat, species_presence_threshold and week_48, date should be moved out of the __init__ at some point, at some point perhaps?
         """
         Create a new SparrowRecording.
 
@@ -38,30 +50,65 @@ class SparrowRecording(RecordingBase):
             analyzer (Analyzer): Analyzer object to use. Contains model to use for analysis as well as result post processing.
             preprocessor (PreprocessorBase): Preprocessor object to use. Must adhere to the interface defined in iSparrow.preprocessor_base.
             path (str): Path to the audio file to be analyzed
-            week_48 (int, optional): Week in the calendar. Defaults to -1.
-            date (datetime, optional): Date of recording. Alternative to 'week'. Defaults to None.
+            date (datetime, optional): Date of recording. Alternative to 'week'. Defaults to None. Only applied if `model` is the birdnet default model.
             sensitivity (float, optional): Detection sensitivity. Defaults to 1.0.
-            lat (float, optional): Latitude. If latitude and longitude are given, the species list is predicted first.  Defaults to None.
-            lon (float, optional): Longitude. If latitude and longitude are given, the species list is predicted first.  Defaults to None.
+            lat (float, optional): Latitude. If latitude and longitude are given, the species list is predicted first.  Defaults to None. Only applied if `model` is the birdnet default model.
+            lon (float, optional): Longitude. If latitude and longitude are given, the species list is predicted first.  Defaults to None. Only applied if `model` is the birdnet default model.
+            species_presence_threshold (float, optional): The threshold for the species predictor. A species predicted to be present above that threshold is added to the list of allowed species, below it is excluded. Restricted to [0,1]
             min_conf (float, optional): Minimal confidence to use to consider a detection valid. Defaults to 0.1.
-            return_all_detections (bool, optional): Ignore confidence and return all detections we got. Defaults to False.
+            species_predictor: An instance of a class derived from `SpeciesPredictorBase`. Only applicable if `model` is the birdnet default model.
         """
         self.processor = preprocessor
+        self.analyzer = model
         self.path = path
         p = Path(self.path)
         self.filestem = p.stem
+        self.species_predictor = None
+        self.allowed_species = []
 
-        # README: can we get rid of the Recording thing completely at some point
+        # make sure that all the system components are compatible. Based on name tags. Still a bit susceptible. Fix?
+
+        self._check_model_system_viability(
+            [
+                model.name,
+                preprocessor.name,
+                model.name if species_predictor is None else species_predictor.name,
+            ]
+        )
+
+        species_predictor_args = [lat, lon, species_predictor, date]
+
+        # check that necessary info is present for species predictor: nothing necessary is None and a date variable is given
+        if all(var is not None for var in species_predictor_args):
+
+            self.species_predictor = species_predictor
+
+            self.allowed_species = self.species_predictor.predict(
+                latitude=lat,
+                longitude=lon,
+                date=date,
+                threshold=species_presence_threshold,
+            )
+
+        # when any of the species predictor stuff is None and something else is not,
+        # we have an incompatible combination.
+        if any(var is None for var in species_predictor_args) and any(
+            var is not None for var in species_predictor_args
+        ):
+            raise ValueError(
+                "A full set of (lat, lon, date/week_48) must be given to use the species presence predictor and the passed species predictor must not be 'None'."
+            )
+
+        # README: can we get rid of the birdnetlib-Recording thing completely at some point?
+
+        # we ignore the underlying species predictor stuff that the birdnetlib base class does
+        # by not passing it the respective arguments.
         super().__init__(
             model,
-            week_48=week_48,
-            date=date,
             sensitivity=1.0,
-            lat=lat,
-            lon=lon,
             min_conf=min_conf,
             overlap=0.0,
-            return_all_detections=return_all_detections,
+            return_all_detections=False,  # not used in Sparrow. Set min_conf to 0 for the same effect
         )
 
     @property
@@ -71,6 +118,66 @@ class SparrowRecording(RecordingBase):
     @property
     def chunks(self):
         return self.processor.chunks
+
+    def set_analyzer(
+        self,
+        model: ModelBase,
+        preprocessor: PreprocessorBase,
+        species_predictor: SpeciesPredictorBase = None,
+    ):
+        """
+        set_analyzer Replace the internally used model and preprocessor.
+
+        Args:
+            model (ModelBase): The classifier model to use
+            preprocessor (PreprocessorBase): The preprocessor to use
+        """
+
+        self._check_model_system_viability(
+            [
+                model.name,
+                preprocessor.name,
+                model.name if species_predictor is None else species_predictor.name,
+            ]
+        )
+
+        self.analyzer = model
+
+        self.processor = preprocessor
+
+        if species_predictor is not None:
+            self.species_predictor = species_predictor
+
+        self.analyzed = False
+
+    def use_model(self, model_name: str):
+        raise NotImplementedError("Not yet implemented")
+
+    def restrict_species_list(
+        self,
+        lat: float,
+        lon: float,
+        date: datetime = None,
+        species_presence_threshold: float = 0.03,
+    ):
+        # this abstracts away the underlying species predictor model and is useful when reusing the recording or
+        # into whatever class it may morph in the future.
+        """
+        restrict_species_list Restrict the list of possibly present species based on coordinates and time.
+
+        Args:
+            lat (float): Latitude coordinate to predict species presence for.
+            lon (float): Longitude coordinate to predict species presence for.
+            date (datetime, optional): Date to predict species presence for. Only relevant when `week` is not -1. Defaults to None.
+            week (int, optional): Week (4 weeks per month) to predict species presence for. Defaults to -1. Only relevant when `date` is `None.
+            species_presence_threshold (float, optional): Threshold above which a species is considered to be persent. Restricted to [0, 1]. Defaults to 0.03.
+        """
+        self.allowed_species = self.species_predictor.predict(
+            latitude=lat,
+            longitude=lon,
+            date=date,
+            threshold=species_presence_threshold,
+        )
 
     def process_audio_data(self, data: np.ndarray) -> list:
         """Process raw audio data via processor.process_audio_data.
@@ -131,22 +238,13 @@ class SparrowRecording(RecordingBase):
             "date": None,
             "lat": None,
             "lon": None,
-            "return_all_detections": False,  # ignored here
+            "return_all_detections": False,
             "min_conf": 0.25,
         }
 
         del cfg["Analysis"]["Model"]
 
         return cls(preprocessor, model, **(defaults | cfg["Analysis"]))
-
-    def set_analyzer(self, model, preprocessor):
-
-        self.analyzer = model
-        self.processor = preprocessor
-        self.analyzed = False
-
-    def use_model(self, model_name: str):
-        raise NotImplementedError("Not yet implemented")
 
     @property
     def detections(self):
@@ -168,19 +266,23 @@ class SparrowRecording(RecordingBase):
 
         qualified_detections = []
 
-        # allow_list = self.analyzer.custom_species_list
+        allow_list = set(
+            self.allowed_species
+        )  # convert to set for lookup speed. Useful? (maybe for bigger lists...)
+
         for (start, end), labeled_predictions in self.analyzer.results.items():
 
-            # README: this needs to include allowed species later
             for label, confidence in labeled_predictions:
                 if confidence > self.minimum_confidence:
-                    qualified_detections.append(
-                        {
-                            "start": start,
-                            "end": end,
-                            "label": label,
-                            "confidence": confidence,
-                        }
-                    )
+
+                    if label in allow_list or len(allow_list) == 0:
+                        qualified_detections.append(
+                            {
+                                "start": start,
+                                "end": end,
+                                "label": label,
+                                "confidence": confidence,
+                            }
+                        )
 
         return qualified_detections

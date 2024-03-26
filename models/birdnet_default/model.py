@@ -36,21 +36,12 @@ class Model(ModelBase):
 
         model_path = str(Path(model_path) / "model.tflite")
 
-        if species_list_file is not None:
-
-            species_list_path = str(Path(model_path) / species_list_file)
-
-        else:
-
-            species_list_path = None
-
         # base class loads the model and labels
         super().__init__(
-            "birdnet_default_model",
+            "birdnet_default",
             model_path,
             labels_path,
             num_threads=num_threads,
-            species_list_path=species_list_path,
             sensitivity=sigmoid_sensitivity,
         )
 
