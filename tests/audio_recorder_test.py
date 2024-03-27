@@ -3,6 +3,7 @@ from pathlib import Path
 import pyaudio
 from datetime import datetime
 import librosa
+import pytest
 
 
 def test_audio_recorder_creation(folders, audio_recorder_fx):
@@ -23,8 +24,7 @@ def test_audio_recorder_creation(folders, audio_recorder_fx):
     assert recorder.mode == "record"
 
 
-def test_audio_recorder_recorder_functionality(folders, audio_recorder_fx):
-    HOME, DATA, MODELS, OUTPUT, EXAMPLES = folders
+def test_audio_functionality_record_mode(audio_recorder_fx):
 
     _, cfg = audio_recorder_fx
 
@@ -53,6 +53,8 @@ def test_audio_recorder_recorder_functionality(folders, audio_recorder_fx):
 
     recorder.start(stop_condition=Condition())
 
+    assert recorder.stream is not None
+
     assert len(list(Path(recorder.output).iterdir())) == 2
 
     current = datetime.now().strftime("%y%m%d")
@@ -80,3 +82,69 @@ def test_audio_recorder_recorder_functionality(folders, audio_recorder_fx):
         assert len(data) == 48000 * 5
 
         assert duration == 5
+
+    recorder.stop()
+
+    assert recorder.stream is None
+    assert recorder.p is None
+
+
+def test_audio_functionality_stream_mode(audio_recorder_fx):
+
+    _, cfg = audio_recorder_fx
+
+    cfg["Data"]["Recording"]["mode"] = "stream"
+
+    recorder = ard.Recorder.from_cfg(cfg["Data"]["Recording"])
+
+    recorder.start()
+
+    for i in range(0, 3, 1):
+        data = recorder.stream_audio()
+
+        # get back bytes array -> take into account size of individual samples
+        assert len(data) == int(
+            recorder.sample_rate
+            * recorder.length_in_s
+            * pyaudio.get_sample_size(recorder.num_format)
+        )
+
+
+def test_audio_recorder_exceptions(audio_recorder_fx):
+
+    _, cfg = audio_recorder_fx
+
+    # with 'record', output folder must be given
+    with pytest.raises(ValueError) as exc_info:
+        ard.Recorder(output_folder=None, mode="record")
+
+    print(str(exc_info))
+
+    assert (
+        str(exc_info.value)
+        == "Output folder for recording object cannot be None in 'record' mode"
+    )
+
+    # unknown mode of operation gives exception
+    with pytest.raises(ValueError) as exc_info:
+        ard.Recorder(
+            output_folder=Path.home() / "iSparrow_data",
+            mode="some_unknown_mode_with_typos_or_something",
+        )
+
+    assert str(exc_info.value) == "Unknown mode. Must be 'record', 'stream'"
+
+    # give some wrong number format to cause exception when recording
+    recorder = ard.Recorder(
+        output_folder=Path.home() / "iSparrow_data",
+        mode="record",
+    )
+
+    # .. artificially put in bad numerical encoding for samples
+
+    recorder.num_format = "something_horribly_wrong"
+
+    with pytest.raises(TypeError) as exc_info:
+        recorder.start()
+
+    assert str(exc_info.value) == "argument 3 must be int, not str"

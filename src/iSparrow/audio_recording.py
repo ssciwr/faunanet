@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-import subprocess
 from pathlib import Path
 import pyaudio
 import wave
@@ -23,6 +22,7 @@ class RecorderBase(ABC):
         self.file_type = file_type
         self.channels = channels
         self.num_format = num_format
+
         if mode not in ["record", "stream"]:
             raise ValueError("Unknown mode. Must be 'record', 'stream'")
 
@@ -58,10 +58,16 @@ class Recorder(RecorderBase):
         input_device_index: int = None,
     ):
 
+        self.p = pyaudio.PyAudio()
+
+        self.stream = None
+
         if mode == "record":
 
             if output_folder is None:
-                raise ValueError("Output folder for recording object cannot be None")
+                raise ValueError(
+                    "Output folder for recording object cannot be None in 'record' mode"
+                )
 
             self.filename_fromat = "%y%m%d_%H%M%S.wav"
 
@@ -76,9 +82,6 @@ class Recorder(RecorderBase):
             mode=mode,
             num_format=pyaudio.paInt16,
         )
-
-        self.p = pyaudio.PyAudio()
-        self.stream = None
 
     def start(self, stop_condition: callable = lambda x: False):
 
