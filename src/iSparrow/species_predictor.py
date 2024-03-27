@@ -4,7 +4,6 @@ import datetime
 from birdnetlib.species import SpeciesList
 from birdnetlib.utils import return_week_48_from_datetime
 from shutil import rmtree
-import warnings
 from . import utils
 
 # README: Would be more logically consistent to have this inherit from Sparrow's `ModelBase` class,
@@ -159,18 +158,18 @@ class SpeciesPredictorBase(SpeciesList):
         # when we want to use cached results, we first check if we computed a list for this location and date before
         cache_folder = Path(str(latitude) + "_" + str(longitude) + "_" + str(week))
 
-        if self.use_cache:
-
-            if (
+        if (
+            self.use_cache
+            and (
                 SpeciesPredictorBase.cache_dir / cache_folder / "species_list.txt"
-            ).exists():
-                self.read_from_file = True
+            ).exists()
+        ):
 
-                return self._read_labels_file(
-                    Path(SpeciesPredictorBase.cache_dir)
-                    / cache_folder
-                    / "species_list.txt"
-                )
+            self.read_from_file = True
+
+            return self._read_labels_file(
+                Path(SpeciesPredictorBase.cache_dir) / cache_folder / "species_list.txt"
+            )
 
         # provides raw species presence data in self.result
         self.predict_species_list(
