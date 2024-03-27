@@ -22,7 +22,6 @@ Data:
     sample_rate: 48000
     output_folder: ~/iSparrow_data
     length_s: 5 
-    file_type: "wav"
     channels: 1
     mode: "record"
     # input_device_index: 4 

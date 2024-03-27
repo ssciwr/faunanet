@@ -16,7 +16,7 @@ def test_audio_recorder_creation(folders, audio_recorder_fx):
     assert recorder.output == DATA
     assert recorder.length_in_s == 5
     assert recorder.sample_rate == 48000
-    assert recorder.file_type == "wav"
+    assert recorder.file_type == "wave"
     assert recorder.channels == 1
     assert recorder.num_format == pyaudio.paInt16
     assert recorder.stream is None

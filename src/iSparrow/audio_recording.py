@@ -6,16 +6,52 @@ import wave
 
 
 class RecorderBase(ABC):
+    """
+    RecorderBase Abstract base class for any audio recording functionality that shall be used with iSparrow.
+
+    Attributes
+    ----------
+    length_in_s (int) : Length of each recorded chunk in seconds.
+    sample_rate (int) : Sample rate of recording
+    output_folder (str) : The output folder to write data to
+    file_type (str) : File type to save recorded data as, e.g., wave, mp3, raw...
+    channels (int) : Number of recording channels. Depends on used hardware and desired quality.
+    num_format : The format for each recorded data point. Depends on the library used
+    mode (str) : The mode in which a recorder should operate. Either 'stream' (don't save recorded data to file) or 'record' (save recorded data to file).
+
+    Methods:
+    --------
+    start(stop_condition = lambda x: False): Make the caller start generate data. Runs until 'stop_condition(self)' returns True. Abstract method that needs to be implemented by derived class.
+    stream_audio(): Get a chunk of recorded data corresponding to 'length_in_s' seconds of recording. Abstract method that needs to be implemented by derived class.
+    stop(): Stop recorder. Abstract method that needs to be implemented by derived class.
+    """
+
     def __init__(
         self,
         output_folder: str = None,
         length_s: int = 15,
         sample_rate: int = 32000,
-        file_type: str = "wav",
+        file_type: str = "wave",
         channels: int = 1,
         mode: str = "record",
         num_format=None,
     ):
+        """
+        __init__ Create a new instance. This class should not be instantiated on its own, but only as part of a child class.
+
+
+        Args:
+            output_folder (str, optional): Output folder to write files to. Defaults to None.
+            length_s (int, optional): Lenght of each recorded chunk of data in seconds. Defaults to 15.
+            sample_rate (int, optional): Sample rate of recording. Defaults to 32000.
+            file_type (str, optional): File type to save files as. Defaults to "wav".
+            channels (int, optional): Number of used channels for recording. Defaults to 1.
+            mode (str, optional): Mode of operation. Can be 'record' or 'stream'. Defaults to "record".
+            num_format (optional): Numerical format for each sample that is recorded. Depends on the library used for implementing the recording process. Defaults to None.
+
+        Raises:
+            ValueError: _description_
+        """
         self.length_in_s = length_s
         self.sample_rate = sample_rate
         self.output_folder = output_folder
@@ -52,12 +88,24 @@ class Recorder(RecorderBase):
         output_folder: str = None,
         length_s: int = 15,
         sample_rate: int = 32000,
-        file_type: str = "wav",
         channels: int = 1,
         mode: str = "record",
         input_device_index: int = None,
     ):
+        """
+        __init__ Create a new instance.
 
+        Args:
+            output_folder (str, optional): Folder to write data files to in 'record' mode. Defaults to None.
+            length_s (int, optional): Length in seconds of each data chunk that is returned (mode = 'stream') or data file written (mode = 'record'). Defaults to 15.
+            sample_rate (int, optional): Sample rate used for recording. Defaults to 32000.
+            channels (int, optional): Number of channels used for recording. Possible number depends on recording hardware. Defaults to 1.
+            mode (str, optional): Operational mode. Can either be 'record' (write data to file) or 'stream' (don't write data to file and return recorded data upon request). Defaults to "record".
+            input_device_index (int, optional): Pyaudio device index that identifies the device to be used for recording. If 'None', default device is used.. Defaults to None.
+
+        Raises:
+            ValueError: _description_
+        """
         self.p = pyaudio.PyAudio()
 
         self.stream = None
@@ -77,14 +125,22 @@ class Recorder(RecorderBase):
             output_folder=output_folder,
             length_s=length_s,
             sample_rate=sample_rate,
-            file_type=file_type,
+            file_type="wave",
             channels=channels,
             mode=mode,
             num_format=pyaudio.paInt16,
         )
 
     def start(self, stop_condition: callable = lambda x: False):
+        """
+        start Start the pyaudio input stream such that data is gathered. If self.mode is 'record', write wave files of 'self.length_in_s' seconds length to disk into 'self.output_folder'.
 
+        Args:
+            stop_condition (_type_, optional): Only relevant for self.mode = 'record'. Callable that returns True when the recording process should be stopped. Is checked each time a file is written, i.e., every 'self.length_in_s' seconds of recording. Defaults to lambda x:False.
+
+        Raises:
+            e: Generic exception if an error occurs during recording data or writing to file.
+        """
         chunk_size = int(self.sample_rate / 100)
 
         try:
@@ -123,6 +179,10 @@ class Recorder(RecorderBase):
             raise e
 
     def stop(self):
+        """
+        stop Stop the recording process, close the input data stream and release all resources the instance holds via pyaudio.
+        """
+
         if self.stream is not None:
             self.stream.stop_stream()
             self.stream.close()
@@ -136,6 +196,12 @@ class Recorder(RecorderBase):
         self.stop()
 
     def stream_audio(self):
+        """
+        stream_audio Get a chunk of recorded data that corresponds to 'self.length_in_s' seconds of audio.
+
+        Returns:
+            Tuple[int, bytes]: Tuple containing the number of bytes in the recorded chunk, and the recorded data as raw bytes buffer.
+        """
 
         chunk_size = int(self.sample_rate / 100)
 
@@ -150,6 +216,18 @@ class Recorder(RecorderBase):
 
     @classmethod
     def from_cfg(cls, cfg: dict):
+        """
+        from_cfg Creates a new `Recorder` instance. All arguments not given in the `cfg` argument are filled with default values of the constructor.
+
+        Args:
+            cfg (dict): Dictionary, obtained from reading a yaml config file, that contains the keyword arguments to construct the `Recorder` from.
+
+        Raises:
+            ValueError: When the supplied dictionary does not have an 'output_folder' node.
+
+        Returns:
+           Recorder : A new instance of the `Recorder` class, built with the supplied arguments.
+        """
 
         if "output_folder" not in cfg:
             raise ValueError("Output folder must be given in config node for recorder.")
@@ -158,17 +236,4 @@ class Recorder(RecorderBase):
 
         cfg["output_folder"] = folder
 
-        default = {
-            "length_s": 15,
-            "sample_rate": 32000,
-            "file_type": "wav",
-            "channels": 1,
-            "mode": "record",
-            "input_device_index": None,
-        }
-
-        kwargs = default | cfg
-
-        print(kwargs)
-
-        return cls(**kwargs)
+        return cls(**cfg)
