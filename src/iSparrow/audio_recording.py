@@ -105,7 +105,7 @@ class Recorder(RecorderBase):
 
                     filename = datetime.now().strftime(self.filename_fromat)
 
-                    frames = self.stream_audio()
+                    length, frames = self.stream_audio()
 
                     with wave.open(
                         str(Path(self.output_folder) / filename), "wb"
@@ -146,7 +146,7 @@ class Recorder(RecorderBase):
             ]
         )
 
-        return frames
+        return len(frames), frames
 
     @classmethod
     def from_cfg(cls, cfg: dict):

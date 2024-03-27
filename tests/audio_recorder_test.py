@@ -100,10 +100,10 @@ def test_audio_functionality_stream_mode(audio_recorder_fx):
     recorder.start()
 
     for i in range(0, 3, 1):
-        data = recorder.stream_audio()
+        length, data = recorder.stream_audio()
 
         # get back bytes array -> take into account size of individual samples
-        assert len(data) == int(
+        assert length == int(
             recorder.sample_rate
             * recorder.length_in_s
             * pyaudio.get_sample_size(recorder.num_format)
