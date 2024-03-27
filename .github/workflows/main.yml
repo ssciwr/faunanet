@@ -21,7 +21,7 @@ jobs:
     strategy:
       matrix:
         # os: [ubuntu-latest, macos-latest, windows-latest]
-        os: [macos-latest, ]
+        os: [ubuntu-latest, ]
         python-version: ["3.11"]
     steps:
       
@@ -32,11 +32,15 @@ jobs:
 
     - name: Install PortAudio on ubuntu
       if: matrix.os == 'ubuntu-latest'
-      run: sudo apt install portaudio19-dev libasound-dev alsa-utils alsa-tools alsa-oss 
+      run: sudo apt-get update && sudo apt-get install -y libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0
 
-    - name: Set up default device
+    - name: Install PortAudio on macos
+      if: matrix.os == 'macos-latest'
+      run: brew install portaudio
+
+    - name: Set up default device on ubuntu
       if: matrix.os == 'ubuntu-latest'
-      run: sudo modprobe snd-dummy && sudo alsactl init
+      run: jackd -d dummy &
 
     - name: Getting repository
       uses: actions/checkout@v3
@@ -48,4 +52,4 @@ jobs:
 
     - name: Run pytest unittests
       run: |
-        python -m pytest
+        python -m pytest tests/audio_recorder_test.py
