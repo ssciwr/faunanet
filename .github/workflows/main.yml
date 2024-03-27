@@ -30,7 +30,9 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install PortAudio on ubuntu
       if: matrix.os == 'ubuntu-latest'
-      run: sudo apt install portaudio19-dev libasound-dev
+      run: sudo apt install portaudio19-dev libasound-dev alsa-utils alsa-tools alsa-oss 
+    - name: Set up default device
+      run: sudo modprobe snd-dummy && sudo alsactl init
 
     - name: Getting repository
       uses: actions/checkout@v3
