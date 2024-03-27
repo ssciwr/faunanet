@@ -9,7 +9,7 @@ import wave
 class RecorderBase(ABC):
     def __init__(
         self,
-        data_sink: str = None,
+        output_folder: str = None,
         length_s: int = 15,
         sample_rate: int = 32000,
         file_type: str = "wav",
@@ -19,7 +19,7 @@ class RecorderBase(ABC):
     ):
         self.length_in_s = length_s
         self.sample_rate = sample_rate
-        self.data_sink = data_sink
+        self.output_folder = output_folder
         self.file_type = file_type
         self.channels = channels
         self.num_format = num_format
@@ -27,6 +27,10 @@ class RecorderBase(ABC):
             raise ValueError("Unknown mode. Must be 'record', 'stream'")
 
         self.mode = mode
+
+    @property
+    def output(self):
+        return str(Path(self.output_folder).absolute())
 
     @abstractmethod
     def start(self, stop_condition: callable = lambda x: False):
@@ -48,10 +52,9 @@ class Recorder(RecorderBase):
         output_folder: str = None,
         length_s: int = 15,
         sample_rate: int = 32000,
-        num_format: str = pyaudio.paInt16,
         file_type: str = "wav",
         channels: int = 1,
-        mode="record",
+        mode: str = "record",
         input_device_index: int = None,
     ):
 
@@ -65,13 +68,13 @@ class Recorder(RecorderBase):
         self.input_device_index = input_device_index
 
         super().__init__(
-            data_sink=output_folder,
+            output_folder=output_folder,
             length_s=length_s,
             sample_rate=sample_rate,
             file_type=file_type,
             channels=channels,
             mode=mode,
-            num_format=num_format,
+            num_format=pyaudio.paInt16,
         )
 
         self.p = pyaudio.PyAudio()
@@ -81,39 +84,50 @@ class Recorder(RecorderBase):
 
         chunk_size = int(self.sample_rate / 100)
 
-        self.stream = self.p.open(
-            format=self.num_format,
-            channels=self.channels,
-            rate=self.sample_rate,
-            input_device_index=self.input_device_index,
-            input=True,
-            start=True,
-            frames_per_buffer=chunk_size,
-        )
+        try:
+            self.stream = self.p.open(
+                format=self.num_format,
+                channels=self.channels,
+                rate=self.sample_rate,
+                input_device_index=self.input_device_index,
+                input=True,
+                start=True,
+                frames_per_buffer=chunk_size,
+            )
 
-        if self.mode == "record":
+            if self.mode == "record":
 
-            # while True:
-            while stop_condition(self) is False:
+                # while True:
+                while stop_condition(self) is False:
 
-                filename = datetime.now().strftime(self.filename_fromat)
+                    filename = datetime.now().strftime(self.filename_fromat)
 
-                frames = self.stream_audio()
+                    frames = self.stream_audio()
 
-                with wave.open(str(Path(self.data_sink) / filename), "wb") as wavfile:
+                    with wave.open(
+                        str(Path(self.output_folder) / filename), "wb"
+                    ) as wavfile:
 
-                    wavfile.setnchannels(self.channels)
+                        wavfile.setnchannels(self.channels)
 
-                    wavfile.setsampwidth(self.p.get_sample_size(self.num_format))
+                        wavfile.setsampwidth(self.p.get_sample_size(self.num_format))
 
-                    wavfile.setframerate(self.sample_rate)
+                        wavfile.setframerate(self.sample_rate)
 
-                    wavfile.writeframes(frames)
+                        wavfile.writeframes(frames)
+        except Exception as e:
+            self.stop()  # release resources that of portaudio, then reraise
+            raise e
 
     def stop(self):
-        self.stream.stop_stream()
-        self.stream.close()
-        self.p.terminate()
+        if self.stream is not None:
+            self.stream.stop_stream()
+            self.stream.close()
+            self.stream = None
+
+        if self.p is not None:
+            self.p.terminate()
+            self.p = None
 
     def __del__(self):
         self.stop()
@@ -130,3 +144,28 @@ class Recorder(RecorderBase):
         )
 
         return frames
+
+    @classmethod
+    def from_cfg(cls, cfg: dict):
+
+        if "output_folder" not in cfg:
+            raise ValueError("Output folder must be given in config node for recorder.")
+
+        folder = Path(cfg["output_folder"]).expanduser()
+
+        cfg["output_folder"] = folder
+
+        default = {
+            "length_s": 15,
+            "sample_rate": 32000,
+            "file_type": "wav",
+            "channels": 1,
+            "mode": "record",
+            "input_device_index": None,
+        }
+
+        kwargs = default | cfg
+
+        print(kwargs)
+
+        return cls(**kwargs)
