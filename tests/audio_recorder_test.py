@@ -107,7 +107,7 @@ def test_audio_functionality_record_mode(audio_recorder_fx):
 
     assert len(recorder.p._streams) == 0
 
-    assert recorder.stream._is_running is False
+    assert recorder.stream is None
 
 
 def test_audio_functionality_stream_mode(audio_recorder_fx):

@@ -107,6 +107,9 @@ class Recorder(RecorderBase):
         Raises:
             ValueError: _description_
         """
+        self.stream = None
+        self.p = None
+        self.input_device_index = None
 
         if mode == "record":
 
@@ -153,6 +156,10 @@ class Recorder(RecorderBase):
         Raises:
             e: Generic exception if an error occurs during recording data or writing to file.
         """
+        if self.stream is None:
+            raise RuntimeError(
+                "No stream bound to this object, has it been closed before? "
+            )
 
         try:
             self.stream.start_stream()
@@ -185,8 +192,11 @@ class Recorder(RecorderBase):
         """
         stop Stop the recording process, but keep resources around to restart later if desired.
         """
-
-        if self.stream.is_stopped() is False:
+        if self.stream is None:
+            raise RuntimeError(
+                "No stream bound to this object, has it been closed before? "
+            )
+        if self.stream.is_active():
             self.stream.stop_stream()
 
     @property
@@ -197,6 +207,11 @@ class Recorder(RecorderBase):
         Returns:
             Bool: Flag that tells if the recording is running or not
         """
+        if self.stream is None:
+            raise RuntimeError(
+                "No stream bound to this object, has it been closed before? "
+            )
+
         return self.stream.is_active()
 
     def _close(self):
@@ -204,11 +219,13 @@ class Recorder(RecorderBase):
         close Close stream, stop recording and release resources. Stream cannot be restarted after this.
             This function exits mostly for debugging reasons, and there should be no need to call it explicitly in normal use cases.
         """
-        self.stop()
+        if self.stream is not None and self.stream.is_active():
+            self.stop()
+            self.stream.close()
+            self.stream = None
 
-        self.stream.close()
-
-        self.p.terminate()
+        if self.p is not None:
+            self.p.terminate()
 
     def __del__(self):
         self._close()
@@ -220,6 +237,11 @@ class Recorder(RecorderBase):
         Returns:
             Tuple[int, bytes]: Tuple containing the number of bytes in the recorded chunk, and the recorded data as raw bytes buffer.
         """
+        if self.stream is None:
+            raise RuntimeError(
+                "No stream bound to this object, has it been closed before? "
+            )
+
         if self.stream.is_stopped():
             raise RuntimeError("The input stream is stopped or closed")
 
