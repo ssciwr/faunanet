@@ -9,21 +9,12 @@ class RecorderBase(ABC):
     """
     RecorderBase Abstract base class for any audio recording functionality that shall be used with iSparrow.
 
-    Attributes
-    ----------
-    length_in_s (int) : Length of each recorded chunk in seconds.
-    sample_rate (int) : Sample rate of recording
-    output_folder (str) : The output folder to write data to
-    file_type (str) : File type to save recorded data as, e.g., wave, mp3, raw...
-    channels (int) : Number of recording channels. Depends on used hardware and desired quality.
-    num_format : The format for each recorded data point. Depends on the library used
-    mode (str) : The mode in which a recorder should operate. Either 'stream' (don't save recorded data to file) or 'record' (save recorded data to file).
 
     Methods:
     --------
-    start(stop_condition = lambda x: False): Make the caller start generate data. Runs until 'stop_condition(self)' returns True. Abstract method that needs to be implemented by derived class.
-    stream_audio(): Get a chunk of recorded data corresponding to 'length_in_s' seconds of recording. Abstract method that needs to be implemented by derived class.
-    stop(): Stop recorder. Abstract method that needs to be implemented by derived class.
+    start(stop_condition = lambda x: False):  Abstract method that needs to be implemented by derived class. Should make the caller start generate data. Runs until 'stop_condition(self)' returns True.
+    stream_audio(): Abstract method that needs to be implemented by derived class. Should get a chunk of recorded data corresponding to 'length_in_s' seconds of recording.
+    stop(): Abstract method that needs to be implemented by derived class. Should stop the recorder's data collecting process and release resources.
     """
 
     def __init__(
@@ -82,6 +73,16 @@ class RecorderBase(ABC):
 
 
 class Recorder(RecorderBase):
+    """
+    Recorder Implementation of `RecorderBase` that uses `PyAudio` to record data.
+
+    Methods:
+    --------
+    start(stop_condition = lambda x: False): Make the caller start generate data. Runs until 'stop_condition(self)' returns True.
+    stream_audio(): Get a chunk of recorded data corresponding to 'length_in_s' seconds of recording.
+    stop(): Stop recorder and release held resources of PyAudio.
+
+    """
 
     def __init__(
         self,
@@ -101,14 +102,11 @@ class Recorder(RecorderBase):
             sample_rate (int, optional): Sample rate used for recording. Defaults to 32000.
             channels (int, optional): Number of channels used for recording. Possible number depends on recording hardware. Defaults to 1.
             mode (str, optional): Operational mode. Can either be 'record' (write data to file) or 'stream' (don't write data to file and return recorded data upon request). Defaults to "record".
-            input_device_index (int, optional): Pyaudio device index that identifies the device to be used for recording. If 'None', default device is used.. Defaults to None.
+            input_device_index (int, optional): Pyaudio device index that identifies the device to be used for recording. If 'None', default device is used. Defaults to None.
 
         Raises:
             ValueError: _description_
         """
-        self.p = pyaudio.PyAudio()
-
-        self.stream = None
 
         if mode == "record":
 
@@ -117,9 +115,7 @@ class Recorder(RecorderBase):
                     "Output folder for recording object cannot be None in 'record' mode"
                 )
 
-            self.filename_fromat = "%y%m%d_%H%M%S.wav"
-
-        self.input_device_index = input_device_index
+            self.filename_format = "%y%m%d_%H%M%S.wav"
 
         super().__init__(
             output_folder=output_folder,
@@ -129,6 +125,22 @@ class Recorder(RecorderBase):
             channels=channels,
             mode=mode,
             num_format=pyaudio.paInt16,
+        )
+
+        self.p = pyaudio.PyAudio()
+
+        self.chunk_size = int(self.sample_rate / 100)
+
+        self.input_device_index = input_device_index
+
+        self.stream = self.p.open(
+            format=pyaudio.paInt16,
+            channels=channels,
+            rate=sample_rate,
+            input_device_index=input_device_index,
+            input=True,
+            start=False,
+            frames_per_buffer=int(self.sample_rate / 100),
         )
 
     def start(self, stop_condition: callable = lambda x: False):
@@ -141,25 +153,16 @@ class Recorder(RecorderBase):
         Raises:
             e: Generic exception if an error occurs during recording data or writing to file.
         """
-        chunk_size = int(self.sample_rate / 100)
 
         try:
-            self.stream = self.p.open(
-                format=self.num_format,
-                channels=self.channels,
-                rate=self.sample_rate,
-                input_device_index=self.input_device_index,
-                input=True,
-                start=True,
-                frames_per_buffer=chunk_size,
-            )
+            self.stream.start_stream()
 
             if self.mode == "record":
 
                 # while True:
-                while stop_condition(self) is False:
+                while stop_condition(self) is False and self.stream.is_active():
 
-                    filename = datetime.now().strftime(self.filename_fromat)
+                    filename = datetime.now().strftime(self.filename_format)
 
                     length, frames = self.stream_audio()
 
@@ -175,25 +178,40 @@ class Recorder(RecorderBase):
 
                         wavfile.writeframes(frames)
         except Exception as e:
-            self.stop()  # release resources that of portaudio, then reraise
+            self._close()  # release resources of portaudio, then reraise
             raise e
 
     def stop(self):
         """
-        stop Stop the recording process, close the input data stream and release all resources the instance holds via pyaudio.
+        stop Stop the recording process, but keep resources around to restart later if desired.
         """
 
-        if self.stream is not None:
+        if self.stream.is_stopped() is False:
             self.stream.stop_stream()
-            self.stream.close()
-            self.stream = None
 
-        if self.p is not None:
-            self.p.terminate()
-            self.p = None
+    @property
+    def is_running(self):
+        """
+        is_running Checks if the recording is running or not.
+
+        Returns:
+            Bool: Flag that tells if the recording is running or not
+        """
+        return self.stream.is_active()
+
+    def _close(self):
+        """
+        close Close stream, stop recording and release resources. Stream cannot be restarted after this.
+            This function exits mostly for debugging reasons, and there should be no need to call it explicitly in normal use cases.
+        """
+        self.stop()
+
+        self.stream.close()
+
+        self.p.terminate()
 
     def __del__(self):
-        self.stop()
+        self._close()
 
     def stream_audio(self):
         """
@@ -202,6 +220,8 @@ class Recorder(RecorderBase):
         Returns:
             Tuple[int, bytes]: Tuple containing the number of bytes in the recorded chunk, and the recorded data as raw bytes buffer.
         """
+        if self.stream.is_stopped():
+            raise RuntimeError("The input stream is stopped or closed")
 
         chunk_size = int(self.sample_rate / 100)
 

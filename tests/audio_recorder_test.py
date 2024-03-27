@@ -14,12 +14,13 @@ def test_audio_recorder_creation(folders, audio_recorder_fx):
     recorder = ard.Recorder.from_cfg(cfg["Data"]["Recording"])
 
     assert recorder.output == DATA
-    assert recorder.length_in_s == 5
+    assert recorder.length_in_s == 3
     assert recorder.sample_rate == 48000
     assert recorder.file_type == "wave"
     assert recorder.channels == 1
     assert recorder.num_format == pyaudio.paInt16
-    assert recorder.stream is None
+    assert recorder.stream is not None
+    assert recorder.stream.is_active() is False
     assert recorder.p is not None
     assert recorder.mode == "record"
 
@@ -34,8 +35,9 @@ def test_audio_functionality_record_mode(audio_recorder_fx):
     for file in Path(recorder.output).iterdir():
         file.unlink()
 
-    assert recorder.stream is None
+    assert recorder.stream is not None
     assert recorder.p is not None
+    assert recorder.stream.is_active() is False
 
     # support for stop condition is included in recorder
     class Condition:
@@ -55,11 +57,15 @@ def test_audio_functionality_record_mode(audio_recorder_fx):
 
     assert recorder.stream is not None
 
+    assert recorder.stream.is_active() is True
+
     assert len(list(Path(recorder.output).iterdir())) == 2
 
     current = datetime.now().strftime("%y%m%d")
 
     files = list(Path(recorder.output).iterdir())
+
+    assert len(files) == 2
 
     for audiofile in files:
         yearmonthday = str(audiofile.name).split("_")[0]
@@ -67,8 +73,7 @@ def test_audio_functionality_record_mode(audio_recorder_fx):
         assert yearmonthday == current
         assert audiofile.suffix == ".wav"
 
-        # read in file to test length, samplerate, num_samples
-
+    # read in file to test length, samplerate, num_samples
     with files[0] as audiofile:
         data, rate = librosa.load(
             Path(recorder.output) / audiofile, sr=48000, res_type="kaiser_fast"
@@ -78,15 +83,31 @@ def test_audio_functionality_record_mode(audio_recorder_fx):
 
         assert rate == 48000
 
-        # length must be sample rate (48000) times length in seconds (5)
-        assert len(data) == 48000 * 5
+        # length must be sample rate (48000) times length in seconds (3)
+        assert len(data) == 48000 * 3
 
-        assert duration == 5
+        assert duration == 3
 
+    # try stop, restart, close functions
     recorder.stop()
 
-    assert recorder.stream is None
-    assert recorder.p is None
+    # use some internal variables to get handle on state
+    assert recorder.is_running is False
+
+    # start again
+    recorder.start(stop_condition=Condition())
+
+    assert recorder.is_running is True
+
+    files = list(Path(recorder.output).iterdir())
+
+    assert len(files) == 4
+
+    recorder._close()
+
+    assert len(recorder.p._streams) == 0
+
+    assert recorder.stream._is_running is False
 
 
 def test_audio_functionality_stream_mode(audio_recorder_fx):
@@ -118,8 +139,6 @@ def test_audio_recorder_exceptions(audio_recorder_fx):
     with pytest.raises(ValueError) as exc_info:
         ard.Recorder(output_folder=None, mode="record")
 
-    print(str(exc_info))
-
     assert (
         str(exc_info.value)
         == "Output folder for recording object cannot be None in 'record' mode"
@@ -134,17 +153,11 @@ def test_audio_recorder_exceptions(audio_recorder_fx):
 
     assert str(exc_info.value) == "Unknown mode. Must be 'record', 'stream'"
 
-    # give some wrong number format to cause exception when recording
     recorder = ard.Recorder(
         output_folder=Path.home() / "iSparrow_data",
-        mode="record",
+        mode="stream",
     )
+    with pytest.raises(RuntimeError) as exc_info:
+        recorder.stream_audio()
 
-    # .. artificially put in bad numerical encoding for samples
-
-    recorder.num_format = "something_horribly_wrong"
-
-    with pytest.raises(TypeError) as exc_info:
-        recorder.start()
-
-    assert str(exc_info.value) == "argument 3 must be int, not str"
+    assert str(exc_info.value) == "The input stream is stopped or closed"
