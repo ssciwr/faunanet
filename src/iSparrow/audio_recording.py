@@ -158,7 +158,7 @@ class Recorder(RecorderBase):
         """
         if self.stream is None:
             raise RuntimeError(
-                "No stream bound to this object, has it been closed before? "
+                "No stream bound to this object when trying to start stream, has it been closed before? "
             )
 
         try:
@@ -171,7 +171,7 @@ class Recorder(RecorderBase):
 
                     filename = datetime.now().strftime(self.filename_format)
 
-                    length, frames = self.stream_audio()
+                    _, frames = self.stream_audio()
 
                     with wave.open(
                         str(Path(self.output_folder) / filename), "wb"
@@ -194,7 +194,7 @@ class Recorder(RecorderBase):
         """
         if self.stream is None:
             raise RuntimeError(
-                "No stream bound to this object, has it been closed before? "
+                "No stream bound to this object when trying to stop stream, has it been closed before? "
             )
         if self.stream.is_active():
             self.stream.stop_stream()
@@ -209,7 +209,7 @@ class Recorder(RecorderBase):
         """
         if self.stream is None:
             raise RuntimeError(
-                "No stream bound to this object, has it been closed before? "
+                "No stream bound to this object when calling 'is_running', has it been closed before? "
             )
 
         return self.stream.is_active()
@@ -239,7 +239,7 @@ class Recorder(RecorderBase):
         """
         if self.stream is None:
             raise RuntimeError(
-                "No stream bound to this object, has it been closed before? "
+                "No stream bound to this object when calling 'stream_audio', has it been closed before? "
             )
 
         if self.stream.is_stopped():
@@ -250,7 +250,7 @@ class Recorder(RecorderBase):
         frames = b"".join(
             [
                 self.stream.read(chunk_size)
-                for i in range(0, int(self.sample_rate / chunk_size * self.length_in_s))
+                for _ in range(0, int(self.sample_rate / chunk_size * self.length_in_s))
             ]
         )
 

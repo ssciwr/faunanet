@@ -7,7 +7,7 @@ import pytest
 
 
 def test_audio_recorder_creation(folders, audio_recorder_fx):
-    HOME, DATA, MODELS, OUTPUT, EXAMPLES = folders
+    _, DATA, _, _, _ = folders
 
     _, cfg = audio_recorder_fx
 
@@ -120,8 +120,8 @@ def test_audio_functionality_stream_mode(audio_recorder_fx):
 
     recorder.start()
 
-    for i in range(0, 3, 1):
-        length, data = recorder.stream_audio()
+    for _ in range(0, 3, 1):
+        length, _ = recorder.stream_audio()
 
         # get back bytes array -> take into account size of individual samples
         assert length == int(
@@ -132,8 +132,6 @@ def test_audio_functionality_stream_mode(audio_recorder_fx):
 
 
 def test_audio_recorder_exceptions(audio_recorder_fx):
-
-    _, cfg = audio_recorder_fx
 
     # with 'record', output folder must be given
     with pytest.raises(ValueError) as exc_info:
