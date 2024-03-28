@@ -32,7 +32,7 @@ jobs:
 
     - name: Install PortAudio on ubuntu
       if: matrix.os == 'ubuntu-latest'
-      run: sudo apt-get update && sudo apt-get install -y portaudio19-dev jackd2
+      run: sudo apt-get update && sudo apt-get install -y portaudio19-dev jackd1
 
     - name: Getting repository
       uses: actions/checkout@v3
