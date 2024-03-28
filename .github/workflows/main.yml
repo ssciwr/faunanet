@@ -32,15 +32,7 @@ jobs:
 
     - name: Install PortAudio on ubuntu
       if: matrix.os == 'ubuntu-latest'
-      run: sudo apt-get update && sudo apt-get install -y libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0
-
-    - name: Install PortAudio on macos
-      if: matrix.os == 'macos-latest'
-      run: brew install portaudio
-
-    - name: Set up default device on ubuntu
-      if: matrix.os == 'ubuntu-latest'
-      run: jackd -d dummy &
+      run: sudo apt-get update && sudo apt-get install -y portaudio19-dev jackd2
 
     - name: Getting repository
       uses: actions/checkout@v3
