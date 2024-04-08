@@ -150,9 +150,6 @@ class SparrowRecording(RecordingBase):
 
         self.analyzed = False
 
-    def use_model(self, model_name: str):
-        raise NotImplementedError("Not yet implemented")
-
     def restrict_species_list(
         self,
         lat: float,
