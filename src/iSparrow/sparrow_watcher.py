@@ -61,8 +61,10 @@ class AnalysisEventHandler(FileSystemEventHandler):
 
 class Watcher:
     """
-    Class that watches a directory and applies a classifier model to each new file that is created in it. Supports model exchange on the fly.
-    To this end, it creates a daemon thread in which the classifier runs, such that commands can be processed in the main process.
+    Class that watches a directory and applies a classifier model to each new file that is created in it.
+    Supports model exchange on the fly.
+    To this end, it creates a daemon thread in which the classifier runs,
+    such that commands can be processed in the main process.
 
     Methods:
     --------
@@ -71,7 +73,9 @@ class Watcher:
     save_results: Save the results to the output directory as a csv file.
     stop: Pause the watcher thread.
     go_on: Continue the watcher thread
-    check_analysis: Go over the input and output directory and repeat analysis for all files for which there is not corresponding file in the output directory.
+    check_analysis: Go over the input and output directory and repeat analysis for
+                    all files for which there is not corresponding file in the output
+                    directory.
 
     """
 
@@ -105,6 +109,7 @@ class Watcher:
         recording_config: dict = {},
         species_predictor_config: dict = {},
         pattern: str = ".wav",
+        check_time: int = 1,
     ):
         """
         __init__ Create a new Watcher object.
@@ -120,6 +125,7 @@ class Watcher:
             model_config (dict, optional): Keyword arguments for the model instance. Defaults to {}.
             recording_config (dict, optional): Keyword arguments for the internal SparrowRecording. Defaults to {}.
             species_predictor_config (dict, optional): Keyword arguments for a species presence predictor model. Defaults to {}.
+            check_time(int, optional): Sleep time of the thread between checks for new files in seconds. Defaults to 1.
         Raises:
             ValueError: When the indir parameter is not an existing directory.
             ValueError: When the outdir parameter is not an existing directory.
@@ -159,6 +165,8 @@ class Watcher:
         self.model = None
 
         self.preprocessor = None
+
+        self.check_time = check_time
 
         # set up model for analysis
         self._load_analyzer_modules()
@@ -298,7 +306,7 @@ class Watcher:
 
             try:
                 while True:
-                    time.sleep(1)
+                    time.sleep(self.check_time)
             except KeyboardInterrupt:
                 observer.stop()
             except Exception as e:
