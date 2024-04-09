@@ -5,6 +5,7 @@ from . import set_up_sparrow_env
 from .fixtures.recording_fixtures import recording_fx
 from .fixtures.preprocessor_fixtures import preprocessor_fx, preprocessor_fx_google
 from .fixtures.model_fixtures import model_fx
+from .fixtures.watcher_fixtures import watch_fx
 
 
 # add a fixture with session scope that emulates the result of a later to-be-implemented-install-routine

@@ -59,7 +59,7 @@ class AnalysisEventHandler(FileSystemEventHandler):
             self.callback(event.src_path)
 
 
-class Watcher:
+class SparrowWatcher:
     """
     Class that watches a directory and applies a classifier model to each new file that is created in it.
     Supports model exchange on the fly.
@@ -68,7 +68,7 @@ class Watcher:
 
     Methods:
     --------
-    change_model: Exchange the classifier model with one that is present in the model dir.
+    change_analyzer: Exchange the classifier model with one that is present in the model dir.
     analyze: Analyze a file and write the results to the output directory.
     save_results: Save the results to the output directory as a csv file.
     stop: Pause the watcher thread.
@@ -139,10 +139,10 @@ class Watcher:
         if self.input.is_dir() is False:
             raise ValueError("Input directory does not exist")
 
-        if self.output.is_dir() is False:
-            raise ValueError("Output directory does not exist")
-
         self.outdir = outdir
+
+        if self.outdir.is_dir() is False:
+            raise ValueError("Output directory does not exist")
 
         self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
 
@@ -151,12 +151,14 @@ class Watcher:
         self.model_dir = Path(model_dir)
 
         if self.model_dir.is_dir() is False:
-            raise ValueError("Model dir does not exist")
+            raise ValueError("Model directory does not exist")
 
         self.model_name = model_name
 
         if (self.model_dir / model_name).is_dir() is False:
-            raise ValueError("Given model name does not exist in model dir.")
+            raise ValueError("Given model name does not exist in model directory")
+
+        self.pattern = pattern
 
         self.proprocessor_module = None
 
@@ -221,14 +223,14 @@ class Watcher:
 
         self.results = []
 
-    def change_model(
+    def change_analyzer(
         self,
         model_name: str,
         preprocessor_config: dict = {},
         model_config: dict = {},
     ):
         """
-        change_model Change the classifier model to the one given by 'model_name'.
+        change_analyzer Change the classifier model to the one given by 'model_name'.
 
         Args:
             model_name (str): Name of the model to use. Must be present in the model directory.
@@ -300,7 +302,9 @@ class Watcher:
         def task(e):
             e.wait()
             observer = Observer()
-            event_handler = AnalysisEventHandler(self.analyze, self.wait_event)
+            event_handler = AnalysisEventHandler(
+                self.analyze, self.wait_event, pattern=self.pattern
+            )
             observer.schedule(event_handler, self.input, recursive=True)
             observer.start()
 
@@ -318,7 +322,9 @@ class Watcher:
             observer.join()
 
         # create a background task such that the command is handed back to the parent process
-        self.wait_event = threading.Event()
+        self.wait_event = (
+            threading.Event()
+        )  # README: event currently only there for a multiprocessing template
         self.wait_event.set()
         self.watcher_thread = threading.Thread(target=task, args=(self.wait_event,))
         self.watcher_thread.daemon = True
@@ -346,6 +352,7 @@ class Watcher:
         Args:
             delete (bool, optional): Whether files should be deleted or not. Defaults to False.
         """
+        missings = []
         for filename in self.input.iterdir():
             if (
                 self.output / Path(f"results_{str(filename.stem)}.csv").is_file()
@@ -353,5 +360,11 @@ class Watcher:
             ):
                 self.analyze(filename)
 
+                missings.append(filename)
+
             if delete:
                 filename.unlink()
+
+            with open(self.output / "missing_files.txt", "w") as missingrecord:
+                for line in missings:
+                    missingrecord.write(f"{line}\n")
