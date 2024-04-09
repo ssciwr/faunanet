@@ -43,7 +43,7 @@ class Preprocessor(ppb.PreprocessorBase):
         Returns:
             list: chunked audio data
         """
-        print("process audio data custom")
+        print("process audio data default")
         seconds = self.sample_secs
         minlen = 1.5
 
@@ -68,7 +68,7 @@ class Preprocessor(ppb.PreprocessorBase):
             self.chunks.append(split)
 
         print(
-            "process audio data custom: complete, read ",
+            "process audio data default: complete, read ",
             str(len(self.chunks)),
             "chunks.",
         )
