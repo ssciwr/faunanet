@@ -335,21 +335,18 @@ class SparrowWatcher:
 
         self.recording.analyze()
 
-        print(self.recording.detections)
+        results = self.recording.detections
 
-        self.results = self.recording.detections
+        self.save_results(results, suffix=Path(filename).stem)
 
-        self.save_results(suffix=Path(filename).stem)
-
-    def save_results(self, suffix=""):
+    def save_results(self, results: list, suffix=""):
         """
         save_results Save results to csv file.
 
         Args:
             suffix (str, optional): _description_. Defaults to "".
         """
-        pd.DataFrame(self.results).to_csv(self.output / Path(f"results{suffix}.csv"))
-        self.results = []  # reset results
+        pd.DataFrame(results).to_csv(self.output / Path(f"results{suffix}.csv"))
 
     def start(self):
         """
