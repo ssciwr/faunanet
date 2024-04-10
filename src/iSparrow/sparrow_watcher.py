@@ -190,8 +190,6 @@ class SparrowWatcher:
         if self.model_dir.is_dir() is False:
             raise ValueError("Model directory does not exist")
 
-        self.model_name = model_name
-
         if (self.model_dir / model_name).is_dir() is False:
             raise ValueError("Given model name does not exist in model directory")
 
@@ -207,17 +205,22 @@ class SparrowWatcher:
 
         self.check_time = check_time
 
+        if delete_recordings not in ["never", "on_cleanup", "always"]:
+            raise ValueError(
+                "'delete_recordings' must be in 'never', 'on_cleanup', 'always'"
+            )
+
         self.delete_recordings = delete_recordings
 
         # set up model for analysis
-        self.preprocessor = utils.load_name_from_module(
+        preprocessor = utils.load_name_from_module(
             "pp",
-            self.model_dir / Path(self.model_name) / "preprocessor.py",
+            self.model_dir / Path(model_name) / "preprocessor.py",
             "Preprocessor",
         )(**preprocessor_config)
 
-        self.model = utils.load_name_from_module(
-            "mo", self.model_dir / Path(self.model_name) / "model.py", "Model"
+        model = utils.load_name_from_module(
+            "mo", self.model_dir / Path(model_name) / "model.py", "Model"
         )(model_path=self.model_dir / model_name, **model_config)
 
         # process config file
@@ -260,9 +263,7 @@ class SparrowWatcher:
 
         # create recording object
         # species predictor is applied here once and then used for all the analysis calls that may follow
-        self.recording = SparrowRecording(
-            self.preprocessor, self.model, "", **recording_config
-        )
+        self.recording = SparrowRecording(preprocessor, model, "", **recording_config)
 
         self.results = []
 
@@ -281,11 +282,27 @@ class SparrowWatcher:
         else:
             return False
 
+    @property
+    def model_name(self):
+        return self.recording.analyzer.name
+
+    @property
+    def preprocessor_name(self):
+        return self.recording.processor.name
+
+    @property
+    def species_presence_model_name(self):
+        if self.recording.species_predictor:
+            return self.recording.species_predictor.name
+        else:
+            return "no species predictor present"
+
     def change_analyzer(
         self,
         model_name: str,
         preprocessor_config: dict = {},
         model_config: dict = {},
+        recording_cfg: dict = {},
     ):
         """
         change_analyzer Change the classifier model to the one given by 'model_name'.
@@ -304,20 +321,23 @@ class SparrowWatcher:
         if (self.model_dir / model_name).is_dir() is False:
             raise ValueError("Given model name does not exist in model dir.")
 
-        self.model_name = model_name
-
         # set up model for analysis
-        self.preprocessor = utils.load_name_from_module(
+        preprocessor = utils.load_name_from_module(
             "pp",
-            self.model_dir / Path(self.model_name) / "preprocessor.py",
+            self.model_dir / Path(model_name) / "preprocessor.py",
             "Preprocessor",
         )(**preprocessor_config)
 
-        self.model = utils.load_name_from_module(
-            "mo", self.model_dir / Path(self.model_name) / "model.py", "Model"
+        model = utils.load_name_from_module(
+            "mo", self.model_dir / Path(model_name) / "model.py", "Model"
         )(model_path=self.model_dir / model_name, **model_config)
 
-        self.recording.set_analyzer(self.model, self.preprocessor)
+        # update the recording configuration and build a new recording
+        rec_cfg = self.config["Analysis"]["Recording"]
+
+        recording_config = recording_cfg | rec_cfg
+
+        self.recording = SparrowRecording(preprocessor, model, "", **recording_config)
 
         # make new output, update config file and write new config file
         self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))

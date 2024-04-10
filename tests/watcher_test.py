@@ -45,6 +45,9 @@ def test_watcher_construction(watch_fx):
     assert str(watcher.outdir) == str(Path.home() / "iSparrow_output")
     assert str(watcher.model_dir) == str(Path.home() / "iSparrow/models")
     assert str(watcher.model_name) == "birdnet_default"
+    assert watcher.output_directory == str(Path(watcher.outdir) / path_add)
+    assert watcher.input_directory == str(Path.home() / "iSparrow_data")
+    assert watcher.is_active is False
     assert watcher.output.is_dir()
     assert watcher.input.is_dir()
     assert watcher.outdir.is_dir()
@@ -53,11 +56,16 @@ def test_watcher_construction(watch_fx):
     assert watcher.config == config_should
     assert watcher.pattern == ".wav"
     assert watcher.check_time == 1
-    assert watcher.preprocessor.name == "birdnet_default"
-    assert watcher.model.name == "birdnet_default"
+    assert watcher.recording.processor.name == "birdnet_default"
+    assert watcher.recording.analyzer.name == "birdnet_default"
     assert watcher.recording.species_predictor.name == "birdnet_default"
     assert Path(watcher.output / "config.yml").is_file()
     assert len(watcher.recording.allowed_species) > 0
+    assert watcher.delete_recordings == "on_cleanup"
+    assert watcher.recording is not None
+    assert watcher.model_name == "birdnet_default"
+    assert watcher.preprocessor_name == "birdnet_default"
+    assert watcher.species_presence_model_name == "birdnet_default"
 
     # give wrong paths and check that appropriate exceptions are raised
     with pytest.raises(ValueError, match="Input directory does not exist"):
@@ -124,3 +132,33 @@ def test_watcher_construction(watch_fx):
             recording_config=deepcopy(wfx.recording_cfg),
             species_predictor_config=wfx.species_predictor_cfg,
         )
+
+    with pytest.raises(
+        ValueError,
+        match="'delete_recordings' must be in 'never', 'on_cleanup', 'always'",
+    ):
+        SparrowWatcher(
+            Path.home() / "iSparrow_data",
+            Path.home() / "iSparrow_output",
+            Path.home() / "iSparrow/models",
+            "birdnet_custom",
+            preprocessor_config=wfx.custom_preprocessor_cfg,
+            model_config=wfx.custom_model_cfg,
+            recording_config=deepcopy(wfx.recording_cfg),
+            species_predictor_config=wfx.species_predictor_cfg,
+            delete_recordings="some wrong value",
+        )
+
+    watcher = SparrowWatcher(
+        Path.home() / "iSparrow_data",
+        Path.home() / "iSparrow_output",
+        Path.home() / "iSparrow/models",
+        "birdnet_default",
+        preprocessor_config=wfx.preprocessor_cfg,
+        model_config=wfx.model_cfg,
+        recording_config=deepcopy(wfx.recording_cfg_unrestricted),
+        species_predictor_config=wfx.species_predictor_cfg,
+    )
+
+    assert watcher.species_presence_model_name == "no species predictor present"
+    assert watcher.recording.species_predictor is None

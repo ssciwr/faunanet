@@ -9,7 +9,7 @@ from datetime import datetime
 def mock_recorder(number: int = 5):
 
     i = 0
-    while i < 10:
+    while i < 20:
 
         time.sleep(4)  # add a dummy time to emulate recording time
 
@@ -20,9 +20,6 @@ def mock_recorder(number: int = 5):
         )
 
         i += 1
-
-    if i >= 10:
-        raise KeyboardInterrupt
 
 
 class WatchFixture:
@@ -73,6 +70,12 @@ class WatchFixture:
             "date": datetime(year=2022, month=5, day=10),
             "lat": 35.4244,
             "lon": -120.7463,
+            "species_presence_threshold": 0.03,
+            "min_conf": 0.25,
+            "species_predictor": None,
+        }
+
+        self.recording_cfg_unrestricted = {
             "species_presence_threshold": 0.03,
             "min_conf": 0.25,
             "species_predictor": None,
