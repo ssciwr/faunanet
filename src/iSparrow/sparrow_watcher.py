@@ -6,18 +6,19 @@ import iSparrow.utils as utils
 import pandas as pd
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-import time
+from time import sleep
 from datetime import datetime
 from copy import deepcopy
 import yaml
-import threading
+import multiprocessing
+import platform
 
 
 class AnalysisEventHandler(FileSystemEventHandler):
     """
     AnalysisEventHandler Custom event handler that calls a function whenever
     the a new file with a matching extension is created in the watched directory and that waits for a
-    threading.Event object to be true.
+    multiprocessing.Event object to be true.
 
     Base:
         FileSystemEventHandler: watchdog.FilesystemEventHandler
@@ -28,14 +29,17 @@ class AnalysisEventHandler(FileSystemEventHandler):
     """
 
     def __init__(
-        self, callback: callable, wait_event: threading.Event, pattern: str = ".wav"
+        self,
+        callback: callable,
+        wait_event: multiprocessing.Event,
+        pattern: str = ".wav",
     ):
         """
         __init__ Create a new AnalysisEventHandler object.
 
         Args:
             callback (callable): Callback functionw hen
-            wait_event (threading.Event): _description_
+            wait_event (multiprocessing.Event): _description_
             pattern (str, optional): _description_. Defaults to ".wav".
         """
         self.wait_event = wait_event
@@ -45,11 +49,11 @@ class AnalysisEventHandler(FileSystemEventHandler):
     def on_created(self, event):
         """
         on_created Call the callback function of the caller object whenever a new file is created
-                    that has the desired file extension. Waits on the stored threading.event and only
+                    that has the desired file extension. Waits on the stored multiprocessing.event and only
                     runs if its flag is true.
 
         Args:
-            event (threading.Event): _description_
+            event (multiprocessing.Event): _description_
         """
         if (
             Path(event.src_path).is_file()
@@ -57,6 +61,39 @@ class AnalysisEventHandler(FileSystemEventHandler):
         ):
             self.wait_event.wait()
             self.callback(event.src_path)
+
+
+def watchertask(watcher):
+    """
+    watchertask Function to run in the watcher process.
+    Checks if there is a new file every 'watcher.check_time' minutes and
+    analyze the file with a sound classifier model.
+
+    Args:
+        watcher (SparrowWatcher): Watcher class to run this task with
+
+    Raises:
+        RuntimeError: When something goes wrong inside the analyzer process.
+    """
+    observer = Observer()
+    event_handler = AnalysisEventHandler(
+        watcher.analyze, watcher.wait_event, pattern=watcher.pattern
+    )
+    observer.schedule(event_handler, watcher.input, recursive=True)
+    observer.start()
+
+    try:
+        while True:
+            sleep(watcher.check_time)
+    except KeyboardInterrupt:
+        observer.stop()
+    except Exception as e:
+        observer.stop()
+        raise RuntimeError(
+            "Something went wrong in the watcher/analysis process"
+        ) from e
+
+    observer.join()
 
 
 class SparrowWatcher:
@@ -83,13 +120,15 @@ class SparrowWatcher:
         """
         _load_analyzer_modules Load the modules that allow for model usage.
         """
-        self.preprocessor_module = utils.load_module(
+        preprocessor_module = utils.load_module(
             "pp", self.model_dir / Path(self.model_name) / "preprocessor.py"
         )
 
-        self.model_module = utils.load_module(
+        model_module = utils.load_module(
             "mo", self.model_dir / Path(self.model_name) / "model.py"
         )
+
+        return preprocessor_module, model_module
 
     def _write_config(self):
         """
@@ -160,10 +199,6 @@ class SparrowWatcher:
 
         self.pattern = pattern
 
-        self.proprocessor_module = None
-
-        self.model_module = None
-
         self.model = None
 
         self.preprocessor = None
@@ -171,11 +206,11 @@ class SparrowWatcher:
         self.check_time = check_time
 
         # set up model for analysis
-        self._load_analyzer_modules()
+        preprocessor_module, model_module = self._load_analyzer_modules()
 
-        self.preprocessor = self.preprocessor_module.Preprocessor(**preprocessor_config)
+        self.preprocessor = preprocessor_module.Preprocessor(**preprocessor_config)
 
-        self.model = self.model_module.Model(
+        self.model = model_module.Model(
             model_path=self.model_dir / model_name, **model_config
         )
 
@@ -240,20 +275,25 @@ class SparrowWatcher:
         Raises:
             ValueError: When the given model does not exist in the model directory.
         """
+
+        self.pause()
+
         if (self.model_dir / model_name).is_dir() is False:
             raise ValueError("Given model name does not exist in model dir.")
 
         self.model_name = model_name
 
-        self._load_analyzer_modules()
+        preprocessor_module, model_module = self._load_analyzer_modules()
 
-        self.preprocessor = self.preprocessor_module.Preprocessor(**preprocessor_config)
+        self.preprocessor = preprocessor_module.Preprocessor(**preprocessor_config)
 
-        self.model = self.model_module.Model(
+        self.model = model_module.Model(
             model_path=self.model_dir / model_name, **model_config
         )
 
         self.recording.set_analyzer(self.model, self.preprocessor)
+
+        self.go_on()
 
         # make new output, update config file and write new config file
         self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
@@ -296,52 +336,30 @@ class SparrowWatcher:
     ):
         """
         watch Watch the directory the caller has been created with and analyze all newly created files matching a certain file ending. \
-            Creates a new daemon thread in which the analysis process runs.
+            Creates a new daemon process in which the analysis function runs.
         """
 
-        def task(e):
-            e.wait()
-            observer = Observer()
-            event_handler = AnalysisEventHandler(
-                self.analyze, self.wait_event, pattern=self.pattern
-            )
-            observer.schedule(event_handler, self.input, recursive=True)
-            observer.start()
-
-            try:
-                while True:
-                    time.sleep(self.check_time)
-            except KeyboardInterrupt:
-                observer.stop()
-            except Exception as e:
-                observer.stop()
-                raise RuntimeError(
-                    "Something went wrong in the watcher/analysis thread"
-                ) from e
-
-            observer.join()
-
-        # create a background task such that the command is handed back to the parent process
+        # create a background watchertask such that the command is handed back to the parent process
         self.wait_event = (
-            threading.Event()
+            multiprocessing.Event()
         )  # README: event currently only there for a multiprocessing template
         self.wait_event.set()
-        self.watcher_thread = threading.Thread(target=task, args=(self.wait_event,))
-        self.watcher_thread.daemon = True
-        self.watcher_thread.start()
+        self.watcher_process = multiprocessing.Process(target=watchertask, args=(self,))
+        self.watcher_process.daemon = True
+        self.watcher_process.start()
 
     def pause(self):
         """
         stop Pause the watcher thread.
         """
-        if self.watcher_thread.is_alive():
+        if self.watcher_process.is_alive():
             self.wait_event.clear()
 
     def go_on(self):
         """
         go_on Continue the watcher thread.
         """
-        if self.watcher_thread.is_alive():
+        if self.watcher_process.is_alive():
             self.wait_event.set()
 
     def clean_up(self, delete: bool = False):
