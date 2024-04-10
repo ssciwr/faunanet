@@ -145,6 +145,7 @@ class SparrowWatcher:
         species_predictor_config: dict = {},
         pattern: str = ".wav",
         check_time: int = 1,
+        delete_recordings: str = "on_cleanup",
     ):
         """
         __init__ Create a new Watcher object.
@@ -161,6 +162,7 @@ class SparrowWatcher:
             recording_config (dict, optional): Keyword arguments for the internal SparrowRecording. Defaults to {}.
             species_predictor_config (dict, optional): Keyword arguments for a species presence predictor model. Defaults to {}.
             check_time(int, optional): Sleep time of the thread between checks for new files in seconds. Defaults to 1.
+            delete_recordings(str, optional): Mode for data clean up. Can be one of "never", "on_cleanup", "immediatelly". "never" keeps recordings around indefinitely, "on_cleanup" only deletes them when the `clean_up` method is called, and 'immediatelly' deletes the recording immediatelly after analysis.
         Raises:
             ValueError: When the indir parameter is not an existing directory.
             ValueError: When the outdir parameter is not an existing directory.
@@ -204,6 +206,8 @@ class SparrowWatcher:
         self.wait_event = None
 
         self.check_time = check_time
+
+        self.delete_recordings = delete_recordings
 
         # set up model for analysis
         self.preprocessor = utils.load_name_from_module(
@@ -348,6 +352,9 @@ class SparrowWatcher:
 
         self.save_results(results, suffix=Path(filename).stem)
 
+        if self.delete_recordings == "immediatelly":
+            Path(filename).unlink()
+
     def save_results(self, results: list, suffix=""):
         """
         save_results Save results to csv file.
@@ -408,13 +415,12 @@ class SparrowWatcher:
         else:
             raise RuntimeError("Cannot stop watcher process, is not alive anymore.")
 
-    def clean_up(self, delete: bool = False):
+    def clean_up(self):
         """
         clean_up Delete the input files which have been analyzed and delete them if 'delete' is True.
                 Files that have not yet been analyzed are analyzed before deletion.
 
         Args:
-            delete (bool, optional): Whether files should be deleted or not. Defaults to False.
         """
         missings = []
         for filename in self.input.iterdir():
@@ -424,7 +430,7 @@ class SparrowWatcher:
                 self.analyze(filename)
                 missings.append(filename)
 
-            if delete:
+            if self.delete_recordings == "on_cleanup":
                 filename.unlink()
 
             with open(self.output / "missing_files.csv", "w") as missingrecord:
