@@ -9,6 +9,8 @@ except Exception:
 from pathlib import Path
 import validators as valid
 import importlib
+import os
+import time
 
 
 # custom exception to have some more control over what is raised
@@ -163,3 +165,30 @@ def load_name_from_module(alias: str, path: str, name: str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return getattr(module, name)
+
+
+def wait_for_file_completion(file_path: str, polling_interval=1) -> bool:
+    """
+    wait_for_file_completion Wait for a file to be fully written by checking when its size does no longer change.
+
+    Args:
+        file_path (str): filepath to check
+        polling_interval (int, optional): how often file size should be checked. Defaults to 1.
+
+    Returns:
+        bool: True when the file size does not change any longer. False otherwise
+    """
+    initial_size = os.path.getsize(file_path)
+    is_complete = False
+    while True:
+
+        time.sleep(polling_interval)
+
+        current_size = os.path.getsize(file_path)
+
+        if current_size == initial_size:
+            is_complete = True
+            break
+        else:
+            initial_size = current_size
+    return is_complete

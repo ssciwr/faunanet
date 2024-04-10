@@ -9,14 +9,6 @@ from iSparrow.preprocessor_base import PreprocessorBase
 from iSparrow.sparrow_model_base import ModelBase
 import iSparrow.utils as utils
 from iSparrow.species_predictor import SpeciesPredictorBase
-import platform
-
-if platform.system() == "Windows":
-    import msvcrt
-elif platform.system() == "Linux" or platform.system() == "Darwin":
-    import fcntl
-else:
-    raise RuntimeError("Unknown system, will not be able to assure file consistency.")
 
 
 class SparrowRecording(RecordingBase):
@@ -199,34 +191,15 @@ class SparrowRecording(RecordingBase):
         """Read audio data from file and pass it on for preprocessing.
 
         Returns:
-            _type_: _description_
+            list[np.array]: preprocessed audio data
         """
-        # acquire file locks to make sure the files are complete before we open them
-        # relies on the writer adhering to locking process too. iSparrowRecord does that. When lock is acquired, read data
-        if platform.system() == "Windows":
 
-            file_handle = os.open(str(self.path), os.O_RDONLY)
+        # README: wait until the file to be opened does not change in size anymore.
+        # only working way in which we do not have to make assumptions about the
+        # system that actually writes the file?
+        utils.wait_for_file_completion(str(self.path), polling_interval=1)
 
-            msvcrt.locking(file_handle, msvcrt.LK_LOCK, os.path.getsize(str(self.path)))
-
-            rawdata = self.processor.read_audio_data(self.path)
-
-            msvcrt.locking(
-                file_handle, msvcrt.LK_UNLCK, os.path.getsize(str(self.path))
-            )
-
-            os.close(file_handle)
-
-        elif platform.system() == "Linux" or platform.system() == "Darwin":
-
-            rawdata = None
-
-            with open(self.path, "rb") as file:
-                fcntl.flock(file.fileno(), fcntl.LOCK_SH)
-                rawdata = self.processor.read_audio_data(self.path)
-                fcntl.flock(file.fileno(), fcntl.LOCK_UN)  # Release lock after reading
-        else:
-            pass  # don't do anything, this is handled elsewhere
+        rawdata = self.processor.read_audio_data(self.path)
 
         return self.process_audio_data(rawdata)
 
@@ -304,8 +277,8 @@ class SparrowRecording(RecordingBase):
 
             for label, confidence in labeled_predictions:
                 if confidence > self.minimum_confidence:
-
                     if label in allow_list or len(allow_list) == 0:
+
                         qualified_detections.append(
                             {
                                 "start": start,
