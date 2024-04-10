@@ -90,9 +90,11 @@ def watchertask(watcher):
         while True:
             sleep(watcher.check_time)
     except SystemExit:
+        print("waiting to finish")
         event_handler.finish_event.wait()  # wait for current task to finish
         observer.stop()
     except KeyboardInterrupt:
+        print("waiting to finish")
         event_handler.finish_event.wait()  # wait for current task to finish
         observer.stop()
     except Exception as e:
@@ -268,6 +270,13 @@ class SparrowWatcher:
     def input_directory(self):
         return str(self.input)
 
+    @property
+    def is_active(self):
+        if self.watcher_process is not None:
+            return self.watcher_process.is_alive()
+        else:
+            return False
+
     def change_analyzer(
         self,
         model_name: str,
@@ -346,13 +355,14 @@ class SparrowWatcher:
         Args:
             suffix (str, optional): _description_. Defaults to "".
         """
-        pd.DataFrame(results).to_csv(self.output / Path(f"results{suffix}.csv"))
+        pd.DataFrame(results).to_csv(self.output / Path(f"results_{suffix}.csv"))
 
     def start(self):
         """
         watch Watch the directory the caller has been created with and analyze all newly created files matching a certain file ending. \
             Creates a new daemon process in which the analysis function runs.
         """
+        print("start the watcher process")
         # create a background watchertask such that the command is handed back to the parent process
         self.wait_event = (
             multiprocessing.Event()
@@ -365,8 +375,7 @@ class SparrowWatcher:
 
     def restart(self):
         """
-        start_new Restart the watcher process. Must be called when, e.g., new models have been loaded or the input or output has changed.
-
+        restart Restart the watcher process. Must be called when, e.g., new models have been loaded or the input or output has changed.
         """
         self.stop()
         self.start()
@@ -376,19 +385,28 @@ class SparrowWatcher:
         stop Pause the watcher thread.
         """
         if self.watcher_process.is_alive():
+            print("pause the watcher process")
             self.wait_event.clear()
+        else:
+            raise RuntimeError("Cannot pause watcher process, is not alive anymore.")
 
     def go_on(self):
         """
         go_on Continue the watcher thread.
         """
         if self.watcher_process.is_alive():
+            print("continute the watcher process")
             self.wait_event.set()
+        else:
+            raise RuntimeError("Cannot continue watcher process, is not alive anymore.")
 
     def stop(self):
         if self.watcher_process.is_alive():
+            print("stop the watcher process")
             self.watcher_process.terminate()
             self.watcher_process.join()
+        else:
+            raise RuntimeError("Cannot stop watcher process, is not alive anymore.")
 
     def clean_up(self, delete: bool = False):
         """
@@ -401,16 +419,14 @@ class SparrowWatcher:
         missings = []
         for filename in self.input.iterdir():
             if (
-                self.output / Path(f"results_{str(filename.stem)}.csv").is_file()
-                is False
-            ):
+                self.output / Path(f"results_{str(filename.stem)}.csv")
+            ).exists() is False:
                 self.analyze(filename)
-
                 missings.append(filename)
 
             if delete:
                 filename.unlink()
 
-            with open(self.output / "missing_files.txt", "w") as missingrecord:
+            with open(self.output / "missing_files.csv", "w") as missingrecord:
                 for line in missings:
                     missingrecord.write(f"{line}\n")
