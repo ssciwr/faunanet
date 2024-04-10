@@ -60,6 +60,7 @@ def test_recording_construction_google(recording_fx):
 
 def test_recording_construction_inconsistent(recording_fx):
 
+    # with pytest.raises(ValueError) as e_info:
 
     # this is an ugly attempt to make sonarcloud happy, the pytest 'with' statement was not accepted
     try:  # will definitely throw
