@@ -136,6 +136,7 @@ def load_module(alias: str, path: str):
     load_module Load a python module from 'path' with alias 'alias'
 
     Args:
+        alias (str): module alias.
         path (str): Path to load the module from
 
     Returns:
@@ -145,3 +146,20 @@ def load_module(alias: str, path: str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def load_name_from_module(alias: str, path: str, name: str):
+    """
+    load_name_from_module Load a python module from 'path' with alias 'alias'
+
+    Args:
+        alias (str): module alias.
+        path (str): Path to load the module from
+        name (str): name to import
+    Returns:
+        module: Python module that has been loaded
+    """
+    spec = importlib.util.spec_from_file_location(alias, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return getattr(module, name)

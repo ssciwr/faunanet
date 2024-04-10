@@ -1,8 +1,9 @@
-from pathlib import Path
 from iSparrow import SparrowRecording
 from iSparrow import SpeciesPredictorBase
 import iSparrow.utils as utils
 
+from pathlib import Path
+import threading
 import pandas as pd
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -11,7 +12,6 @@ from datetime import datetime
 from copy import deepcopy
 import yaml
 import multiprocessing
-import platform
 
 
 class AnalysisEventHandler(FileSystemEventHandler):
@@ -45,6 +45,7 @@ class AnalysisEventHandler(FileSystemEventHandler):
         self.wait_event = wait_event
         self.callback = callback
         self.pattern = pattern
+        self.finish_event = threading.Event()
 
     def on_created(self, event):
         """
@@ -61,6 +62,7 @@ class AnalysisEventHandler(FileSystemEventHandler):
         ):
             self.wait_event.wait()
             self.callback(event.src_path)
+            self.finish_event.set()
 
 
 def watchertask(watcher):
@@ -77,7 +79,9 @@ def watchertask(watcher):
     """
     observer = Observer()
     event_handler = AnalysisEventHandler(
-        watcher.analyze, watcher.wait_event, pattern=watcher.pattern
+        watcher.analyze,
+        watcher.wait_event,
+        pattern=watcher.pattern,
     )
     observer.schedule(event_handler, watcher.input, recursive=True)
     observer.start()
@@ -85,7 +89,11 @@ def watchertask(watcher):
     try:
         while True:
             sleep(watcher.check_time)
+    except SystemExit:
+        event_handler.finish_event.wait()  # wait for current task to finish
+        observer.stop()
     except KeyboardInterrupt:
+        event_handler.finish_event.wait()  # wait for current task to finish
         observer.stop()
     except Exception as e:
         observer.stop()
@@ -115,20 +123,6 @@ class SparrowWatcher:
                     directory.
 
     """
-
-    def _load_analyzer_modules(self):
-        """
-        _load_analyzer_modules Load the modules that allow for model usage.
-        """
-        preprocessor_module = utils.load_module(
-            "pp", self.model_dir / Path(self.model_name) / "preprocessor.py"
-        )
-
-        model_module = utils.load_module(
-            "mo", self.model_dir / Path(self.model_name) / "model.py"
-        )
-
-        return preprocessor_module, model_module
 
     def _write_config(self):
         """
@@ -203,16 +197,22 @@ class SparrowWatcher:
 
         self.preprocessor = None
 
+        self.watcher_process = None
+
+        self.wait_event = None
+
         self.check_time = check_time
 
         # set up model for analysis
-        preprocessor_module, model_module = self._load_analyzer_modules()
+        self.preprocessor = utils.load_name_from_module(
+            "pp",
+            self.model_dir / Path(self.model_name) / "preprocessor.py",
+            "Preprocessor",
+        )(**preprocessor_config)
 
-        self.preprocessor = preprocessor_module.Preprocessor(**preprocessor_config)
-
-        self.model = model_module.Model(
-            model_path=self.model_dir / model_name, **model_config
-        )
+        self.model = utils.load_name_from_module(
+            "mo", self.model_dir / Path(self.model_name) / "model.py", "Model"
+        )(model_path=self.model_dir / model_name, **model_config)
 
         # process config file
         self.config = {
@@ -230,6 +230,8 @@ class SparrowWatcher:
         self.config["Analysis"]["Model"]["model_name"] = model_name
 
         self._write_config()
+
+        self.species_predictor = None
 
         # process species range predictor
         if all(name in recording_config for name in ["date", "lat", "lon"]) and all(
@@ -258,6 +260,14 @@ class SparrowWatcher:
 
         self.results = []
 
+    @property
+    def output_directory(self):
+        return str(self.output)
+
+    @property
+    def input_directory(self):
+        return str(self.input)
+
     def change_analyzer(
         self,
         model_name: str,
@@ -275,36 +285,42 @@ class SparrowWatcher:
         Raises:
             ValueError: When the given model does not exist in the model directory.
         """
-
-        self.pause()
+        # import and build new model, pause the analyzer process,
+        # change the model, resume the analyzer
 
         if (self.model_dir / model_name).is_dir() is False:
             raise ValueError("Given model name does not exist in model dir.")
 
         self.model_name = model_name
 
-        preprocessor_module, model_module = self._load_analyzer_modules()
+        # set up model for analysis
+        self.preprocessor = utils.load_name_from_module(
+            "pp",
+            self.model_dir / Path(self.model_name) / "preprocessor.py",
+            "Preprocessor",
+        )(**preprocessor_config)
 
-        self.preprocessor = preprocessor_module.Preprocessor(**preprocessor_config)
-
-        self.model = model_module.Model(
-            model_path=self.model_dir / model_name, **model_config
-        )
+        self.model = utils.load_name_from_module(
+            "mo", self.model_dir / Path(self.model_name) / "model.py", "Model"
+        )(model_path=self.model_dir / model_name, **model_config)
 
         self.recording.set_analyzer(self.model, self.preprocessor)
-
-        self.go_on()
 
         # make new output, update config file and write new config file
         self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
 
         self.output.mkdir(parents=True, exist_ok=True)
 
+        self.config["Analysis"]["Model"] = deepcopy(model_config)
+
+        self.config["Analysis"]["Preprocessor"] = deepcopy(preprocessor_config)
+
         self.config["Analysis"]["Model"]["model_name"] = model_name
 
-        self.config["Analysis"]["output"] = str(self.output)
-
         self._write_config()
+
+        # restart process to make changes take effect
+        self.restart()
 
     def analyze(self, filename: str):
         """
@@ -315,9 +331,13 @@ class SparrowWatcher:
         """
         self.recording.path = filename
 
+        self.recording.analyzed = False  # reactivate
+
         self.recording.analyze()
 
-        self.results.extend(self.recording.detections)
+        print(self.recording.detections)
+
+        self.results = self.recording.detections
 
         self.save_results(suffix=Path(filename).stem)
 
@@ -331,22 +351,28 @@ class SparrowWatcher:
         pd.DataFrame(self.results).to_csv(self.output / Path(f"results{suffix}.csv"))
         self.results = []  # reset results
 
-    def watch(
-        self,
-    ):
+    def start(self):
         """
         watch Watch the directory the caller has been created with and analyze all newly created files matching a certain file ending. \
             Creates a new daemon process in which the analysis function runs.
         """
-
         # create a background watchertask such that the command is handed back to the parent process
         self.wait_event = (
             multiprocessing.Event()
         )  # README: event currently only there for a multiprocessing template
+
         self.wait_event.set()
         self.watcher_process = multiprocessing.Process(target=watchertask, args=(self,))
         self.watcher_process.daemon = True
         self.watcher_process.start()
+
+    def restart(self):
+        """
+        start_new Restart the watcher process. Must be called when, e.g., new models have been loaded or the input or output has changed.
+
+        """
+        self.stop()
+        self.start()
 
     def pause(self):
         """
@@ -361,6 +387,11 @@ class SparrowWatcher:
         """
         if self.watcher_process.is_alive():
             self.wait_event.set()
+
+    def stop(self):
+        if self.watcher_process.is_alive():
+            self.watcher_process.terminate()
+            self.watcher_process.join()
 
     def clean_up(self, delete: bool = False):
         """
