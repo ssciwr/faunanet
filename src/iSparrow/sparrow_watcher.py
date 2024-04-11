@@ -133,6 +133,81 @@ class SparrowWatcher:
         with open(self.output / "config.yml", "w") as ymlfile:
             yaml.safe_dump(self.config, ymlfile)
 
+    def _set_up_recording(
+        self,
+        model_name: str,
+        preprocessor_config: dict = {},
+        model_config: dict = {},
+        recording_config: dict = {},
+        species_predictor_config: dict = {},
+    ):
+        """
+        _set_up_recording _summary_
+
+        _extended_summary_
+
+        Args:
+            model_name (str): _description_
+            preprocessor_config (dict, optional): _description_. Defaults to {}.
+            model_config (dict, optional): _description_. Defaults to {}.
+            recording_config (dict, optional): _description_. Defaults to {}.
+            species_predictor_config (dict, optional): _description_. Defaults to {}.
+
+        Raises:
+            ValueError: _description_
+        """
+        preprocessor = utils.load_name_from_module(
+            "pp",
+            self.model_dir / Path(model_name) / "preprocessor.py",
+            "Preprocessor",
+        )(**preprocessor_config)
+
+        model = utils.load_name_from_module(
+            "mo", self.model_dir / Path(model_name) / "model.py", "Model"
+        )(model_path=self.model_dir / model_name, **model_config)
+
+        # process config file
+        self.config = {
+            "Analysis": {
+                "input": str(self.input),
+                "output": str(self.output),
+                "model_dir": str(self.model_dir),
+                "Preprocessor": deepcopy(preprocessor_config),
+                "Model": deepcopy(model_config),
+                "Recording": deepcopy(recording_config),
+                "SpeciesPredictor": deepcopy(species_predictor_config),
+            }
+        }
+
+        self.config["Analysis"]["Model"]["model_name"] = model_name
+
+        self._write_config()
+
+        self.species_predictor = None
+
+        # process species range predictor
+        if all(name in recording_config for name in ["date", "lat", "lon"]) and all(
+            recording_config[name] is not None for name in ["date", "lat", "lon"]
+        ):
+
+            try:
+                # we can use the species predictor
+                species_predictor = SpeciesPredictorBase(
+                    model_path=self.model_dir / model_name,
+                    **species_predictor_config,
+                )
+
+                recording_config["species_predictor"] = species_predictor
+
+            except Exception as e:
+                raise ValueError(
+                    "An error occured during species range predictor creation. Does you model provide a model file called 'species_presence_model'?"
+                ) from e
+
+        # create recording object
+        # species predictor is applied here once and then used for all the analysis calls that may follow
+        self.recording = SparrowRecording(preprocessor, model, "", **recording_config)
+
     def __init__(
         self,
         indir: str,
@@ -212,58 +287,13 @@ class SparrowWatcher:
 
         self.delete_recordings = delete_recordings
 
-        # set up model for analysis
-        preprocessor = utils.load_name_from_module(
-            "pp",
-            self.model_dir / Path(model_name) / "preprocessor.py",
-            "Preprocessor",
-        )(**preprocessor_config)
-
-        model = utils.load_name_from_module(
-            "mo", self.model_dir / Path(model_name) / "model.py", "Model"
-        )(model_path=self.model_dir / model_name, **model_config)
-
-        # process config file
-        self.config = {
-            "Analysis": {
-                "input": str(self.input),
-                "output": str(self.output),
-                "model_dir": str(self.model_dir),
-                "Preprocessor": deepcopy(preprocessor_config),
-                "Model": deepcopy(model_config),
-                "Recording": deepcopy(recording_config),
-                "SpeciesPredictor": deepcopy(species_predictor_config),
-            }
-        }
-
-        self.config["Analysis"]["Model"]["model_name"] = model_name
-
-        self._write_config()
-
-        self.species_predictor = None
-
-        # process species range predictor
-        if all(name in recording_config for name in ["date", "lat", "lon"]) and all(
-            recording_config[name] is not None for name in ["date", "lat", "lon"]
-        ):
-
-            try:
-                # we can use the species predictor
-                species_predictor = SpeciesPredictorBase(
-                    model_path=self.model_dir / model_name,
-                    **species_predictor_config,
-                )
-
-                recording_config["species_predictor"] = species_predictor
-
-            except Exception as e:
-                raise ValueError(
-                    "An error occured during species range predictor creation. Does you model provide a model file called 'species_presence_model'?"
-                ) from e
-
-        # create recording object
-        # species predictor is applied here once and then used for all the analysis calls that may follow
-        self.recording = SparrowRecording(preprocessor, model, "", **recording_config)
+        self._set_up_recording(
+            model_name,
+            preprocessor_config=preprocessor_config,
+            model_config=model_config,
+            recording_config=recording_config,
+            species_predictor_config=species_predictor_config,
+        )
 
         self.results = []
 
@@ -302,18 +332,21 @@ class SparrowWatcher:
         model_name: str,
         preprocessor_config: dict = {},
         model_config: dict = {},
-        recording_cfg: dict = {},
+        recording_config: dict = {},
+        species_predictor_config: dict = {},
     ):
         """
-        change_analyzer Change the classifier model to the one given by 'model_name'.
+        change_analyzer _summary_
 
         Args:
-            model_name (str): Name of the model to use. Must be present in the model directory.
+            model_name (str): _description_
             preprocessor_config (dict, optional): _description_. Defaults to {}.
             model_config (dict, optional): _description_. Defaults to {}.
+            recording_config (dict, optional): _description_. Defaults to {}.
+            species_predictor_config (dict, optional): _description_. Defaults to {}.
 
         Raises:
-            ValueError: When the given model does not exist in the model directory.
+            ValueError: _description_
         """
         # import and build new model, pause the analyzer process,
         # change the model, resume the analyzer
@@ -321,36 +354,13 @@ class SparrowWatcher:
         if (self.model_dir / model_name).is_dir() is False:
             raise ValueError("Given model name does not exist in model dir.")
 
-        # set up model for analysis
-        preprocessor = utils.load_name_from_module(
-            "pp",
-            self.model_dir / Path(model_name) / "preprocessor.py",
-            "Preprocessor",
-        )(**preprocessor_config)
-
-        model = utils.load_name_from_module(
-            "mo", self.model_dir / Path(model_name) / "model.py", "Model"
-        )(model_path=self.model_dir / model_name, **model_config)
-
-        # update the recording configuration and build a new recording
-        rec_cfg = self.config["Analysis"]["Recording"]
-
-        recording_config = recording_cfg | rec_cfg
-
-        self.recording = SparrowRecording(preprocessor, model, "", **recording_config)
-
-        # make new output, update config file and write new config file
-        self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
-
-        self.output.mkdir(parents=True, exist_ok=True)
-
-        self.config["Analysis"]["Model"] = deepcopy(model_config)
-
-        self.config["Analysis"]["Preprocessor"] = deepcopy(preprocessor_config)
-
-        self.config["Analysis"]["Model"]["model_name"] = model_name
-
-        self._write_config()
+        self._set_up_recording(
+            model_name,
+            preprocessor_config,
+            model_config=model_config,
+            recording_config=recording_config,
+            species_predictor_config=species_predictor_config,
+        )
 
         # restart process to make changes take effect
         self.restart()
@@ -389,6 +399,9 @@ class SparrowWatcher:
         watch Watch the directory the caller has been created with and analyze all newly created files matching a certain file ending. \
             Creates a new daemon process in which the analysis function runs.
         """
+        if self.watcher_process is not None and self.is_active():
+            raise RuntimeError("watcher process still running, stop first.")
+
         print("start the watcher process")
         # create a background watchertask such that the command is handed back to the parent process
         self.wait_event = (
