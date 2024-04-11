@@ -9,7 +9,7 @@ def test_event_handler_creation(watch_fx):
     pass
 
 
-def test_watcher_construction(watch_fx):
+def test_watcher_construction(watch_fx, install):
     wfx = watch_fx
 
     path_add = Path(datetime.now().strftime("%y%m%d_%H%M%S"))
@@ -47,8 +47,8 @@ def test_watcher_construction(watch_fx):
     assert str(watcher.model_name) == "birdnet_default"
     assert watcher.output_directory == str(Path(watcher.outdir) / path_add)
     assert watcher.input_directory == str(Path.home() / "iSparrow_data")
-    assert watcher.is_active is False
-    assert watcher.output.is_dir()
+    assert watcher.is_running is False
+    assert watcher.output.is_dir() is False  # not yet created
     assert watcher.input.is_dir()
     assert watcher.outdir.is_dir()
     assert watcher.model_dir.is_dir()
@@ -164,7 +164,7 @@ def test_watcher_construction(watch_fx):
     assert watcher.recording.species_predictor is None
 
 
-def test_watcher_lowlevel_functionality(watch_fx, folders):
+def test_watcher_lowlevel_functionality(watch_fx, folders, install):
     wfx = watch_fx
     home, data, output = folders
 
@@ -208,18 +208,18 @@ def test_watcher_lowlevel_functionality(watch_fx, folders):
     # run the watcher process dry and make sure start, pause stop works
     watcher.start()
     assert watcher.wait_event.is_set() is True
-    assert watcher.is_active is True
+    assert watcher.is_running is True
     assert watcher.watcher_process.daemon is True
     assert watcher.watcher_process.name == "watcher_process"
 
     watcher.pause()
     assert watcher.wait_event.is_set() is False
-    assert watcher.is_active is True
+    assert watcher.is_running is True
 
     watcher.go_on()
     assert watcher.wait_event.is_set() is True
-    assert watcher.is_active is True
+    assert watcher.is_running is True
 
     watcher.stop()
-    assert watcher.is_active is False
+    assert watcher.is_running is False
     assert watcher.exit_ok == 0

@@ -181,8 +181,6 @@ class SparrowWatcher:
 
         self.config["Analysis"]["Model"]["model_name"] = model_name
 
-        self._write_config()
-
         self.species_predictor = None
 
         # process species range predictor
@@ -221,6 +219,7 @@ class SparrowWatcher:
         pattern: str = ".wav",
         check_time: int = 1,
         delete_recordings: str = "on_cleanup",
+        reanalyze_on_cleanup: bool = True,
     ):
         """
         __init__ Create a new Watcher object.
@@ -256,9 +255,8 @@ class SparrowWatcher:
         if self.outdir.is_dir() is False:
             raise ValueError("Output directory does not exist")
 
+        # this is created on disk in the start method
         self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
-
-        self.output.mkdir(exist_ok=True, parents=True)
 
         self.model_dir = Path(model_dir)
 
@@ -279,6 +277,16 @@ class SparrowWatcher:
         self.wait_event = None
 
         self.check_time = check_time
+
+        self.creation_time_first_analyzed = multiprocessing.Value("d", 0)
+
+        self.creation_time_last_analyzed = multiprocessing.Value("d", 0)
+
+        self.used_output_folders = [
+            self.output,
+        ]
+
+        self.reanalyze_on_cleanup = reanalyze_on_cleanup
 
         if delete_recordings not in ["never", "on_cleanup", "always"]:
             raise ValueError(
@@ -306,7 +314,7 @@ class SparrowWatcher:
         return str(self.input)
 
     @property
-    def is_active(self):
+    def is_running(self):
         if self.watcher_process is not None:
             return self.watcher_process.is_alive()
         else:
@@ -328,8 +336,12 @@ class SparrowWatcher:
             return "no species predictor present"
 
     @property
-    def current_results(self):
-        return self.recording.detections
+    def last_analyzed_file_ct(self):
+        return self.creation_time_last_analyzed.value
+
+    @property
+    def first_analyzed_file_ct(self):
+        return self.creation_time_first_analyzed.value
 
     def change_analyzer(
         self,
@@ -358,6 +370,10 @@ class SparrowWatcher:
         if (self.model_dir / model_name).is_dir() is False:
             raise ValueError("Given model name does not exist in model dir.")
 
+        self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
+
+        self.used_output_folders.append(self.output)
+
         self._set_up_recording(
             model_name,
             preprocessor_config,
@@ -365,6 +381,8 @@ class SparrowWatcher:
             recording_config=recording_config,
             species_predictor_config=species_predictor_config,
         )
+
+        self.creation_time_first_analyzed = multiprocessing.Value("d", 0)
 
         # restart process to make changes take effect
         self.restart()
@@ -386,6 +404,11 @@ class SparrowWatcher:
 
         self.save_results(results, suffix=Path(filename).stem)
 
+        if self.creation_time_first_analyzed.value < 1e-9:
+            self.creation_time_first_analyzed.value = Path(filename).stat().st_ctime
+
+        self.creation_time_last_analyzed.value = Path(filename).stat().st_ctime
+
         if self.delete_recordings == "immediatelly":
             Path(filename).unlink()
 
@@ -403,8 +426,12 @@ class SparrowWatcher:
         watch Watch the directory the caller has been created with and analyze all newly created files matching a certain file ending. \
             Creates a new daemon process in which the analysis function runs.
         """
-        if self.watcher_process is not None and self.is_active():
+        if self.watcher_process is not None and self.is_running:
             raise RuntimeError("watcher process still running, stop first.")
+
+        self.output.mkdir(exist_ok=True, parents=True)
+
+        self._write_config()
 
         print("start the watcher process")
         # create a background watchertask such that the command is handed back to the parent process
@@ -457,19 +484,36 @@ class SparrowWatcher:
         """
         clean_up Delete the input files which have been analyzed and delete them if 'delete' is True.
                 Files that have not yet been analyzed are analyzed before deletion.
-
-        Args:
         """
-        missings = []
-        for filename in self.input.iterdir():
-            if (
-                self.output / Path(f"results_{str(filename.stem)}.csv")
-            ).exists() is False:
-                self.analyze(filename)
-                missings.append(filename)
 
-            if self.delete_recordings == "on_cleanup":
-                filename.unlink()
+        missings = []
+
+        for filename in self.input.iterdir():
+
+            # check that the currently checked file has been created before the last
+            # one of which we are sure it has been analyzed to make sure it does not
+            # include the one the analyzer currently uses
+            if filename.stat().st_ctime < self.creation_time_last_analyzed.value:
+
+                not_there = all(
+                    [
+                        (out / Path(f"results_{str(filename.stem)}.csv")).exists()
+                        is False
+                        for out in self.used_output_folders
+                    ]
+                )
+
+                if not_there is True:
+                    missings.append(filename)
+
+                    #  README: calling this is should not cause a race condition on the model because
+                    # the watcher_process has its own copy of the recording
+                    if self.reanalyze_on_cleanup:
+                        self.analyze(filename)
+
+                if self.delete_recordings == "on_cleanup":
+                    # no locking needed because we do not look at files newer than the last fully analyzed one
+                    filename.unlink()
 
             with open(self.output / "missing_files.csv", "w") as missingrecord:
                 for line in missings:
