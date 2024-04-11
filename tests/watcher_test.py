@@ -162,3 +162,64 @@ def test_watcher_construction(watch_fx):
 
     assert watcher.species_presence_model_name == "no species predictor present"
     assert watcher.recording.species_predictor is None
+
+
+def test_watcher_lowlevel_functionality(watch_fx, folders):
+    wfx = watch_fx
+    home, data, output = folders
+
+    model_cfg = deepcopy(wfx.model_cfg)
+
+    model_cfg["model_name"] = "birdnet_default"
+
+    watcher = SparrowWatcher(
+        Path.home() / "iSparrow_data",
+        Path.home() / "iSparrow_output",
+        Path.home() / "iSparrow/models",
+        "birdnet_default",
+        preprocessor_config=wfx.preprocessor_cfg,
+        model_config=wfx.model_cfg,
+        recording_config=deepcopy(wfx.recording_cfg),
+        species_predictor_config=wfx.species_predictor_cfg,
+    )
+
+    watcher.analyze(
+        home / "example" / "soundscape.wav",
+    )
+
+    assert len(list(output.iterdir())) == 1
+    datafolder = list(output.iterdir())[0]
+
+    assert len(list(datafolder.iterdir())) == 2
+    assert list(datafolder.iterdir()) == [
+        datafolder / "config.yml",
+        Path(datafolder / "results_soundscape.csv"),
+    ]
+
+    assert watcher.recording.analyzed is True
+    assert watcher.recording.path == home / "example" / "soundscape.wav"
+    assert len(watcher.recording.allowed_species) > 0
+    assert watcher.recording.species_predictor is not None
+    assert len(watcher.recording.analyzer.results) > 0
+    assert len(watcher.recording.analyzer.results) > len(
+        watcher.current_results
+    )  # current results is filtered
+
+    # run the watcher process dry and make sure start, pause stop works
+    watcher.start()
+    assert watcher.wait_event.is_set() is True
+    assert watcher.is_active is True
+    assert watcher.watcher_process.daemon is True
+    assert watcher.watcher_process.name == "watcher_process"
+
+    watcher.pause()
+    assert watcher.wait_event.is_set() is False
+    assert watcher.is_active is True
+
+    watcher.go_on()
+    assert watcher.wait_event.is_set() is True
+    assert watcher.is_active is True
+
+    watcher.stop()
+    assert watcher.is_active is False
+    assert watcher.exit_ok == 0

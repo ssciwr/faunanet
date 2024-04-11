@@ -327,6 +327,10 @@ class SparrowWatcher:
         else:
             return "no species predictor present"
 
+    @property
+    def current_results(self):
+        return self.recording.detections
+
     def change_analyzer(
         self,
         model_name: str,
@@ -411,6 +415,7 @@ class SparrowWatcher:
         self.wait_event.set()
         self.watcher_process = multiprocessing.Process(target=watchertask, args=(self,))
         self.watcher_process.daemon = True
+        self.watcher_process.name = "watcher_process"
         self.watcher_process.start()
 
     def restart(self):

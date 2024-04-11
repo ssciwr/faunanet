@@ -67,9 +67,9 @@ class WatchFixture:
         }
 
         self.recording_cfg = {
-            "date": datetime(year=2022, month=5, day=10),
-            "lat": 35.4244,
-            "lon": -120.7463,
+            "date": datetime(year=2024, month=1, day=24),
+            "lat": 42.5,
+            "lon": -76.45,
             "species_presence_threshold": 0.03,
             "min_conf": 0.25,
             "species_predictor": None,
