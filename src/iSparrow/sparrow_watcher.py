@@ -405,7 +405,7 @@ class SparrowWatcher:
 
         self.creation_time_last_analyzed.value = Path(filename).stat().st_ctime
 
-        if self.delete_recordings == "immediatelly":
+        if self.delete_recordings == "always":
             Path(filename).unlink()
 
     def save_results(self, results: list, suffix=""):

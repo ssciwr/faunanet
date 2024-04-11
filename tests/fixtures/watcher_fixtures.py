@@ -6,22 +6,6 @@ import yaml
 from datetime import datetime
 
 
-def mock_recorder(number: int = 5):
-
-    i = 0
-    while i < 20:
-
-        time.sleep(4)  # add a dummy time to emulate recording time
-
-        print("copying")
-        shutil.copy(
-            Path("/home/hmack/iSparrow/example/soundscape.wav"),
-            Path(f"/home/hmack/iSparrow_data/example_{i}.wav"),
-        )
-
-        i += 1
-
-
 class WatchFixture:
 
     def __init__(self):
@@ -98,6 +82,17 @@ class WatchFixture:
             "sigmoid_sensitivity": 1.0,
             "default_model_path": str(Path.home() / "iSparrow/models/birdnet_default"),
         }
+
+    def mock_recorder(self, home: str, data: str, number=10):
+
+        for i in range(0, number, 1):
+
+            time.sleep(4)  # add a dummy time to emulate recording time
+
+            shutil.copy(
+                Path(home) / Path("example/soundscape.wav"),
+                Path(data) / Path(f"example_{i}.wav"),
+            )
 
 
 @pytest.fixture(scope="module")
