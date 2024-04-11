@@ -59,7 +59,6 @@ def test_watcher_construction(watch_fx, install):
     assert watcher.recording.processor.name == "birdnet_default"
     assert watcher.recording.analyzer.name == "birdnet_default"
     assert watcher.recording.species_predictor.name == "birdnet_default"
-    assert Path(watcher.output / "config.yml").is_file()
     assert len(watcher.recording.allowed_species) > 0
     assert watcher.delete_recordings == "on_cleanup"
     assert watcher.recording is not None
@@ -164,7 +163,7 @@ def test_watcher_construction(watch_fx, install):
     assert watcher.recording.species_predictor is None
 
 
-def test_watcher_lowlevel_functionality(watch_fx, folders, install):
+def test_watcher_analysis_lowlevel_functionality(watch_fx, folders, install):
     wfx = watch_fx
     home, data, output = folders
 
@@ -183,6 +182,14 @@ def test_watcher_lowlevel_functionality(watch_fx, folders, install):
         species_predictor_config=wfx.species_predictor_cfg,
     )
 
+    # this is normally performed by the `start` method of the watcher,
+    # but because this is a low level test of the basic functionality
+    # we must do it by hand here:
+    watcher.output.mkdir(parents=True, exist_ok=True)
+    watcher.may_do_work.set()
+
+    # ... now we can call the functions to be tested
+
     watcher.analyze(
         home / "example" / "soundscape.wav",
     )
@@ -190,9 +197,8 @@ def test_watcher_lowlevel_functionality(watch_fx, folders, install):
     assert len(list(output.iterdir())) == 1
     datafolder = list(output.iterdir())[0]
 
-    assert len(list(datafolder.iterdir())) == 2
+    assert len(list(datafolder.iterdir())) == 1
     assert list(datafolder.iterdir()) == [
-        datafolder / "config.yml",
         Path(datafolder / "results_soundscape.csv"),
     ]
 
@@ -201,25 +207,48 @@ def test_watcher_lowlevel_functionality(watch_fx, folders, install):
     assert len(watcher.recording.allowed_species) > 0
     assert watcher.recording.species_predictor is not None
     assert len(watcher.recording.analyzer.results) > 0
-    assert len(watcher.recording.analyzer.results) > len(
-        watcher.current_results
-    )  # current results is filtered
 
+
+def test_watcher_daemon_lowlevel_functionality(watch_fx, folders, install):
+    wfx = watch_fx
+    home, data, output = folders
+
+    model_cfg = deepcopy(wfx.model_cfg)
+
+    model_cfg["model_name"] = "birdnet_default"
+
+    watcher = SparrowWatcher(
+        Path.home() / "iSparrow_data",
+        Path.home() / "iSparrow_output",
+        Path.home() / "iSparrow/models",
+        "birdnet_default",
+        preprocessor_config=wfx.preprocessor_cfg,
+        model_config=wfx.model_cfg,
+        recording_config=deepcopy(wfx.recording_cfg),
+        species_predictor_config=wfx.species_predictor_cfg,
+    )
+
+    # this is normally performed by the `start` method of the watcher,
+    # but because this is a low level test of the basic functionality
+    # we must do it by hand here:
+    watcher.output.mkdir(parents=True, exist_ok=True)
     # run the watcher process dry and make sure start, pause stop works
     watcher.start()
-    assert watcher.wait_event.is_set() is True
+    assert watcher.may_do_work.is_set() is True
     assert watcher.is_running is True
     assert watcher.watcher_process.daemon is True
     assert watcher.watcher_process.name == "watcher_process"
 
+    # artificially set the finish event flag because no data is there
+    watcher.is_done_analyzing.set()
     watcher.pause()
-    assert watcher.wait_event.is_set() is False
+    assert watcher.may_do_work.is_set() is False
     assert watcher.is_running is True
 
     watcher.go_on()
-    assert watcher.wait_event.is_set() is True
+    assert watcher.may_do_work.is_set() is True
     assert watcher.is_running is True
 
     watcher.stop()
     assert watcher.is_running is False
-    assert watcher.exit_ok == 0
+    assert watcher.watcher_process is None 

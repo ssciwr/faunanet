@@ -3,7 +3,6 @@ from iSparrow import SpeciesPredictorBase
 import iSparrow.utils as utils
 
 from pathlib import Path
-import threading
 import pandas as pd
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -31,7 +30,6 @@ class AnalysisEventHandler(FileSystemEventHandler):
     def __init__(
         self,
         callback: callable,
-        wait_event: multiprocessing.Event,
         pattern: str = ".wav",
     ):
         """
@@ -39,13 +37,10 @@ class AnalysisEventHandler(FileSystemEventHandler):
 
         Args:
             callback (callable): Callback functionw hen
-            wait_event (multiprocessing.Event): _description_
             pattern (str, optional): _description_. Defaults to ".wav".
         """
-        self.wait_event = wait_event
         self.callback = callback
         self.pattern = pattern
-        self.finish_event = threading.Event()
 
     def on_created(self, event):
         """
@@ -60,9 +55,7 @@ class AnalysisEventHandler(FileSystemEventHandler):
             Path(event.src_path).is_file()
             and Path(event.src_path).suffix == self.pattern
         ):
-            self.wait_event.wait()
             self.callback(event.src_path)
-            self.finish_event.set()
 
 
 def watchertask(watcher):
@@ -80,7 +73,6 @@ def watchertask(watcher):
     observer = Observer()
     event_handler = AnalysisEventHandler(
         watcher.analyze,
-        watcher.wait_event,
         pattern=watcher.pattern,
     )
     observer.schedule(event_handler, watcher.input, recursive=True)
@@ -89,13 +81,7 @@ def watchertask(watcher):
     try:
         while True:
             sleep(watcher.check_time)
-    except SystemExit:
-        print("waiting to finish")
-        event_handler.finish_event.wait()  # wait for current task to finish
-        observer.stop()
     except KeyboardInterrupt:
-        print("waiting to finish")
-        event_handler.finish_event.wait()  # wait for current task to finish
         observer.stop()
     except Exception as e:
         observer.stop()
@@ -274,7 +260,9 @@ class SparrowWatcher:
 
         self.watcher_process = None
 
-        self.wait_event = None
+        self.may_do_work = multiprocessing.Event()
+
+        self.is_done_analyzing = multiprocessing.Event()
 
         self.check_time = check_time
 
@@ -394,15 +382,23 @@ class SparrowWatcher:
         Args:
             filename (str): path to the file to analyze.
         """
+        self.may_do_work.wait()  # wait until parent process allows the worker to pick up work
+
         self.recording.path = filename
 
         self.recording.analyzed = False  # reactivate
+
+        # make the main process wait on the finish signal to make sure no
+        # corrupt files are produced
+        self.is_done_analyzing.clear()
 
         self.recording.analyze()
 
         results = self.recording.detections
 
         self.save_results(results, suffix=Path(filename).stem)
+
+        self.is_done_analyzing.set()  # give good-to-go for main process
 
         if self.creation_time_first_analyzed.value < 1e-9:
             self.creation_time_first_analyzed.value = Path(filename).stat().st_ctime
@@ -426,6 +422,7 @@ class SparrowWatcher:
         watch Watch the directory the caller has been created with and analyze all newly created files matching a certain file ending. \
             Creates a new daemon process in which the analysis function runs.
         """
+
         if self.watcher_process is not None and self.is_running:
             raise RuntimeError("watcher process still running, stop first.")
 
@@ -435,11 +432,8 @@ class SparrowWatcher:
 
         print("start the watcher process")
         # create a background watchertask such that the command is handed back to the parent process
-        self.wait_event = (
-            multiprocessing.Event()
-        )  # README: event currently only there for a multiprocessing template
 
-        self.wait_event.set()
+        self.may_do_work.set()
         self.watcher_process = multiprocessing.Process(target=watchertask, args=(self,))
         self.watcher_process.daemon = True
         self.watcher_process.name = "watcher_process"
@@ -457,8 +451,9 @@ class SparrowWatcher:
         stop Pause the watcher thread.
         """
         if self.watcher_process.is_alive():
+            self.is_done_analyzing.wait()  # wait for the finish event
             print("pause the watcher process")
-            self.wait_event.clear()
+            self.may_do_work.clear()
         else:
             raise RuntimeError("Cannot pause watcher process, is not alive anymore.")
 
@@ -468,15 +463,22 @@ class SparrowWatcher:
         """
         if self.watcher_process.is_alive():
             print("continute the watcher process")
-            self.wait_event.set()
+            self.may_do_work.set()
         else:
             raise RuntimeError("Cannot continue watcher process, is not alive anymore.")
 
     def stop(self):
         if self.watcher_process.is_alive():
+            self.is_done_analyzing.wait()
+
             print("stop the watcher process")
             self.watcher_process.terminate()
             self.watcher_process.join()
+            self.watcher_process.close()
+            self.watcher_process = None
+            self.may_do_work.clear()
+            self.is_done_analyzing.set()
+
         else:
             raise RuntimeError("Cannot stop watcher process, is not alive anymore.")
 
