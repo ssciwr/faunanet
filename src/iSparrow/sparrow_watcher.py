@@ -450,7 +450,7 @@ class SparrowWatcher:
         """
         stop Pause the watcher thread.
         """
-        if self.watcher_process.is_alive():
+        if self.watcher_process is not None and self.watcher_process.is_alive():
             self.is_done_analyzing.wait()  # wait for the finish event
             print("pause the watcher process")
             self.may_do_work.clear()
@@ -461,14 +461,14 @@ class SparrowWatcher:
         """
         go_on Continue the watcher thread.
         """
-        if self.watcher_process.is_alive():
+        if self.watcher_process is not None and self.watcher_process.is_alive():
             print("continute the watcher process")
             self.may_do_work.set()
         else:
             raise RuntimeError("Cannot continue watcher process, is not alive anymore.")
 
     def stop(self):
-        if self.watcher_process.is_alive():
+        if self.watcher_process is not None and self.watcher_process.is_alive():
             self.is_done_analyzing.wait()
 
             print("stop the watcher process")

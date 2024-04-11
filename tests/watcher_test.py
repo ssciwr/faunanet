@@ -6,6 +6,8 @@ from copy import deepcopy
 import shutil
 import multiprocessing
 import yaml
+import time
+import pandas as pd
 
 
 def test_event_handler_creation(watch_fx):
@@ -270,9 +272,43 @@ def test_watcher_daemon_lowlevel_functionality(watch_fx, folders, install):
     assert watcher.may_do_work.is_set() is True
     assert watcher.is_running is True
 
+    with pytest.raises(
+        RuntimeError, match="watcher process still running, stop first."
+    ):
+        watcher.start()
+
     watcher.stop()
     assert watcher.is_running is False
     assert watcher.watcher_process is None
+
+    with pytest.raises(
+        RuntimeError, match="Cannot continue watcher process, is not alive anymore."
+    ):
+        watcher.go_on()
+
+    with pytest.raises(
+        RuntimeError, match="Cannot stop watcher process, is not alive anymore."
+    ):
+        watcher.stop()
+
+    with pytest.raises(
+        RuntimeError, match="Cannot pause watcher process, is not alive anymore."
+    ):
+        watcher.pause()
+
+    watcher.start()
+    assert watcher.may_do_work.is_set() is True
+    assert watcher.is_running is True
+    assert watcher.watcher_process.daemon is True
+    assert watcher.watcher_process.name == "watcher_process"
+
+    watcher.restart()
+    assert watcher.may_do_work.is_set() is True
+    assert watcher.is_running is True
+    assert watcher.watcher_process.daemon is True
+    assert watcher.watcher_process.name == "watcher_process"
+
+    watcher.stop()  # release resources again
 
 
 def test_watcher_integrated_nochange(watch_fx, folders, install):
@@ -298,10 +334,6 @@ def test_watcher_integrated_nochange(watch_fx, folders, install):
     model_cfg["model_name"] = "birdnet_default"
 
     path_add = Path(datetime.now().strftime("%y%m%d_%H%M%S"))
-
-    model_cfg = deepcopy(wfx.model_cfg)
-
-    model_cfg["model_name"] = "birdnet_default"
 
     config_should = {
         "Analysis": {
@@ -337,11 +369,17 @@ def test_watcher_integrated_nochange(watch_fx, folders, install):
         ),
     )
     recorder_process.daemon = True
+
+    # run recorder and analyzer process, record start and end times for comparison
+    starttime = time.time()
+
     recorder_process.start()
 
     watcher.start()
 
     recorder_process.join()
+
+    endtime = time.time()
 
     recorder_process.close()
 
@@ -363,6 +401,12 @@ def test_watcher_integrated_nochange(watch_fx, folders, install):
         cfg = yaml.safe_load(cfgfile)
 
     assert cfg == config_should
+
+    assert watcher.first_analyzed_file_ct > starttime
+
+    assert watcher.last_analyzed_file_ct < endtime
+
+    assert watcher.last_analyzed_file_ct > watcher.first_analyzed_file_ct
 
 
 def test_watcher_integrated_nochange_delete(watch_fx, folders, install):
@@ -420,6 +464,7 @@ def test_watcher_integrated_nochange_delete(watch_fx, folders, install):
 
     watcher.stop()
 
+    # data files should be deleted
     assert len(list(Path(data).iterdir())) == 0
 
     results = [file for file in Path(watcher.output).iterdir() if file.suffix == ".csv"]
@@ -429,3 +474,69 @@ def test_watcher_integrated_nochange_delete(watch_fx, folders, install):
     assert len(results) == number_of_files
 
     assert len(cfgs) == 1
+
+
+def test_watcher_integrated_delete_on_cleanup(watch_fx, folders, install):
+    wfx = watch_fx
+
+    home, data, output = folders
+
+    for f in data.iterdir():
+        if f.is_dir():
+            shutil.rmtree(f)
+        else:
+            f.unlink()
+
+    for f in output.iterdir():
+        shutil.rmtree(f)
+
+    assert len(list(Path(data).iterdir())) == 0
+
+    assert len(list(Path(output).iterdir())) == 0
+
+    watcher = SparrowWatcher(
+        data,
+        output,
+        home / "models",
+        "birdnet_default",
+        preprocessor_config=wfx.preprocessor_cfg,
+        model_config=wfx.model_cfg,
+        recording_config=deepcopy(wfx.recording_cfg),
+        species_predictor_config=wfx.species_predictor_cfg,
+    )
+
+    watcher.delete_recordings = "on_cleanup"
+    watcher.reanalyze_on_cleanup = False
+
+    # make a mock recorder process that runs in the background
+    number_of_files = 5
+    recorder_process = multiprocessing.Process(
+        target=wfx.mock_recorder,
+        args=(
+            home,
+            data,
+            number_of_files,
+        ),
+    )
+    recorder_process.daemon = True
+
+    # run recorder and analyzer process, record start and end times for comparison
+    recorder_process.start()
+
+    watcher.start()
+
+    recorder_process.join()
+
+    recorder_process.close()
+
+    watcher.stop()
+
+    assert len(list(Path(data).iterdir())) == 5
+
+    watcher.clean_up()
+
+    assert (Path(watcher.output) / "missing_files.csv").is_file()
+
+    assert len(pd.read_csv(Path(watcher.output) / "missing_files.csv")) == 0
+
+    assert len(list(Path(data).iterdir())) == 0
