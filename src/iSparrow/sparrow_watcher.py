@@ -29,18 +29,19 @@ class AnalysisEventHandler(FileSystemEventHandler):
 
     def __init__(
         self,
-        callback: callable,
-        pattern: str = ".wav",
+        watcher,
     ):
         """
         __init__ Create a new AnalysisEventHandler object.
 
         Args:
             callback (callable): Callback functionw hen
-            pattern (str, optional): _description_. Defaults to ".wav".
+            pattern (str, optional): file apttern. Defaults to ".wav".
+            watcher: (SparrowWatcher): Watcher this Handler is used with
         """
-        self.callback = callback
-        self.pattern = pattern
+        self.pattern = watcher.pattern
+        self.recording = watcher.set_up_recording()
+        self.callback = watcher.analyze
 
     def on_created(self, event):
         """
@@ -49,13 +50,13 @@ class AnalysisEventHandler(FileSystemEventHandler):
                     runs if its flag is true.
 
         Args:
-            event (multiprocessing.Event): _description_
+            event (threading.Event): Event triggering the analysis, i.e., a new audio file appears and is ready to be processessed in the watched folder
         """
         if (
             Path(event.src_path).is_file()
             and Path(event.src_path).suffix == self.pattern
         ):
-            self.callback(event.src_path)
+            self.callback(event.src_path, self.recording)
 
 
 def watchertask(watcher):
@@ -70,9 +71,14 @@ def watchertask(watcher):
     Raises:
         RuntimeError: When something goes wrong inside the analyzer process.
     """
+
+    print("calling watcher task")
+
+    # build the recorder
     observer = Observer()
+
     event_handler = AnalysisEventHandler(
-        watcher.analyze,
+        watcher,
         pattern=watcher.pattern,
     )
     observer.schedule(event_handler, watcher.input, recursive=True)
@@ -112,23 +118,54 @@ class SparrowWatcher:
 
     """
 
-    def _write_config(self):
-        """
-        _write_config Write the parameters used to configure the caller to file.
-        """
-        with open(self.output / "config.yml", "w") as ymlfile:
-            yaml.safe_dump(self.config, ymlfile)
-
-    def _set_up_recording(
+    def _write_config(
         self,
-        model_name: str,
-        preprocessor_config: dict = {},
-        model_config: dict = {},
-        recording_config: dict = {},
-        species_predictor_config: dict = {},
+    ):
+
+        config = {
+            "Analysis": {
+                "input": str(self.input),
+                "output": str(self.output),
+                "model_dir": str(self.model_dir),
+                "Preprocessor": self.preprocessor_config,
+                "Model": self.model_config,
+                "Recording": self.recording_config,
+                "SpeciesPredictor": self.species_predictor_config,
+            }
+        }
+
+        config["Analysis"]["Model"]["model_name"] = self.model_name
+
+        with open(self.output / "config.yml", "w") as ymlfile:
+            yaml.safe_dump(config, ymlfile)
+
+        if all(
+            name in self.recording_config for name in ["date", "lat", "lon"]
+        ) and all(
+            self.recording_config[name] is not None for name in ["date", "lat", "lon"]
+        ):
+
+            try:
+                # we can use the species predictor
+                species_predictor = SpeciesPredictorBase(
+                    model_path=self.model_dir / self.model_name,
+                    **self.species_predictor_config,
+                )
+
+                self.recording_config["species_predictor"] = species_predictor
+
+            except Exception as e:
+                raise ValueError(
+                    "An error occured during species range predictor creation. Does you model provide a model file called 'species_presence_model'?"
+                ) from e
+
+        return config
+
+    def set_up_recording(
+        self,
     ):
         """
-        _set_up_recording _summary_
+        set_up_recording _summary_
 
         _extended_summary_
 
@@ -144,44 +181,29 @@ class SparrowWatcher:
         """
         preprocessor = utils.load_name_from_module(
             "pp",
-            self.model_dir / Path(model_name) / "preprocessor.py",
+            self.model_dir / Path(self.model_name) / "preprocessor.py",
             "Preprocessor",
-        )(**preprocessor_config)
+        )(**self.preprocessor_config)
 
         model = utils.load_name_from_module(
-            "mo", self.model_dir / Path(model_name) / "model.py", "Model"
-        )(model_path=self.model_dir / model_name, **model_config)
-
-        # process config file
-        self.config = {
-            "Analysis": {
-                "input": str(self.input),
-                "output": str(self.output),
-                "model_dir": str(self.model_dir),
-                "Preprocessor": deepcopy(preprocessor_config),
-                "Model": deepcopy(model_config),
-                "Recording": deepcopy(recording_config),
-                "SpeciesPredictor": deepcopy(species_predictor_config),
-            }
-        }
-
-        self.config["Analysis"]["Model"]["model_name"] = model_name
-
-        self.species_predictor = None
+            "mo", self.model_dir / Path(self.model_name) / "model.py", "Model"
+        )(model_path=self.model_dir / self.model_name, **self.model_config)
 
         # process species range predictor
-        if all(name in recording_config for name in ["date", "lat", "lon"]) and all(
-            recording_config[name] is not None for name in ["date", "lat", "lon"]
+        if all(
+            name in self.recording_config for name in ["date", "lat", "lon"]
+        ) and all(
+            self.recording_config[name] is not None for name in ["date", "lat", "lon"]
         ):
 
             try:
                 # we can use the species predictor
                 species_predictor = SpeciesPredictorBase(
-                    model_path=self.model_dir / model_name,
-                    **species_predictor_config,
+                    model_path=self.model_dir / self.model_name,
+                    **self.species_predictor_config,
                 )
 
-                recording_config["species_predictor"] = species_predictor
+                self.recording_config["species_predictor"] = species_predictor
 
             except Exception as e:
                 raise ValueError(
@@ -190,7 +212,7 @@ class SparrowWatcher:
 
         # create recording object
         # species predictor is applied here once and then used for all the analysis calls that may follow
-        self.recording = SparrowRecording(preprocessor, model, "", **recording_config)
+        return SparrowRecording(preprocessor, model, "", **self.recording_config)
 
     def __init__(
         self,
@@ -254,9 +276,7 @@ class SparrowWatcher:
 
         self.pattern = pattern
 
-        self.model = None
-
-        self.preprocessor = None
+        self.model_name = model_name
 
         self.watcher_process = None
 
@@ -283,15 +303,13 @@ class SparrowWatcher:
 
         self.delete_recordings = delete_recordings
 
-        self._set_up_recording(
-            model_name,
-            preprocessor_config=preprocessor_config,
-            model_config=model_config,
-            recording_config=recording_config,
-            species_predictor_config=species_predictor_config,
-        )
+        self.preprocessor_config = deepcopy(preprocessor_config)
 
-        self.results = []
+        self.model_config = deepcopy(model_config)
+
+        self.recording_config = deepcopy(recording_config)
+
+        self.species_predictor_config = deepcopy(species_predictor_config)
 
     @property
     def output_directory(self):
@@ -307,21 +325,6 @@ class SparrowWatcher:
             return self.watcher_process.is_alive()
         else:
             return False
-
-    @property
-    def model_name(self):
-        return self.recording.analyzer.name
-
-    @property
-    def preprocessor_name(self):
-        return self.recording.processor.name
-
-    @property
-    def species_presence_model_name(self):
-        if self.recording.species_predictor:
-            return self.recording.species_predictor.name
-        else:
-            return "no species predictor present"
 
     @property
     def last_analyzed_file_ct(self):
@@ -365,39 +368,32 @@ class SparrowWatcher:
 
         self.used_output_folders.append(self.output)
 
-        self._set_up_recording(
-            model_name,
-            preprocessor_config,
-            model_config=model_config,
-            recording_config=recording_config,
-            species_predictor_config=species_predictor_config,
-        )
-
         self.creation_time_first_analyzed = multiprocessing.Value("d", 0)
 
         # restart process to make changes take effect
         self.restart()
 
-    def analyze(self, filename: str):
+    def analyze(self, filename: str, recording: SparrowRecording):
         """
         analyze Analyze a file pointed to by 'filename' and save the results as csv file to 'output'.
 
         Args:
             filename (str): path to the file to analyze.
+            recording (SparrowRecording): recording object to use
         """
         self.may_do_work.wait()  # wait until parent process allows the worker to pick up work
 
-        self.recording.path = filename
+        recording.path = filename
 
-        self.recording.analyzed = False  # reactivate
+        recording.analyzed = False  # reactivate
 
         # make the main process wait on the finish signal to make sure no
         # corrupt files are produced
         self.is_done_analyzing.clear()
 
-        self.recording.analyze()
+        recording.analyze()
 
-        results = self.recording.detections
+        results = recording.detections
 
         self.save_results(results, suffix=Path(filename).stem)
 
@@ -505,8 +501,10 @@ class SparrowWatcher:
 
     def clean_up(self):
         """
-        clean_up Delete the input files which have been analyzed and delete them if 'delete' is True.
-                Files that have not yet been analyzed are analyzed before deletion.
+        clean_up Delete the input files which have been analyzed and delete them if 'delete_recordings' is 'on_cleanup'.
+                Files that have not yet been analyzed are analyzed *with the current model* before deletion. This means
+                that if they belong to a different batch that has been analyzed with a different model, they still will
+                be missing in there and be added to the current batch.
         """
 
         missings = []
@@ -532,7 +530,7 @@ class SparrowWatcher:
                     ]
                 )
 
-                if not_there is True:
+                if not_there:
                     missings.append(filename)
                     #  README: calling this is should not cause a race condition on the model because
                     # the watcher_process has its own copy of the recording
@@ -545,6 +543,6 @@ class SparrowWatcher:
                     # no locking needed because we do not look at files newer than the last fully analyzed one
                     filename.unlink()
 
-            with open(self.output / "missing_files.txt", "w") as missingrecord:
-                for line in missings:
-                    missingrecord.write(f"{line}\n")
+        with open(self.output / "missing_files.txt", "w") as missingrecord:
+            for line in missings:
+                missingrecord.write(f"{line}\n")
