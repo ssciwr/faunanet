@@ -340,22 +340,25 @@ class SparrowWatcher:
         species_predictor_config: dict = {},
     ):
         """
-        change_analyzer _summary_
+        change_analyzer Change classifier model to the one indicated by name.
+        The given model name must correspond to the name of a folder in the
+        iSparrow models directory created upon install.
 
         Args:
-            model_name (str): _description_
-            preprocessor_config (dict, optional): _description_. Defaults to {}.
-            model_config (dict, optional): _description_. Defaults to {}.
-            recording_config (dict, optional): _description_. Defaults to {}.
-            species_predictor_config (dict, optional): _description_. Defaults to {}.
-
+            model_name (str): Name of the model to be used
+            preprocessor_config (dict, optional): Parameters for preprocessor given as key(str): value. If empty, default parameters of the preprocessor will be used. Defaults to {}.
+            model_config (dict, optional): Parameters for the model given as key(str): value. If empty, default parameters of the model will be used. Defaults to {}.
+            recording_config (dict, optional): Parameters for the underlyin SparrowRecording object. If empty, default parameters of the recording will be used. Defaults to {}.
+            species_predictor_config (dict, optional): _description_. If empty, default parameters of the species predictor will be used. Defaults to {}.
+            Make sure the model you use is compatible with a species predictor before supplying these.
         Raises:
-            ValueError: _description_
+            ValueError: When the model name is not present in the models directory of iSparrow
         """
         # import and build new model, pause the analyzer process,
         # change the model, resume the analyzer
 
         if (self.model_dir / model_name).is_dir() is False:
+            self.stop()
             raise ValueError("Given model name does not exist in model dir.")
 
         self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
@@ -419,8 +422,11 @@ class SparrowWatcher:
 
     def start(self):
         """
-        watch Watch the directory the caller has been created with and analyze all newly created files matching a certain file ending. \
+        start Watch the directory the caller has been created with and analyze all newly created files matching a certain file ending. \
             Creates a new daemon process in which the analysis function runs.
+
+        Raises:
+            RuntimeError: When the watcher process is running already.
         """
 
         if self.watcher_process is not None and self.is_running:
@@ -449,7 +455,10 @@ class SparrowWatcher:
 
     def pause(self):
         """
-        stop Pause the watcher thread.
+        pause Pause the watcher process.
+
+        Raises:
+            RuntimeError: When the watcher process is not running.
         """
         if self.watcher_process is not None and self.watcher_process.is_alive():
             self.is_done_analyzing.wait()  # wait for the finish event
@@ -461,16 +470,26 @@ class SparrowWatcher:
     def go_on(self):
         """
         go_on Continue the watcher thread.
+
+        Raises:
+            RuntimeError: When the watcher process is not running anymore
         """
         if self.watcher_process is not None and self.watcher_process.is_alive():
-            print("continute the watcher process")
+            print("continue the watcher process")
             self.may_do_work.set()
         else:
             raise RuntimeError("Cannot continue watcher process, is not alive anymore.")
 
     def stop(self):
+        """
+        stop Stop the watcher process if it is still running.
+
+        Raises:
+            RuntimeError: When the watcher process is not running anymore
+        """
         if self.watcher_process is not None and self.watcher_process.is_alive():
             self.may_do_work.set()
+
             self.is_done_analyzing.wait()
 
             print("stop the watcher process")
