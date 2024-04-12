@@ -97,6 +97,16 @@ class WatchFixture:
 
             wait_for_file_completion(Path(data) / Path(f"example_{i}.wav"))
 
+    def delete(self, data, output):
+        for f in data.iterdir():
+            if f.is_dir():
+                shutil.rmtree(f)
+            else:
+                f.unlink()
+
+        for f in output.iterdir():
+            shutil.rmtree(f)
+
 
 @pytest.fixture(scope="module")
 def watch_fx():
