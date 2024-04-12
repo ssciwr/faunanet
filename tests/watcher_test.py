@@ -1,5 +1,6 @@
 import pytest
 from pathlib import Path
+from iSparrow.sparrow_watcher import AnalysisEventHandler
 from iSparrow import SparrowWatcher
 from iSparrow.utils import wait_for_file_completion
 from datetime import datetime
@@ -8,16 +9,64 @@ import shutil
 import multiprocessing
 import yaml
 import time
-import pandas as pd
+from watchdog.observers import Observer
 
 
-def test_event_handler_creation(watch_fx):
-    pass
+def test_event_handler(watch_fx, folders):
+    wfx = watch_fx
+    home, data, output = folders
+
+    wfx.delete(data, output)
+
+    x = 0
+
+    def callback(f):
+        nonlocal x
+        x = x + 3
+
+    event_handler = AnalysisEventHandler(callback, pattern=".wav")
+
+    assert event_handler.pattern == ".wav"
+
+    # copy some dummy data and assert output of callback
+    x = 0
+
+    recorder_process = multiprocessing.Process(
+        target=wfx.mock_recorder,
+        args=(home, data, 3, 2),
+    )
+    recorder_process.daemon = True
+    recorder_process.start()
+
+    observer = Observer()
+    observer.schedule(event_handler, data, recursive=True)
+    observer.start()
+
+    try:
+        while True:
+            time.sleep(1)
+            if (data / "example_2.wav").is_file():
+                raise KeyboardInterrupt
+
+    except KeyboardInterrupt:
+        observer.stop()
+    except Exception as e:
+        observer.stop()
+        raise RuntimeError(
+            "Something went wrong in the watcher/analysis process"
+        ) from e
+    recorder_process.join()
+    recorder_process.close()
+    observer.join()
+
+    assert x == 9
 
 
 def test_watcher_construction(watch_fx, install, folders):
     wfx = watch_fx
     home, data, output = folders
+
+    wfx.delete(data, output)
 
     path_add = Path(datetime.now().strftime("%y%m%d_%H%M%S"))
     model_cfg = deepcopy(wfx.model_cfg)
@@ -190,6 +239,7 @@ def test_watcher_construction(watch_fx, install, folders):
 def test_watcher_analysis_lowlevel_functionality(watch_fx, folders, install):
     wfx = watch_fx
     home, data, output = folders
+    wfx.delete(data, output)
 
     model_cfg = deepcopy(wfx.model_cfg)
 
@@ -236,6 +286,7 @@ def test_watcher_analysis_lowlevel_functionality(watch_fx, folders, install):
 def test_watcher_daemon_lowlevel_functionality(watch_fx, folders, install):
     wfx = watch_fx
     home, data, output = folders
+    wfx.delete(data, output)
 
     model_cfg = deepcopy(wfx.model_cfg)
 
@@ -323,15 +374,7 @@ def test_watcher_integrated_simple(watch_fx, folders, install):
     wfx = watch_fx
 
     home, data, output = folders
-
-    for f in data.iterdir():
-        if f.is_dir():
-            shutil.rmtree(f)
-        else:
-            f.unlink()
-
-    for f in output.iterdir():
-        shutil.rmtree(f)
+    wfx.delete(data, output)
 
     assert len(list(Path(data).iterdir())) == 0
 
@@ -422,14 +465,7 @@ def test_watcher_integrated_delete_always(watch_fx, folders, install):
 
     home, data, output = folders
 
-    for f in data.iterdir():
-        if f.is_dir():
-            shutil.rmtree(f)
-        else:
-            f.unlink()
-
-    for f in output.iterdir():
-        shutil.rmtree(f)
+    wfx.delete(data, output)
 
     assert len(list(Path(data).iterdir())) == 0
 
@@ -520,14 +556,7 @@ def test_watcher_integrated_delete_on_cleanup(watch_fx, folders, install):
 
     home, data, output = folders
 
-    for f in data.iterdir():
-        if f.is_dir():
-            shutil.rmtree(f)
-        else:
-            f.unlink()
-
-    for f in output.iterdir():
-        shutil.rmtree(f)
+    wfx.delete(data, output)
 
     assert len(list(Path(data).iterdir())) == 0
 
@@ -615,19 +644,12 @@ def test_watcher_integrated_delete_on_cleanup(watch_fx, folders, install):
     ]
 
 
-def test_watcher_integrated_delete_on_never(watch_fx, folders, install):
+def test_watcher_integrated_delete_never(watch_fx, folders, install):
     wfx = watch_fx
 
     home, data, output = folders
 
-    for f in data.iterdir():
-        if f.is_dir():
-            shutil.rmtree(f)
-        else:
-            f.unlink()
-
-    for f in output.iterdir():
-        shutil.rmtree(f)
+    wfx.delete(data, output)
 
     assert len(list(Path(data).iterdir())) == 0
 
@@ -715,3 +737,211 @@ def test_watcher_integrated_delete_on_never(watch_fx, folders, install):
     ]
 
 
+def test_watcher_model_exchange_with_cleanup(watch_fx, folders, install):
+    wfx = watch_fx
+
+    home, data, output = folders
+
+    for f in data.iterdir():
+        if f.is_dir():
+            shutil.rmtree(f)
+        else:
+            f.unlink()
+
+    for f in output.iterdir():
+        shutil.rmtree(f)
+
+    assert len(list(Path(data).iterdir())) == 0
+
+    assert len(list(Path(output).iterdir())) == 0
+
+    model_cfg = deepcopy(wfx.model_cfg)
+
+    model_cfg["model_name"] = "birdnet_default"
+
+    watcher = SparrowWatcher(
+        data,
+        output,
+        home / "models",
+        "birdnet_default",
+        preprocessor_config=wfx.preprocessor_cfg,
+        model_config=wfx.model_cfg,
+        recording_config=deepcopy(wfx.recording_cfg),
+        species_predictor_config=wfx.species_predictor_cfg,
+        delete_recordings="on_cleanup",
+        reanalyze_on_cleanup=True,
+    )
+
+    preprocessor_cfg = {
+        "sample_rate": 48000,
+        "overlap": 0.0,
+        "sample_secs": 3.0,
+        "resample_type": "kaiser_fast",
+    }
+
+    model_cfg = {
+        "num_threads": 1,
+        "sigmoid_sensitivity": 0.8,  # change for testing
+        "default_model_path": str(home / "models/birdnet_default"),
+    }
+
+    recording_cfg = {
+        "species_presence_threshold": 0.03,
+        "min_conf": 0.35,
+    }
+
+    # make a mock recorder process that runs in the background
+    number_of_files = 7
+    sleep_for = 2
+    recorder_process = multiprocessing.Process(
+        target=wfx.mock_recorder,
+        args=(home, data, number_of_files, sleep_for),
+    )
+    recorder_process.daemon = True
+    recorder_process.start()
+
+    watcher.start()
+
+    default_output = deepcopy(watcher.output)
+
+    while True:
+        watcher.pause()
+        if (
+            watcher.output / "results_example_4.csv"
+        ).is_file() and wait_for_file_completion(
+            watcher.output / "results_example_4.csv"
+        ):
+            watcher.change_analyzer(
+                "birdnet_custom",
+                preprocessor_config=preprocessor_cfg,
+                model_config=model_cfg,
+                recording_config=recording_cfg,
+            )
+            break
+
+        else:
+            watcher.go_on()
+    # the following makes
+    recorder_process.join()
+
+    recorder_process.close()
+
+    watcher.stop()
+
+    assert watcher.recording.analyzer.name == "birdnet_custom"
+    assert watcher.recording.minimum_confidence == 0.35
+    assert watcher.recording.analyzer.sensitivity == 0.8
+    assert watcher.recording.analyzer.default_model_path == str(
+        home / "models/birdnet_default/model.tflite"
+    )
+
+    data = [
+        file
+        for file in Path(watcher.input_directory).iterdir()
+        if file.suffix == ".wav"
+    ]
+
+    default_results = [
+        file for file in Path(default_output).iterdir() if file.suffix == ".csv"
+    ]
+
+    custom_results = [
+        file for file in Path(watcher.output).iterdir() if file.suffix == ".csv"
+    ]
+
+    assert len([folder for folder in watcher.outdir.iterdir() if folder.is_dir()]) == 2
+
+    assert len(data) == 7
+
+    assert len(default_results) == 5
+
+    assert len(custom_results) == 1
+
+    watcher.clean_up()
+
+    custom_results = [
+        file for file in Path(watcher.output).iterdir() if file.suffix == ".csv"
+    ]
+
+    assert len(custom_results) == 2
+
+    data = [
+        file
+        for file in Path(watcher.input_directory).iterdir()
+        if file.suffix == ".wav"
+    ]
+
+    assert len(data) == 0
+
+    missings = []
+    with open(Path(watcher.output) / "missing_files.txt", "r") as mfile:
+        for line in mfile:
+            if line not in ["\n", "\0"]:
+                missings.append(line.strip("\n"))
+
+    assert missings == [
+        str(watcher.input / "example_5.wav"),
+    ]
+
+
+def test_watcher_model_exchange_with_cleanup_invalid_model(watch_fx, folders, install):
+    wfx = watch_fx
+
+    home, data, output = folders
+
+    wfx.delete(data, output)
+
+    model_cfg = deepcopy(wfx.model_cfg)
+
+    model_cfg["model_name"] = "birdnet_default"
+
+    watcher = SparrowWatcher(
+        data,
+        output,
+        home / "models",
+        "birdnet_default",
+        preprocessor_config=wfx.preprocessor_cfg,
+        model_config=wfx.model_cfg,
+        recording_config=deepcopy(wfx.recording_cfg),
+        species_predictor_config=wfx.species_predictor_cfg,
+        delete_recordings="on_cleanup",
+        reanalyze_on_cleanup=True,
+    )
+
+    preprocessor_cfg = {
+        "sample_rate": 48000,
+        "overlap": 0.0,
+        "sample_secs": 3.0,
+        "resample_type": "kaiser_fast",
+    }
+
+    model_cfg = {
+        "num_threads": 1,
+        "sigmoid_sensitivity": 0.8,  # change for testing
+        "default_model_path": str(home / "models/birdnet_default"),
+    }
+
+    recording_cfg = {
+        "species_presence_threshold": 0.03,
+        "min_conf": 0.35,
+    }
+
+    watcher.start()
+
+    time.sleep(4)
+
+    # artificially set finish flag because no data
+    watcher.is_done_analyzing.set()
+
+    with pytest.raises(
+        ValueError, match="Given model name does not exist in model dir."
+    ):
+        watcher.change_analyzer(
+            "model_that_is_not_there",
+            preprocessor_config=preprocessor_cfg,
+            model_config=model_cfg,
+            recording_config=recording_cfg,
+        )
+
+    assert watcher.watcher_process is None
+    assert watcher.is_running is False
