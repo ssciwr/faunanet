@@ -79,7 +79,6 @@ def watchertask(watcher):
 
     event_handler = AnalysisEventHandler(
         watcher,
-        pattern=watcher.pattern,
     )
     observer.schedule(event_handler, watcher.input, recursive=True)
     observer.start()
@@ -127,39 +126,17 @@ class SparrowWatcher:
                 "input": str(self.input),
                 "output": str(self.output),
                 "model_dir": str(self.model_dir),
-                "Preprocessor": self.preprocessor_config,
-                "Model": self.model_config,
-                "Recording": self.recording_config,
-                "SpeciesPredictor": self.species_predictor_config,
+                "Preprocessor": deepcopy(self.preprocessor_config),
+                "Model": deepcopy(self.model_config),
+                "Recording": deepcopy(self.recording_config),
+                "SpeciesPredictor": deepcopy(self.species_predictor_config),
             }
         }
 
-        config["Analysis"]["Model"]["model_name"] = self.model_name
+        config["Analysis"]["Model"]["name"] = self.model_name
 
         with open(self.output / "config.yml", "w") as ymlfile:
             yaml.safe_dump(config, ymlfile)
-
-        if all(
-            name in self.recording_config for name in ["date", "lat", "lon"]
-        ) and all(
-            self.recording_config[name] is not None for name in ["date", "lat", "lon"]
-        ):
-
-            try:
-                # we can use the species predictor
-                species_predictor = SpeciesPredictorBase(
-                    model_path=self.model_dir / self.model_name,
-                    **self.species_predictor_config,
-                )
-
-                self.recording_config["species_predictor"] = species_predictor
-
-            except Exception as e:
-                raise ValueError(
-                    "An error occured during species range predictor creation. Does you model provide a model file called 'species_presence_model'?"
-                ) from e
-
-        return config
 
     def set_up_recording(
         self,
@@ -364,11 +341,23 @@ class SparrowWatcher:
             self.stop()
             raise ValueError("Given model name does not exist in model dir.")
 
+        self.model_name = model_name
+
         self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
 
         self.used_output_folders.append(self.output)
 
         self.creation_time_first_analyzed = multiprocessing.Value("d", 0)
+
+        self.model_name = model_name
+
+        self.preprocessor_config = preprocessor_config
+
+        self.model_config = model_config
+
+        self.recording_config = recording_config
+
+        self.species_predictor_config = species_predictor_config
 
         # restart process to make changes take effect
         self.restart()
@@ -458,7 +447,7 @@ class SparrowWatcher:
         """
         if self.watcher_process is not None and self.watcher_process.is_alive():
             self.is_done_analyzing.wait()  # wait for the finish event
-            print("pause the watcher process")
+            # print("pause the watcher process")
             self.may_do_work.clear()
         else:
             raise RuntimeError("Cannot pause watcher process, is not alive anymore.")
@@ -471,7 +460,7 @@ class SparrowWatcher:
             RuntimeError: When the watcher process is not running anymore
         """
         if self.watcher_process is not None and self.watcher_process.is_alive():
-            print("continue the watcher process")
+            # print("continue the watcher process")
             self.may_do_work.set()
         else:
             raise RuntimeError("Cannot continue watcher process, is not alive anymore.")
@@ -509,6 +498,9 @@ class SparrowWatcher:
 
         missings = []
 
+        if self.reanalyze_on_cleanup:
+            recording = self.set_up_recording()
+
         for filename in self.input.iterdir():
 
             # check that the currently checked file has been created before the last
@@ -537,7 +529,7 @@ class SparrowWatcher:
                     if self.reanalyze_on_cleanup:
                         self.may_do_work.set()
                         self.is_done_analyzing.clear()
-                        self.analyze(filename)
+                        self.analyze(filename, recording)
 
                 if self.delete_recordings == "on_cleanup":
                     # no locking needed because we do not look at files newer than the last fully analyzed one

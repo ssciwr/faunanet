@@ -30,7 +30,7 @@ def install(request):
         shutil.rmtree(str(set_up_sparrow_env.DATA))
         shutil.rmtree(str(set_up_sparrow_env.OUTPUT))
 
-    request.addfinalizer(teardown)
+    # request.addfinalizer(teardown)
 
 
 @pytest.fixture()
