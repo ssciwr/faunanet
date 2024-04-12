@@ -434,6 +434,7 @@ class SparrowWatcher:
         # create a background watchertask such that the command is handed back to the parent process
 
         self.may_do_work.set()
+        self.is_done_analyzing.clear()
         self.watcher_process = multiprocessing.Process(target=watchertask, args=(self,))
         self.watcher_process.daemon = True
         self.watcher_process.name = "watcher_process"
@@ -469,6 +470,7 @@ class SparrowWatcher:
 
     def stop(self):
         if self.watcher_process is not None and self.watcher_process.is_alive():
+            self.may_do_work.set()
             self.is_done_analyzing.wait()
 
             print("stop the watcher process")
@@ -495,7 +497,13 @@ class SparrowWatcher:
             # check that the currently checked file has been created before the last
             # one of which we are sure it has been analyzed to make sure it does not
             # include the one the analyzer currently uses
-            if filename.stat().st_ctime < self.creation_time_last_analyzed.value:
+            condition = (
+                filename.stat().st_ctime < self.creation_time_last_analyzed.value
+                if self.is_running
+                else True
+            )
+
+            if condition:
 
                 not_there = all(
                     [
@@ -507,16 +515,17 @@ class SparrowWatcher:
 
                 if not_there is True:
                     missings.append(filename)
-
                     #  README: calling this is should not cause a race condition on the model because
                     # the watcher_process has its own copy of the recording
                     if self.reanalyze_on_cleanup:
+                        self.may_do_work.set()
+                        self.is_done_analyzing.clear()
                         self.analyze(filename)
 
                 if self.delete_recordings == "on_cleanup":
                     # no locking needed because we do not look at files newer than the last fully analyzed one
                     filename.unlink()
 
-            with open(self.output / "missing_files.csv", "w") as missingrecord:
+            with open(self.output / "missing_files.txt", "w") as missingrecord:
                 for line in missings:
                     missingrecord.write(f"{line}\n")

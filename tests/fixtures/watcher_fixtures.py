@@ -4,6 +4,7 @@ import shutil
 import time
 import yaml
 from datetime import datetime
+from iSparrow.utils import wait_for_file_completion
 
 
 class WatchFixture:
@@ -83,16 +84,18 @@ class WatchFixture:
             "default_model_path": str(Path.home() / "iSparrow/models/birdnet_default"),
         }
 
-    def mock_recorder(self, home: str, data: str, number=10):
+    def mock_recorder(self, home: str, data: str, number=10, sleep_for=4):
 
         for i in range(0, number, 1):
 
-            time.sleep(4)  # add a dummy time to emulate recording time
+            time.sleep(sleep_for)  # add a dummy time to emulate recording time
 
             shutil.copy(
                 Path(home) / Path("example/soundscape.wav"),
                 Path(data) / Path(f"example_{i}.wav"),
             )
+
+            wait_for_file_completion(Path(data) / Path(f"example_{i}.wav"))
 
 
 @pytest.fixture(scope="module")
