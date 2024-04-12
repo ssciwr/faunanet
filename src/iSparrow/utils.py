@@ -8,10 +8,10 @@ except Exception:
 
 from pathlib import Path
 import validators as valid
-import importlib
+import importlib.util
 import os
 import time
-
+import sys
 
 # custom exception to have some more control over what is raised
 class TFModelException(Exception):
@@ -133,37 +133,38 @@ def load_model_from_file_torch(path: str, _):
     raise NotImplementedError("torch models are not yet supported")
 
 
-def load_module(alias: str, path: str):
+def load_module(module_name: str, file_path: str):
     """
     load_module Load a python module from 'path' with alias 'alias'
 
     Args:
-        alias (str): module alias.
-        path (str): Path to load the module from
+        module_name (str): module alias.
+        file_path (str): Path to load the module from
 
     Returns:
         module: Python module that has been loaded
     """
-    spec = importlib.util.spec_from_file_location(alias, path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    try:
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    except Exception as e:
+        raise RuntimeError(f"Error in loading module {file_path}") from e
     return module
 
 
-def load_name_from_module(alias: str, path: str, name: str):
+def load_name_from_module(module_name: str, file_path: str, name: str):
     """
     load_name_from_module Load a python module from 'path' with alias 'alias'
 
     Args:
-        alias (str): module alias.
-        path (str): Path to load the module from
+        module_name (str): module alias.
+        file_path (str): Path to load the module from
         name (str): name to import
     Returns:
         module: Python module that has been loaded
     """
-    spec = importlib.util.spec_from_file_location(alias, path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = load_module(module_name, file_path)
     return getattr(module, name)
 
 
