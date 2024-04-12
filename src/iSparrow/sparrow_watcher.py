@@ -143,13 +143,13 @@ class SparrowWatcher:
             ValueError: _description_
         """
         preprocessor = utils.load_name_from_module(
-            "pp",
-            self.model_dir / Path(model_name) / "preprocessor.py",
+            "preprocessor",
+            str(self.model_dir / Path(model_name) / "preprocessor.py"),
             "Preprocessor",
         )(**preprocessor_config)
 
         model = utils.load_name_from_module(
-            "mo", self.model_dir / Path(model_name) / "model.py", "Model"
+            "model", self.model_dir / Path(model_name) / "model.py", "Model"
         )(model_path=self.model_dir / model_name, **model_config)
 
         # process config file
