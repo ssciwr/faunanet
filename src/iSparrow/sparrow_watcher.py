@@ -120,7 +120,10 @@ class SparrowWatcher:
     def _write_config(
         self,
     ):
+        """
+        _write_config Write out the set of parameters a Watcher instance has been created with.
 
+        """
         config = {
             "Analysis": {
                 "input": str(self.input),
@@ -140,21 +143,15 @@ class SparrowWatcher:
 
     def set_up_recording(
         self,
-    ):
+    ) -> SparrowRecording:
         """
-        set_up_recording _summary_
-
-        _extended_summary_
-
-        Args:
-            model_name (str): _description_
-            preprocessor_config (dict, optional): _description_. Defaults to {}.
-            model_config (dict, optional): _description_. Defaults to {}.
-            recording_config (dict, optional): _description_. Defaults to {}.
-            species_predictor_config (dict, optional): _description_. Defaults to {}.
+        set_up_recording Set up the recording object used for analyzing audio files.
 
         Raises:
-            ValueError: _description_
+            ValueError: In case the species presence predictor is used. When the an error occurs during the creation of the species predictor model.
+
+        Returns:
+            SparrowRecording: New instance of SpeciesRecording created with config dictionaries held by the caller.
         """
         preprocessor = utils.load_name_from_module(
             "pp",
@@ -227,7 +224,6 @@ class SparrowWatcher:
             ValueError: When the outdir parameter is not an existing directory.
             ValueError: When the model_dir parameter is not an existing directory.
             ValueError: When the model name does not correspond to a directory in the 'model_dir' directory in which available models are stored.
-            Exception: When the species presence model should be used: If something goes wrong during creation of the species presence predictor model.
         """
         # set up data to use
         self.input = Path(indir)
@@ -447,7 +443,6 @@ class SparrowWatcher:
         """
         if self.watcher_process is not None and self.watcher_process.is_alive():
             self.is_done_analyzing.wait()  # wait for the finish event
-            # print("pause the watcher process")
             self.may_do_work.clear()
         else:
             raise RuntimeError("Cannot pause watcher process, is not alive anymore.")

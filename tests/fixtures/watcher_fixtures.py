@@ -5,17 +5,18 @@ import time
 import yaml
 from datetime import datetime
 from iSparrow.utils import wait_for_file_completion
+from iSparrow import SparrowWatcher
+from .. import set_up_sparrow_env
+from copy import deepcopy
 
 
 class WatchFixture:
 
     def __init__(self):
-        self.filepath = Path(__file__).resolve()
-        self.testpath = self.filepath.parent.parent
+        filepath = Path(__file__).resolve()
+        self.testpath = filepath.parent.parent
         cfgpath = (
-            self.filepath.parent.parent.parent
-            / Path("config")
-            / Path("install_cfg.yml")
+            filepath.parent.parent.parent / Path("config") / Path("install_cfg.yml")
         )
 
         with open(cfgpath, "r") as file:
@@ -60,12 +61,6 @@ class WatchFixture:
             "species_predictor": None,
         }
 
-        self.recording_cfg_unrestricted = {
-            "species_presence_threshold": 0.03,
-            "min_conf": 0.25,
-            "species_predictor": None,
-        }
-
         self.species_predictor_cfg = {
             "use_cache": True,
             "num_threads": 1,
@@ -84,8 +79,11 @@ class WatchFixture:
             "default_model_path": str(Path.home() / "iSparrow/models/birdnet_default"),
         }
 
-    def mock_recorder(self, home: str, data: str, number=10, sleep_for=4):
+        self.home = set_up_sparrow_env.HOME
+        self.data = set_up_sparrow_env.DATA
+        self.output = set_up_sparrow_env.OUTPUT
 
+    def mock_recorder(self, home: str, data: str, number=10, sleep_for=4):
         for i in range(0, number, 1):
 
             time.sleep(sleep_for)  # add a dummy time to emulate recording time
@@ -97,17 +95,31 @@ class WatchFixture:
 
             wait_for_file_completion(Path(data) / Path(f"example_{i}.wav"))
 
-    def delete(self, data, output):
-        for f in data.iterdir():
+    def standard_watcher(self):
+        return SparrowWatcher(
+            self.data,
+            self.output,
+            self.home / "models",
+            "birdnet_default",
+            preprocessor_config=self.preprocessor_cfg,
+            model_config=self.model_cfg,
+            recording_config=deepcopy(self.recording_cfg),
+            species_predictor_config=self.species_predictor_cfg,
+        )
+
+    def delete(self):
+        for f in self.data.iterdir():
             if f.is_dir():
                 shutil.rmtree(f)
             else:
                 f.unlink()
 
-        for f in output.iterdir():
+        for f in self.output.iterdir():
             shutil.rmtree(f)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def watch_fx():
-    return WatchFixture()
+    w = WatchFixture()
+    w.delete()
+    return w
