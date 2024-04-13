@@ -2,7 +2,6 @@ import pytest
 from pathlib import Path
 import shutil
 import time
-import yaml
 from datetime import datetime
 from iSparrow.utils import wait_for_file_completion
 from iSparrow import SparrowWatcher
@@ -13,31 +12,10 @@ from copy import deepcopy
 class WatchFixture:
 
     def __init__(self):
-        filepath = Path(__file__).resolve()
-        self.testpath = filepath.parent.parent
-        cfgpath = (
-            filepath.parent.parent.parent / Path("config") / Path("install_cfg.yml")
-        )
 
-        with open(cfgpath, "r") as file:
-            cfg = yaml.safe_load(file)
-            cfg = cfg["Directories"]
-
-        self.sparrow_folder = Path(cfg["home"]).expanduser()
-        self.models_folder = self.sparrow_folder / "models"
-
-        with open(self.testpath / Path("test_configs") / "cfg_custom.yml", "r") as file:
-            self.custom_cfg = yaml.safe_load(file)
-
-        with open(
-            self.testpath / Path("test_configs") / "cfg_default.yml", "r"
-        ) as file:
-            self.default_cfg = yaml.safe_load(file)
-
-        with open(
-            self.testpath / Path("test_configs") / "cfg_wrong_model.yml", "r"
-        ) as file:
-            self.cfg_wrong_model = yaml.safe_load(file)
+        self.home = set_up_sparrow_env.HOME
+        self.data = set_up_sparrow_env.DATA
+        self.output = set_up_sparrow_env.OUTPUT
 
         self.preprocessor_cfg = {
             "sample_rate": 48000,
@@ -79,9 +57,35 @@ class WatchFixture:
             "default_model_path": str(Path.home() / "iSparrow/models/birdnet_default"),
         }
 
-        self.home = set_up_sparrow_env.HOME
-        self.data = set_up_sparrow_env.DATA
-        self.output = set_up_sparrow_env.OUTPUT
+        self.changed_custom_model_cfg = {
+            "num_threads": 1,
+            "sigmoid_sensitivity": 0.8,  # change for testing
+            "default_model_path": str(self.home / "models/birdnet_default"),
+        }
+
+        self.changed_custom_recording_cfg = {
+            "species_presence_threshold": 0.03,
+            "min_conf": 0.35,
+        }
+
+        self.path_add = Path(datetime.now().strftime("%y%m%d_%H%M%S"))
+
+        # don't change the model config itself
+        model_cfg2 = deepcopy(self.model_cfg)
+
+        model_cfg2["name"] = "birdnet_default"
+
+        self.config_should = {
+            "Analysis": {
+                "input": str(self.data),
+                "output": str(self.output / self.path_add),
+                "model_dir": str(self.home / "models"),
+                "Preprocessor": deepcopy(self.preprocessor_cfg),
+                "Model": model_cfg2,
+                "Recording": deepcopy(self.recording_cfg),
+                "SpeciesPredictor": deepcopy(self.species_predictor_cfg),
+            }
+        }
 
     def mock_recorder(self, home: str, data: str, number=10, sleep_for=4):
         for i in range(0, number, 1):
@@ -95,16 +99,17 @@ class WatchFixture:
 
             wait_for_file_completion(Path(data) / Path(f"example_{i}.wav"))
 
-    def standard_watcher(self):
+    def make_watcher(self, **kwargs):
         return SparrowWatcher(
             self.data,
             self.output,
             self.home / "models",
             "birdnet_default",
-            preprocessor_config=self.preprocessor_cfg,
-            model_config=self.model_cfg,
+            preprocessor_config=deepcopy(self.preprocessor_cfg),
+            model_config=deepcopy(self.model_cfg),
             recording_config=deepcopy(self.recording_cfg),
-            species_predictor_config=self.species_predictor_cfg,
+            species_predictor_config=deepcopy(self.species_predictor_cfg),
+            **kwargs,
         )
 
     def delete(self):
@@ -116,6 +121,18 @@ class WatchFixture:
 
         for f in self.output.iterdir():
             shutil.rmtree(f)
+
+    def get_folder_content(self, folder: str, pattern: str):
+        return [f for f in Path(folder).iterdir() if f.suffix == pattern]
+
+    def read_missings(self, watcher):
+        missings = []
+        with open(Path(watcher.output) / "missing_files.txt", "r") as mfile:
+            for line in mfile:
+                if line not in ["\n", "\0"]:
+                    missings.append(line.strip("\n"))
+        missings.sort()
+        return missings
 
 
 @pytest.fixture()
