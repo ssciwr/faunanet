@@ -11,11 +11,35 @@ import validators as valid
 import importlib.util
 import os
 import time
-import sys
+import yaml
+
 
 # custom exception to have some more control over what is raised
 class TFModelException(Exception):
     pass
+
+
+def read_yaml(path: str):
+    print(f"...reading config from {path}")
+    """
+        read_yaml Read the yaml basic config file for iSparrow from path.
+                It contains the install directory, data directory and other things used
+                by iSparrow internally.
+
+        Args:
+            path (str): Path to the yaml base config.
+
+        Returns:
+            dict: read base config file.
+        """
+
+    if Path(path).exists() is False:
+        raise FileNotFoundError(f"The folder {path} does not exist")
+
+    with open(Path(path)) as file:
+        base_cfg = yaml.safe_load(file)
+
+    return base_cfg
 
 
 def is_url(potential_url: str) -> bool:

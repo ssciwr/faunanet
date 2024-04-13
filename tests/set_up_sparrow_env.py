@@ -1,37 +1,13 @@
 import shutil
 import pooch
-import yaml
 from pathlib import Path
+from iSparrow import utils
 
 HOME = None
 DATA = None
 MODELS = None
 OUTPUT = None
 EXAMPLES = None
-
-
-# README: the below will later land in setup.py...
-def read_yaml(path: str):
-    print(f"...reading config from {path}")
-    """
-        read_yaml Read the yaml basic config file for iSparrow from path.
-                It contains the install directory, data directory and other things used
-                by iSparrow internally.
-
-        Args:
-            path (str): Path to the yaml base config.
-
-        Returns:
-            dict: read base config file.
-        """
-
-    if Path(path).exists() is False:
-        raise FileNotFoundError(f"The folder {path} does not exist")
-
-    with open(Path(path)) as file:
-        base_cfg = yaml.safe_load(file)
-
-    return base_cfg
 
 
 def make_directories(base_cfg_dirs: dict):
@@ -247,7 +223,7 @@ def install():
 
     cfg_path = Path(__file__).resolve().parent.parent / "config"
 
-    cfg = read_yaml(cfg_path / Path("install_cfg.yml"))
+    cfg = utils.read_yaml(cfg_path / Path("install_cfg.yml"))
 
     home, models, data, output, examples = make_directories(cfg["Directories"])
 
