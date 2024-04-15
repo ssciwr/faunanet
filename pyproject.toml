@@ -24,7 +24,7 @@ dependencies = [
     "pooch",
     "resampy",            # for audio loading
     "validators",         # test url validity 
-    "appdirs",            # get cache dirs without os dependence etc
+    "appdirs"             # get cache dirs without os dependence etc
 ]
 
 [project.urls]

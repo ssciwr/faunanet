@@ -2,8 +2,9 @@ from pathlib import Path
 import numpy as np
 
 try:
-    import tflite_runtime as tflite
-except Exception:
+    import tflite_runtime.interpreter as tflite
+except Exception as e:
+    print(e)
     from tensorflow import lite as tflite
 
 from birdnetlib.analyzer import AnalyzerConfigurationError
@@ -108,7 +109,7 @@ class Model(ModelBase):
         print("Default classifier loaded")
 
         # now load the custom classifier
-        self.custom_classifier = tflite.interpreter.Interpreter(
+        self.custom_classifier = tflite.Interpreter(
             model_path=str(self.model_path), num_threads=self.num_threads
         )
         self.custom_classifier.allocate_tensors()

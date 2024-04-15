@@ -3,7 +3,7 @@ from iSparrow import SpeciesPredictorBase
 import iSparrow.utils as utils
 
 from pathlib import Path
-import pandas as pd
+import csv
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 from time import sleep
@@ -419,9 +419,13 @@ class SparrowWatcher:
         Args:
             suffix (str, optional): _description_. Defaults to "".
         """
-        pd.DataFrame(results).to_csv(
-            self.output / Path(f"results_{suffix}.csv"), index=False
-        )
+
+        with open(
+            self.output / Path(f"results_{suffix}.csv"),
+            mode="w",
+        ) as file:
+            writer = csv.writer(file)
+            writer.writerows(results)
 
     def start(self):
         """

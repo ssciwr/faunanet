@@ -1,6 +1,7 @@
 try:
-    import tflite_runtime as tflite
-except Exception:
+    import tflite_runtime.interpreter as tflite
+except Exception as e:
+    print(e)
     from tensorflow import lite as tflite
 
 from pathlib import Path
@@ -72,9 +73,7 @@ def load_model_from_file_tflite(path: str, num_threads: int = 1):
         raise FileNotFoundError("The desired model file does not exist")
 
     try:
-        interpreter = tflite.interpreter.Interpreter(
-            model_path=path, num_threads=num_threads
-        )
+        interpreter = tflite.Interpreter(model_path=path, num_threads=num_threads)
         return interpreter
     except Exception as e:
         raise TFModelException(e)
