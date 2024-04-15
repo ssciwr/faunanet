@@ -26,12 +26,12 @@ def test_watcher_construction(watch_fx):
 
     # check member variables
     assert str(watcher.output) == str(Path(watcher.outdir) / wfx.path_add)
-    assert str(watcher.input) == str(Path.home() / "iSparrow_data")
-    assert str(watcher.outdir) == str(Path.home() / "iSparrow_output")
+    assert str(watcher.input) == str(Path.home() / "iSparrow_data" / "tests")
+    assert str(watcher.outdir) == str(Path.home() / "iSparrow_output" / "tests")
     assert str(watcher.model_dir) == str(Path.home() / "iSparrow/models")
     assert str(watcher.model_name) == "birdnet_default"
     assert watcher.output_directory == str(Path(watcher.outdir) / wfx.path_add)
-    assert watcher.input_directory == str(Path.home() / "iSparrow_data")
+    assert watcher.input_directory == str(Path.home() / "iSparrow_data" / "tests")
     assert watcher.is_running is False
     assert watcher.output.is_dir() is False  # not yet created
     assert watcher.input.is_dir()

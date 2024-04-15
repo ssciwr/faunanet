@@ -16,7 +16,7 @@ OUTPUT = ""
 @pytest.fixture(scope="module", autouse=True)
 def install(request):
     print("Creating iSparrow folders and downloading data... ")
-    set_up_sparrow_env.install()
+    set_up_sparrow_env.install(for_tests=True)
     print("Installation finished")
 
     global HOME, DATA, OUTPUT
@@ -26,9 +26,8 @@ def install(request):
 
     # remove again after usage
     def teardown():
-        shutil.rmtree(str(set_up_sparrow_env.HOME))
-        shutil.rmtree(str(set_up_sparrow_env.DATA))
-        shutil.rmtree(str(set_up_sparrow_env.OUTPUT))
+        shutil.rmtree(str(DATA))
+        shutil.rmtree(str(OUTPUT))
 
     request.addfinalizer(teardown)
 

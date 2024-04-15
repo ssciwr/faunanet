@@ -10,7 +10,7 @@ OUTPUT = None
 EXAMPLES = None
 
 
-def make_directories(base_cfg_dirs: dict):
+def make_directories(base_cfg_dirs: dict, for_tests: bool = False):
     """
     make_directories Make all the directories for sparrow.
 
@@ -48,6 +48,10 @@ def make_directories(base_cfg_dirs: dict):
     isd = Path(base_cfg_dirs["data"]).expanduser().resolve()
     iso = Path(base_cfg_dirs["output"]).expanduser().resolve()
     ise = (Path(base_cfg_dirs["home"]).expanduser() / Path("example")).resolve()
+
+    if for_tests:
+        isd = isd / "tests"
+        iso = iso / "tests"
 
     print(ish, ism, isd, iso, ise)
     for p in [ish, ism, isd, iso, ise]:
@@ -216,7 +220,7 @@ def copy_files(modeldir):
 
 
 # add a fixture with session scope that emulates the result of a later to-be-implemented-install-routine
-def install():
+def install(for_tests: bool = True):
     print("Creating iSparrow folders and downloading data... ")
     # user cfg can override stuff that the base cfg has. When the two are merged, the result has
     # the base_cfg values whereever user does not have anything
@@ -225,7 +229,9 @@ def install():
 
     cfg = utils.read_yaml(cfg_path / Path("install_cfg.yml"))
 
-    home, models, data, output, examples = make_directories(cfg["Directories"])
+    home, models, data, output, examples = make_directories(
+        cfg["Directories"], for_tests=for_tests
+    )
 
     download_model_files(models.resolve())
 

@@ -13,9 +13,12 @@ class WatchFixture:
 
     def __init__(self):
 
-        self.home = set_up_sparrow_env.HOME
-        self.data = set_up_sparrow_env.DATA
-        self.output = set_up_sparrow_env.OUTPUT
+        self.home = Path(set_up_sparrow_env.HOME)
+        self.data = Path(set_up_sparrow_env.DATA)
+        self.output = Path(set_up_sparrow_env.OUTPUT)
+
+        self.data.mkdir(parents=True, exist_ok=True)
+        self.output.mkdir(parents=True, exist_ok=True)
 
         self.preprocessor_cfg = {
             "sample_rate": 48000,
