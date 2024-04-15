@@ -284,7 +284,7 @@ def test_watcher_integrated_simple(watch_fx):
 
     recorder_process.close()
 
-    filename = watcher.output / "results_example_6.csv"
+    filename = watcher.output / f"results_example_{number_of_files-1}.csv"
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file() and wait_for_file_completion(filename),
         todo_event=lambda: watcher.stop(),
