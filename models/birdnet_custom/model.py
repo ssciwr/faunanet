@@ -108,7 +108,7 @@ class Model(ModelBase):
         print("Default classifier loaded")
 
         # now load the custom classifier
-        self.custom_classifier = tflite.Interpreter(
+        self.custom_classifier = tflite.interpreter.Interpreter(
             model_path=str(self.model_path), num_threads=self.num_threads
         )
         self.custom_classifier.allocate_tensors()

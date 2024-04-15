@@ -1,6 +1,3 @@
-import tensorflow as tf
-import tensorflow_hub as tfhub
-
 try:
     import tflite_runtime as tflite
 except Exception:
@@ -75,7 +72,9 @@ def load_model_from_file_tflite(path: str, num_threads: int = 1):
         raise FileNotFoundError("The desired model file does not exist")
 
     try:
-        interpreter = tflite.Interpreter(model_path=path, num_threads=num_threads)
+        interpreter = tflite.interpreter.Interpreter(
+            model_path=path, num_threads=num_threads
+        )
         return interpreter
     except Exception as e:
         raise TFModelException(e)
@@ -95,6 +94,8 @@ def load_model_from_file_pb(path: str, _):
     Returns:
         Tensorflow model: The loaded model
     """
+    import tensorflow as tf
+
     if "." in Path(path).name or ".pb" in Path(path).name:
         # tensorflow assumes a model file to be named "saved_model.pb" and the path given to be a directory
         path = Path(path).parent
@@ -106,7 +107,7 @@ def load_model_from_file_pb(path: str, _):
         model = tf.saved_model.load(path)
         return model
     except Exception as e:
-        raise TFModelException(e)
+        raise TFModelException(e) from e
 
 
 def load_model_from_tensorflowhub(url: str, _):
@@ -123,6 +124,8 @@ def load_model_from_tensorflowhub(url: str, _):
     Returns:
         Tensorflow model: The loaded model
     """
+    import tensorflow_hub as tfhub
+
     if not is_url(url):
         raise ValueError(
             "The url given to load a model from tensorflow hub is not valid"

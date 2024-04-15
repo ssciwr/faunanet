@@ -2,10 +2,13 @@
 name = "iSparrow"
 version = "0.1"
 requires-python = ">= 3.10"
-authors=[{name = "Inga Ulusoy", email = "inga.ulusoy@uni-heidelberg.de"}, {name = "Harald Mack", email = "harald.mack@uni-heidelberg.de"}]
+authors = [
+    { name = "Inga Ulusoy", email = "inga.ulusoy@uni-heidelberg.de" },
+    { name = "Harald Mack", email = "harald.mack@uni-heidelberg.de" },
+]
 description = "Smart-IoT-based Passive bioAcoustic monitoRing of site-specific co-pResence of zOonotic Wildlife hosts and humans"
-readme ="README.md"
-license={file = "LICENSE"}
+readme = "README.md"
+license = { file = "LICENSE" }
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -13,17 +16,16 @@ classifiers = [
 ]
 
 dependencies = [
-    "numpy", 
-    "librosa", 
-    "tensorflow", 
-    "PyYAML", 
-    "pandas", 
-    "birdnetlib==0.15.0", 
-    "pooch", 
-    "resampy", # for audio loading
-    "tensorflow-hub",
-    "validators", # test url validity 
-    "appdirs" # get cache dirs without os dependence etc
+    "numpy",
+    "librosa",
+    "tflite-runtime",
+    "PyYAML",
+    "pandas",
+    "birdnetlib==0.15.0",
+    "pooch",
+    "resampy",            # for audio loading
+    "validators",         # test url validity 
+    "appdirs",            # get cache dirs without os dependence etc
 ]
 
 [project.urls]
@@ -33,6 +35,8 @@ Repository = "https://github.com/ssciwr/iSparrow"
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[project.optional-dependencies]
+with_tensorflow = ["tensorflow>=2.0","tensorflow-hub>=0.1",]
 
 
-# add additional stuff when needed, poetry support? 
+# add additional stuff when needed, poetry support?
