@@ -88,6 +88,7 @@ class WatchFixture:
         }
 
     def mock_recorder(self, home: str, data: str, number=10, sleep_for=4):
+
         for i in range(0, number, 1):
 
             time.sleep(sleep_for)  # add a dummy time to emulate recording time
@@ -116,6 +117,8 @@ class WatchFixture:
         for f in self.data.iterdir():
             if f.is_dir():
                 shutil.rmtree(f)
+            elif str(f)[0] == ".":
+                continue
             else:
                 f.unlink()
 
@@ -123,7 +126,9 @@ class WatchFixture:
             shutil.rmtree(f)
 
     def get_folder_content(self, folder: str, pattern: str):
-        return [f for f in Path(folder).iterdir() if f.suffix == pattern]
+        files = [f for f in Path(folder).iterdir() if f.suffix == pattern]
+        files.sort()
+        return files
 
     def read_missings(self, watcher):
         missings = []
@@ -133,6 +138,27 @@ class WatchFixture:
                     missings.append(line.strip("\n"))
         missings.sort()
         return missings
+
+    def wait_for_event_then_do(
+        self, condition: callable, todo_event: callable, todo_else: callable
+    ):
+        while True:
+            if condition():
+                todo_event()
+                break
+            else:
+                todo_else()
+
+    def delete_in_output(self, watcher, files: list):
+        for f in files:
+            for out in watcher.used_output_folders:
+                if (out / f).exists():
+                    (out / f).unlink()
+
+    def delete_in_input(self, watcher, files: list):
+        for f in files:
+            if (watcher.input / f).exists():
+                (watcher.input / f).unlink()
 
 
 @pytest.fixture()
