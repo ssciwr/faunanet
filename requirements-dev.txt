@@ -4,3 +4,4 @@ pytest
 pytest-cov 
 coverage
 pre-commit
+ipykernel
