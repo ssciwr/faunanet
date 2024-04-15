@@ -313,7 +313,6 @@ def test_watcher_integrated_delete_always(watch_fx):
 
     watcher = wfx.make_watcher(
         delete_recordings="always",
-        reanalyze_on_cleanup=True,
     )
 
     # make a mock recorder process that runs in the background
@@ -372,7 +371,7 @@ def test_watcher_integrated_delete_always(watch_fx):
 
     assert results == [
         watcher.output / f"results_example_{i}.csv"
-        for i in range(0, number_of_files, 1)
+        for i in range(0, number_of_files - 1, 1)  # last one missing by design of the test
     ]
 
     assert len(data) == 0
@@ -390,7 +389,6 @@ def test_watcher_integrated_delete_on_cleanup(watch_fx):
 
     watcher = wfx.make_watcher(
         delete_recordings="on_cleanup",
-        reanalyze_on_cleanup=True,
     )
 
     # make a mock recorder process that runs in the background
@@ -435,7 +433,7 @@ def test_watcher_integrated_delete_on_cleanup(watch_fx):
 
     results = wfx.get_folder_content(watcher.output_directory, ".csv")
 
-    assert len(results) == number_of_files
+    assert len(results) == number_of_files - 2 
 
     missings = wfx.read_missings(watcher)
 
@@ -453,7 +451,6 @@ def test_watcher_integrated_delete_never(watch_fx):
 
     watcher = wfx.make_watcher(
         delete_recordings="never",
-        reanalyze_on_cleanup=True,
     )
 
     # make a mock recorder process that runs in the background
@@ -502,7 +499,7 @@ def test_watcher_integrated_delete_never(watch_fx):
 
     results = wfx.get_folder_content(watcher.output_directory, ".csv")
 
-    assert len(results) == number_of_files
+    assert len(results) == number_of_files -2
 
     missings = wfx.read_missings(watcher)
 
@@ -515,10 +512,7 @@ def test_watcher_integrated_delete_never(watch_fx):
 def test_watcher_model_exchange_with_cleanup(watch_fx):
     wfx = watch_fx
 
-    watcher = wfx.make_watcher(
-        delete_recordings="on_cleanup",
-        reanalyze_on_cleanup=True,
-    )
+    watcher = wfx.make_watcher(delete_recordings="on_cleanup")
 
     # make a mock recorder process that runs in the background
     number_of_files = 10
@@ -593,7 +587,7 @@ def test_watcher_model_exchange_with_cleanup(watch_fx):
 
     custom_results = wfx.get_folder_content(watcher.output, ".csv")
 
-    assert len(custom_results) == 5
+    assert len(custom_results) == 3
 
     data = wfx.get_folder_content(watcher.input_directory, ".wav")
 
@@ -612,7 +606,6 @@ def test_watcher_model_exchange_with_cleanup_invalid_model(watch_fx):
 
     watcher = wfx.make_watcher(
         delete_recordings="on_cleanup",
-        reanalyze_on_cleanup=True,
     )
 
     watcher.start()

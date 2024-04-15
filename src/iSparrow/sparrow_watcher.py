@@ -199,7 +199,6 @@ class SparrowWatcher:
         pattern: str = ".wav",
         check_time: int = 1,
         delete_recordings: str = "on_cleanup",
-        reanalyze_on_cleanup: bool = True,
     ):
         """
         __init__ Create a new Watcher object.
@@ -264,8 +263,6 @@ class SparrowWatcher:
         self.used_output_folders = [
             self.output,
         ]
-
-        self.reanalyze_on_cleanup = reanalyze_on_cleanup
 
         if delete_recordings not in ["never", "on_cleanup", "always"]:
             raise ValueError(
@@ -397,7 +394,9 @@ class SparrowWatcher:
         Args:
             suffix (str, optional): _description_. Defaults to "".
         """
-        pd.DataFrame(results).to_csv(self.output / Path(f"results_{suffix}.csv"))
+        pd.DataFrame(results).to_csv(
+            self.output / Path(f"results_{suffix}.csv"), index=False
+        )
 
     def start(self):
         """
@@ -489,9 +488,6 @@ class SparrowWatcher:
 
         missings = []
 
-        if self.reanalyze_on_cleanup:
-            recording = self.set_up_recording()
-
         for filename in self.input.iterdir():
 
             condition = (
@@ -509,14 +505,6 @@ class SparrowWatcher:
 
             if condition and not exists:
                 missings.append(filename)
-
-            if self.reanalyze_on_cleanup and condition and not exists:
-                recording.path = filename
-                recording.analyze()
-
-                results = recording.detections
-
-                self.save_results(results, suffix=Path(filename).stem)
 
             # check that the currently checked file has been created before the last
             if self.delete_recordings in ["always", "on_cleanup"] and condition:
