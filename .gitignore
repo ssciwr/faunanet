@@ -109,12 +109,15 @@ ENV/
 env.bak/
 venv.bak/
 
+# Development auxilliaries 
+.vscode
 
 # Cython debug symbols
 cython_debug/
 
 # ipython notebooks - ocassionally used for testing/debugging... 
 *.ipynb
+
 # but unignore those that live in the examples directory 
 !notebooks/*.ipynb
 
