@@ -192,10 +192,10 @@ class SparrowWatcher:
         outdir: str,
         model_dir: str,
         model_name: str,
-        preprocessor_config: dict = {},
-        model_config: dict = {},
-        recording_config: dict = {},
-        species_predictor_config: dict = {},
+        preprocessor_config: dict = None,
+        model_config: dict = None,
+        recording_config: dict = None,
+        species_predictor_config: dict = None,
         pattern: str = ".wav",
         check_time: int = 1,
         delete_recordings: str = "on_cleanup",
@@ -222,6 +222,7 @@ class SparrowWatcher:
             ValueError: When the model_dir parameter is not an existing directory.
             ValueError: When the model name does not correspond to a directory in the 'model_dir' directory in which available models are stored.
         """
+
         # set up data to use
         self.input = Path(indir)
 
@@ -271,6 +272,18 @@ class SparrowWatcher:
 
         self.delete_recordings = delete_recordings
 
+        if preprocessor_config is None:
+            preprocessor_config = {}
+
+        if model_config is None:
+            model_config = {}
+
+        if recording_config is None:
+            recording_config = {}
+
+        if species_predictor_config is None:
+            species_predictor_config = {}
+
         self.preprocessor_config = deepcopy(preprocessor_config)
 
         self.model_config = deepcopy(model_config)
@@ -305,10 +318,10 @@ class SparrowWatcher:
     def change_analyzer(
         self,
         model_name: str,
-        preprocessor_config: dict = {},
-        model_config: dict = {},
-        recording_config: dict = {},
-        species_predictor_config: dict = {},
+        preprocessor_config: dict = None,
+        model_config: dict = None,
+        recording_config: dict = None,
+        species_predictor_config: dict = None,
     ):
         """
         change_analyzer Change classifier model to the one indicated by name.
@@ -341,6 +354,18 @@ class SparrowWatcher:
         self.creation_time_first_analyzed = multiprocessing.Value("d", 0)
 
         self.model_name = model_name
+
+        if preprocessor_config is None:
+            preprocessor_config = {}
+
+        if model_config is None:
+            model_config = {}
+
+        if recording_config is None:
+            recording_config = {}
+
+        if species_predictor_config is None:
+            species_predictor_config = {}
 
         self.preprocessor_config = preprocessor_config
 
