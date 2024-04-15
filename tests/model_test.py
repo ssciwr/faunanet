@@ -1,7 +1,6 @@
 import pytest
 import pandas as pd
 import operator
-from birdnetlib.analyzer import AnalyzerConfigurationError
 from pathlib import Path
 from pandas.testing import assert_frame_equal
 
