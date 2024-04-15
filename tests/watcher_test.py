@@ -380,7 +380,7 @@ def test_watcher_integrated_delete_always(watch_fx):
     missings = wfx.read_missings(watcher)
 
     assert missings == [
-        "/Users/haraldmack/iSparrow_data/example_6.wav",
+        watcher.input / "example_6.wav",
     ]
 
 
