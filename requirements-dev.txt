@@ -4,4 +4,4 @@ pytest
 pytest-cov 
 coverage
 pre-commit
-ipykernel
+pandas # for comparing tables in one go
