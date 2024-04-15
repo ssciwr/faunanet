@@ -284,7 +284,12 @@ def test_watcher_integrated_simple(watch_fx):
 
     recorder_process.close()
 
-    watcher.stop()
+    filename = watcher.output / "results_example_6.csv"
+    wfx.wait_for_event_then_do(
+        condition=lambda: filename.is_file() and wait_for_file_completion(filename),
+        todo_event=lambda: watcher.stop(),
+        todo_else=lambda: 1,
+    )
 
     assert len(list(Path(wfx.data).iterdir())) == 5
 
@@ -371,7 +376,9 @@ def test_watcher_integrated_delete_always(watch_fx):
 
     assert results == [
         watcher.output / f"results_example_{i}.csv"
-        for i in range(0, number_of_files - 1, 1)  # last one missing by design of the test
+        for i in range(
+            0, number_of_files - 1, 1
+        )  # last one missing by design of the test
     ]
 
     assert len(data) == 0
@@ -433,7 +440,7 @@ def test_watcher_integrated_delete_on_cleanup(watch_fx):
 
     results = wfx.get_folder_content(watcher.output_directory, ".csv")
 
-    assert len(results) == number_of_files - 2 
+    assert len(results) == number_of_files - 2
 
     missings = wfx.read_missings(watcher)
 
@@ -499,7 +506,7 @@ def test_watcher_integrated_delete_never(watch_fx):
 
     results = wfx.get_folder_content(watcher.output_directory, ".csv")
 
-    assert len(results) == number_of_files -2
+    assert len(results) == number_of_files - 2
 
     missings = wfx.read_missings(watcher)
 
