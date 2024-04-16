@@ -36,4 +36,4 @@ jobs:
         python3 -m pip install -r requirements-dev.txt
     - name: Run pytest unittests
       run: |
-        python -m pytest
+        python -m pytest -vvs
