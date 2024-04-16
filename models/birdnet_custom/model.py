@@ -2,7 +2,7 @@ from pathlib import Path
 import numpy as np
 
 try:
-    import tflite_runtime as tflite
+    import tflite_runtime.interpreter as tflite
 except Exception:
     from tensorflow import lite as tflite
 

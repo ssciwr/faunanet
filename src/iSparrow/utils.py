@@ -2,7 +2,7 @@ import tensorflow as tf
 import tensorflow_hub as tfhub
 
 try:
-    import tflite_runtime as tflite
+    import tflite_runtime.interpreter as tflite
 except Exception:
     from tensorflow import lite as tflite
 
