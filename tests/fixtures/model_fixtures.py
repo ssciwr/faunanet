@@ -10,11 +10,8 @@ class ModelFixture:
     def __init__(self):
         self.filepath = Path(__file__).resolve()
         self.testpath = self.filepath.parent.parent
-        cfgpath = (
-            self.filepath.parent.parent.parent
-            / Path("config")
-            / Path("install_cfg.yml")
-        )
+
+        cfgpath = self.testpath / Path("test_configs") / Path("install.yml")
 
         with open(cfgpath, "r") as file:
             cfg = yaml.safe_load(file)
@@ -38,6 +35,8 @@ class ModelFixture:
 
         with open(self.testpath / Path("test_configs") / "cfg_google.yml", "r") as file:
             self.google_cfg = yaml.safe_load(file)
+
+        print(self.default_cfg, self.custom_cfg, self.google_cfg)
 
         self.default_module = utils.load_module(
             "model_default",

@@ -50,9 +50,10 @@ def make_directories(base_cfg_dirs: dict):
     isd = Path(base_cfg_dirs["data"]).expanduser().resolve()
     iso = Path(base_cfg_dirs["output"]).expanduser().resolve()
     ise = (Path(base_cfg_dirs["home"]).expanduser() / Path("example")).resolve()
-    isc = Path(base_cfg_dirs["config"]).expanduser()
+    isc = Path(base_cfg_dirs["config"]).expanduser().resolve()
 
-    for p in [ish, ism, isd, iso, ise]:
+    for p in [ish, ism, isd, iso, ise, isc]:
+        print(p)
         p.mkdir(parents=True, exist_ok=True)
 
     return ish, ism, isd, iso, ise, isc
@@ -206,7 +207,7 @@ def copy_files(modeldir: str, cfg_source: str, cfg_target: str):
     """
 
     current = Path(__file__).resolve().parent
-    local_models_dir = current.parent / "models"
+    local_models_dir = current.parent.parent / "models"
 
     # copy model files
     for name in ["birdnet_default", "birdnet_custom", "google_perch"]:
@@ -245,20 +246,24 @@ def install(
     if (Path(cfg_path) / Path("install.yml")).is_file() is False:
         raise FileNotFoundError("default.yaml file doesn't exist at the given location")
 
-    cfg = utils.read_yaml(cfg_path / Path("install_cfg.yml"))
+    cfg = utils.read_yaml(cfg_path / Path("install.yml"))
 
     if "config" not in cfg["Directories"]:
-        cfg["Directories"]["config"] = "iSparrow"
+        cfg["Directories"]["config"] = str(user_config_dir("iSparrow"))
+    else:
+        cfg["Directories"]["config"] = str(
+            user_config_dir(cfg["Directories"]["config"])
+        )
 
     home, models, data, output, examples, config_target = make_directories(
         cfg["Directories"],
     )
 
-    download_default_model_files(models.resolve())
+    download_default_model_files(models)
 
-    download_example_data(examples.resolve())
+    download_example_data(examples)
 
-    copy_files(models.resolve(), cfg_path, config_target)
+    copy_files(models, cfg_path, config_target)
 
     global HOME, DATA, MODELS, OUTPUT, EXAMPLES, CONFIG
     HOME = home
