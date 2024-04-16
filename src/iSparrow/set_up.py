@@ -2,16 +2,17 @@ from iSparrow import utils
 from pathlib import Path
 import shutil
 import pooch
-from appdirs import user_cache_dir
+from appdirs import user_cache_dir, user_config_dir
 
 HOME = None
 DATA = None
 MODELS = None
 OUTPUT = None
 EXAMPLES = None
+CONFIG = None
 
 
-def make_directories(base_cfg_dirs: dict, for_tests: bool = False):
+def make_directories(base_cfg_dirs: dict):
     """
     make_directories Make all the directories for sparrow.
 
@@ -49,12 +50,7 @@ def make_directories(base_cfg_dirs: dict, for_tests: bool = False):
     isd = Path(base_cfg_dirs["data"]).expanduser().resolve()
     iso = Path(base_cfg_dirs["output"]).expanduser().resolve()
     ise = (Path(base_cfg_dirs["home"]).expanduser() / Path("example")).resolve()
-    isc = Path(user_cache_dir()) / "iSparrow"
-
-    if for_tests:
-        isd = isd / "tests"
-        iso = iso / "tests"
-        isc = isc / "tests"
+    isc = Path(base_cfg_dirs["config"]).expanduser()
 
     for p in [ish, ism, isd, iso, ise]:
         p.mkdir(parents=True, exist_ok=True)
@@ -204,57 +200,72 @@ def download_example_data(isparrow_example_dir: str):
         )
 
 
-def copy_files(modeldir: str, config_dir: str):
+def copy_files(modeldir: str, cfg_source: str, cfg_target: str):
     """
     copy the current preprocessors into the model directory, as is intended later
     """
-    current = Path(__file__).resolve().parent
-    local_pp_dir = current.parent / "models"
 
-    # copy model files 
+    current = Path(__file__).resolve().parent
+    local_models_dir = current.parent / "models"
+
+    # copy model files
     for name in ["birdnet_default", "birdnet_custom", "google_perch"]:
         shutil.copy(
-            local_pp_dir / Path(name) / "preprocessor.py", Path(modeldir) / Path(name)
+            local_models_dir / Path(name) / "preprocessor.py",
+            Path(modeldir) / Path(name),
         )
-        shutil.copy(local_pp_dir / Path(name) / "model.py", Path(modeldir) / Path(name))
 
-        if (local_pp_dir / Path(name) / "__init__.py").is_file(): 
+        shutil.copy(
+            local_models_dir / Path(name) / "model.py", Path(modeldir) / Path(name)
+        )
+
+        if (local_models_dir / Path(name) / "__init__.py").is_file():
             shutil.copy(
-                local_pp_dir / Path(name) / "__init__.py", Path(modeldir) / Path(name)
+                local_models_dir / Path(name) / "__init__.py",
+                Path(modeldir) / Path(name),
             )
 
     # copy default config files
-    for 
+    for name in ["install.yml", "default.yml"]:
+        shutil.copy(str(Path(cfg_source) / name), cfg_target)
+
 
 # add a fixture with session scope that emulates the result of a later to-be-implemented-install-routine
-def install(for_tests: bool = True):
+def install(
+    cfg_path: str,
+):
     print("Creating iSparrow folders and downloading data... ")
     # user cfg can override stuff that the base cfg has. When the two are merged, the result has
     # the base_cfg values whereever user does not have anything
+    cfg_path = Path(cfg_path)
 
-    cfg_path = Path(__file__).resolve().parent.parent / "config"
+    if (Path(cfg_path) / Path("install.yml")).is_file() is False:
+        raise FileNotFoundError("install.yaml file doesn't exist at the given location")
+
+    if (Path(cfg_path) / Path("install.yml")).is_file() is False:
+        raise FileNotFoundError("default.yaml file doesn't exist at the given location")
 
     cfg = utils.read_yaml(cfg_path / Path("install_cfg.yml"))
 
-    home, models, data, output, examples = make_directories(
-        cfg["Directories"], for_tests=for_tests
+    if "config" not in cfg["Directories"]:
+        cfg["Directories"]["config"] = "iSparrow"
+
+    home, models, data, output, examples, config_target = make_directories(
+        cfg["Directories"],
     )
 
     download_default_model_files(models.resolve())
 
     download_example_data(examples.resolve())
 
-    copy_files(
-        models.resolve(),
-    )
+    copy_files(models.resolve(), cfg_path, config_target)
 
-    shutil.copy(cfg_path / Path("install_cfg.yml"), home)
-
-    global HOME, DATA, MODELS, OUTPUT, EXAMPLES
+    global HOME, DATA, MODELS, OUTPUT, EXAMPLES, CONFIG
     HOME = home
     DATA = data
     MODELS = models
     OUTPUT = output
     EXAMPLES = examples
+    CONFIG = config_target
 
     print("Installation finished")

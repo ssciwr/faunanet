@@ -1,0 +1,6 @@
+Directories: 
+  home: ~/iSparrow 
+  data: ~/iSparrow_data/tests
+  models: ~/iSparrow/models 
+  output: ~/iSparrow_output/tests
+  config: iSparrow/tests

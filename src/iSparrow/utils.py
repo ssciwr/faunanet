@@ -1,6 +1,7 @@
 try:
     import tflite_runtime.interpreter as tflite
-except Exception:
+except Exception as e:
+    print(e)
     from tensorflow import lite as tflite
 
 from pathlib import Path
