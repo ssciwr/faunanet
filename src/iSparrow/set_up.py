@@ -1,7 +1,8 @@
+from iSparrow import utils
+from pathlib import Path
 import shutil
 import pooch
-from pathlib import Path
-from iSparrow import utils
+from appdirs import user_cache_dir
 
 HOME = None
 DATA = None
@@ -48,19 +49,20 @@ def make_directories(base_cfg_dirs: dict, for_tests: bool = False):
     isd = Path(base_cfg_dirs["data"]).expanduser().resolve()
     iso = Path(base_cfg_dirs["output"]).expanduser().resolve()
     ise = (Path(base_cfg_dirs["home"]).expanduser() / Path("example")).resolve()
+    isc = Path(user_cache_dir()) / "iSparrow"
 
     if for_tests:
         isd = isd / "tests"
         iso = iso / "tests"
+        isc = isc / "tests"
 
-    print(ish, ism, isd, iso, ise)
     for p in [ish, ism, isd, iso, ise]:
         p.mkdir(parents=True, exist_ok=True)
 
-    return ish, ism, isd, iso, ise
+    return ish, ism, isd, iso, ise, isc
 
 
-def download_model_files(isparrow_model_dir: str):
+def download_default_model_files(isparrow_model_dir: str):
     """
     download_model_files Download models and class labels that iSparrow needs to analyze and classify audio data.
 
@@ -202,22 +204,27 @@ def download_example_data(isparrow_example_dir: str):
         )
 
 
-def copy_files(modeldir):
+def copy_files(modeldir: str, config_dir: str):
     """
     copy the current preprocessors into the model directory, as is intended later
     """
     current = Path(__file__).resolve().parent
     local_pp_dir = current.parent / "models"
 
+    # copy model files 
     for name in ["birdnet_default", "birdnet_custom", "google_perch"]:
         shutil.copy(
             local_pp_dir / Path(name) / "preprocessor.py", Path(modeldir) / Path(name)
         )
         shutil.copy(local_pp_dir / Path(name) / "model.py", Path(modeldir) / Path(name))
-        shutil.copy(
-            local_pp_dir / Path(name) / "__init__.py", Path(modeldir) / Path(name)
-        )
 
+        if (local_pp_dir / Path(name) / "__init__.py").is_file(): 
+            shutil.copy(
+                local_pp_dir / Path(name) / "__init__.py", Path(modeldir) / Path(name)
+            )
+
+    # copy default config files
+    for 
 
 # add a fixture with session scope that emulates the result of a later to-be-implemented-install-routine
 def install(for_tests: bool = True):
@@ -233,11 +240,13 @@ def install(for_tests: bool = True):
         cfg["Directories"], for_tests=for_tests
     )
 
-    download_model_files(models.resolve())
+    download_default_model_files(models.resolve())
 
     download_example_data(examples.resolve())
 
-    copy_files(models.resolve())
+    copy_files(
+        models.resolve(),
+    )
 
     shutil.copy(cfg_path / Path("install_cfg.yml"), home)
 

@@ -7,43 +7,56 @@ def process_config():
     pass
 
 
-@click.cli
-def cli():
+@click.group()
+def iSparrow_cli():
     pass
 
 
-@cli.command
-def set_up():
+@iSparrow_cli.command()
+@click.option("--cfg", help="custom configuration file", default="")
+def set_up(cfg: str):
     pass
 
 
-@cli.command
+@iSparrow_cli.command()
 def start():
     watcher.start()
 
 
-@cli.command
+@iSparrow_cli.command()
 def pause():
     watcher.pause()
 
 
-@cli.command
+@iSparrow_cli.command()
 def stop():
     watcher.stop()
 
 
-@cli.command
+@iSparrow_cli.command()
 def go_on():
     watcher.go_on()
 
 
-@cli.command
+@iSparrow_cli.command()
 def clean_up():
     watcher.clean_up()
 
 
-@cli.command
+@iSparrow_cli.command()
+@click.option("--cfg", help="custom configuration file", default="")
 def run():
+    # make the 
+    # make watcher 
     global watcher
     watcher = SparrowWatcher("input", "output", ...)
     watcher.start()
+
+
+@click.group()
+def recorder_cli():
+    pass
+
+
+if __name__ == "__main__": 
+    iSparrow_cli()
