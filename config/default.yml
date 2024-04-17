@@ -4,7 +4,7 @@ Analysis:
     input: &datafolder ~/iSparrow_data
     pattern: ".wav"
     check_time: 1
-    delete_recording: "on_cleanup"
+    delete_recordings: "on_cleanup"
 
   Preprocessor:
     sample_rate: 48000
@@ -13,16 +13,15 @@ Analysis:
     resample_type: "kaiser_fast"
 
   Model:
-    default_model_path: None # only used for custom classifiers
     model_name: birdnet_default
     sigmoid_sensitivity: 1.0
     num_threads: 1
 
   Recording:
-    latitude: 42.5
-    longitude: -76.45
+    lat: 42.5
+    lon: -76.45
     date: 24-01-2024 #format: dd-mm-yyyy, "%Y-%m-%d"
-    threshold: 0.03
+    species_presence_threshold: 0.03
     min_conf: 0.25
 
   SpeciesPredictor:
