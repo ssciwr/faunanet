@@ -419,18 +419,18 @@ class SparrowWatcher:
         Args:
             suffix (str, optional): _description_. Defaults to "".
         """
-
+        header = results[0].keys()
         with open(
             self.output / Path(f"results_{suffix}.csv"),
             mode="w",
         ) as file:
-            writer = csv.writer(file)
+            writer = csv.DictWriter(file, fieldnames=header)
+            writer.writeheader()
             writer.writerows(results)
 
     def start(self):
         """
-        start Watch the directory the caller has been created with and analyze all newly created files matching a certain file ending. \
-            Creates a new daemon process in which the analysis function runs.
+        start Watch the directory the caller has been created with and analyze all newly created files matching a certain file ending. Creates a new daemon process in which the analysis function runs.
 
         Raises:
             RuntimeError: When the watcher process is running already.
