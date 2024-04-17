@@ -27,19 +27,3 @@ Analysis:
   SpeciesPredictor:
     num_threads: 1
     use_cache: true
-
-iSparrowRecorder:
-  Output:
-    output: *datafolder
-    runtime: 9 # for security:
-    # run_until: 2024-04-04_12:05:24  # format: "%Y-%m-%d_%H:%M:%S"
-    dump_config: True
-    data_folder_suffix: ""
-  Recording:
-    sample_rate: 48000
-    length_s: 3
-    channels: 1
-    mode: "record"
-
-iSparrowTransmitter:
-  dummy: this

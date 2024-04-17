@@ -61,7 +61,9 @@ def process_configs(cfg: str):
                 f"Folder {name} not found, has iSparrow been set up?"
             )
 
+    print("before: ", config)
     utils.update_dict_recursive(config, user_config)
+    print("after: ", config)
 
     # process recording config
     if "date" in config["Analysis"]["Recording"]:
@@ -118,34 +120,8 @@ def cli(ctx, cfg: str, recorder: str, transmitter: str):
         recorder (str): _description_
         transmitter (str): _description_
     """
-
-    # process configuration files into install and one single config
-    (
-        install,
-        watcher_cfg,
-        recording_cfg,
-        preprocessor_cfg,
-        model_cfg,
-        species_predictor_cfg,
-    ) = process_configs(cfg)
-
-    # set folders
-    global HOME, DATA, MODELS, OUTPUT, CONFIG
-    HOME = Path(install["Directories"]["home"]).expanduser()
-    DATA = Path(install["Directories"]["data"]).expanduser()
-    MODELS = Path(install["Directories"]["models"]).expanduser()
-    OUTPUT = Path(install["Directories"]["output"]).expanduser()
-    CONFIG = Path(user_config_dir("iSparrow")) / install["Directories"]["config"]
-
-    # write out configs for recorder and transmitter when they are there
-
     ctx.obj = {
         "cfg": cfg,
-        "watcher_cfg": watcher_cfg,
-        "recording_cfg": recording_cfg,
-        "preprocessor_cfg": preprocessor_cfg,
-        "species_predictor_cfg": species_predictor_cfg,
-        "model_cfg": model_cfg,
     }
 
     ctx.obj["commands"] = {
@@ -171,8 +147,35 @@ def start(ctx):
         ctx (_type_): _description_
     """
     command_map = ctx.obj["commands"]
+
+    # process configuration files into install and one single config
+    (
+        install,
+        watcher_cfg,
+        recording_cfg,
+        preprocessor_cfg,
+        model_cfg,
+        species_predictor_cfg,
+    ) = process_configs(ctx.obj["cfg"])
+
+    # set folders
+    global HOME, DATA, MODELS, OUTPUT, CONFIG
+    HOME = Path(install["Directories"]["home"]).expanduser()
+    DATA = Path(install["Directories"]["data"]).expanduser()
+    MODELS = Path(install["Directories"]["models"]).expanduser()
+    OUTPUT = Path(install["Directories"]["output"]).expanduser()
+    CONFIG = Path(user_config_dir("iSparrow")) / install["Directories"]["config"]
+
+    # write out configs for recorder and transmitter when they are there
+
+    ctx.obj["watcher_cfg"] = watcher_cfg
+    ctx.obj["recording_cfg"] = recording_cfg
+    ctx.obj["preprocessor_cfg"] = preprocessor_cfg
+    ctx.obj["species_predictor_cfg"] = species_predictor_cfg
+    ctx.obj["model_cfg"] = model_cfg
+
     while True:
-        prompt_msg = "What do you want to do? (type exit to exit the program): "
+        prompt_msg = "What do you want to do? (type exit to exit the program)"
         choice = click.prompt(prompt_msg, type=str)
 
         if choice in command_map:
@@ -180,7 +183,6 @@ def start(ctx):
             command_map[choice]()
         elif choice == "exit":
             click.echo("Exiting...")
-            exit()
             return
         else:
             click.echo("Invalid choice.")
@@ -320,8 +322,10 @@ def stop_watcher():
 def change_analyzer():
     ctx = click.get_current_context()
     cfg = click.prompt(
-        "Please enter the path to the config file defining the new analyzer"
+        "Please enter the path to the config file defining the new analyzer: "
     )
+
+    print(cfg)
 
     # process configuration files into install and one single config
     (
@@ -348,6 +352,8 @@ def change_analyzer():
 
     global WATCHER
 
+    print(mcfg)
+
     WATCHER.change_analyzer(
         model_name,
         preprocessor_config=preprocessor_cfg,
@@ -363,17 +369,6 @@ def clean_up():
         raise RuntimeError("No watcher has been initialized, clean_up cannot be run")
 
     WATCHER.clean_up()
-
-
-def exit():
-    ctx = click.get_current_context()
-
-    for name in [
-        Path(ctx.obj["tmp_dir"]) / "recorder.yml",
-        Path(ctx.obj["tmp_dir"]) / "transmitter.yml",
-    ]:
-        if name.is_file():
-            name.unlink()
 
 
 if __name__ == "__main__":

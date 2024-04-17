@@ -66,10 +66,6 @@ class PreprocessorBase(ABC):
                 "Error, sampling rate from resampling and desired sampling rate don't match"
             )
 
-        print(
-            f"read audio data of duration {self.duration} from {path} with sampling rate {self.actual_sampling_rate}"
-        )
-
         return data
 
     @abstractmethod
