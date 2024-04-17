@@ -419,15 +419,15 @@ class SparrowWatcher:
         Args:
             suffix (str, optional): _description_. Defaults to "".
         """
-        keys = results[0].keys()
-
+        header = results[0].keys()
+        
         with open(
             self.output / Path(f"results_{suffix}.csv"),
             mode="w",
         ) as file:
-            dict_writer = csv.DictWriter(file, keys)
-            dict_writer.writeheader()
-            dict_writer.writerows(results)
+            writer = csv.DictWriter(file, fieldnames=header)
+            writer.writeheader()
+            writer.writerows(results)
 
     def start(self):
         """
