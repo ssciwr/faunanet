@@ -28,7 +28,7 @@ def make_directories(base_cfg_dirs: dict):
     Returns:
         tuple: created folders: (isparrow-homefolder, modelsfolder, datafolder, outputfolder, examplefolder)
     """
-    print("...Making direcotries...")
+
     if "home" not in base_cfg_dirs:
         raise KeyError("The home folder for iSparrow must be given in the base config")
 
@@ -53,7 +53,6 @@ def make_directories(base_cfg_dirs: dict):
     isc = Path(base_cfg_dirs["config"]).expanduser().resolve()
 
     for p in [ish, ism, isd, iso, ise, isc]:
-        print(p)
         p.mkdir(parents=True, exist_ok=True)
 
     return ish, ism, isd, iso, ise, isc
@@ -66,8 +65,6 @@ def download_default_model_files(isparrow_model_dir: str):
     Args:
         isparrow_homedir (str): Path to the main iSparrow directory
     """
-
-    print("... Downloading model files...")
 
     ism = Path(isparrow_model_dir)
 
@@ -172,8 +169,6 @@ def download_example_data(isparrow_example_dir: str):
         isparrow_example_dir (str): Path to the iSparrow example directory
     """
 
-    print("... Downloading example files...")
-
     ise = Path(isparrow_example_dir)
 
     if ise.exists() is False:
@@ -235,7 +230,6 @@ def copy_files(modeldir: str, cfg_source: str, cfg_target: str):
 def install(
     cfg_path: str,
 ):
-    print("Creating iSparrow folders and downloading data... ")
     # user cfg can override stuff that the base cfg has. When the two are merged, the result has
     # the base_cfg values whereever user does not have anything
     cfg_path = Path(cfg_path)
@@ -272,5 +266,3 @@ def install(
     OUTPUT = output
     EXAMPLES = examples
     CONFIG = config_target
-
-    print("Installation finished")
