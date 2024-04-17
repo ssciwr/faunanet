@@ -420,7 +420,7 @@ class SparrowWatcher:
             suffix (str, optional): _description_. Defaults to "".
         """
         header = results[0].keys()
-        
+
         with open(
             self.output / Path(f"results_{suffix}.csv"),
             mode="w",
@@ -519,27 +519,34 @@ class SparrowWatcher:
 
         missings = []
 
-        for filename in self.input.iterdir():
+        def check_recursive(fname: Path, missings: list):
+            for filename in fname.iterdir():
+                if filename.is_file() and self.pattern in str(filename):
+                    condition = (
+                        filename.stat().st_ctime
+                        < self.creation_time_last_analyzed.value
+                        if self.is_running
+                        else True
+                    )
 
-            condition = (
-                filename.stat().st_ctime < self.creation_time_last_analyzed.value
-                if self.is_running
-                else True
-            )
+                    exists = any(
+                        [
+                            (out / Path(f"results_{str(filename.stem)}.csv")).exists()
+                            for out in self.used_output_folders
+                        ]
+                    )
 
-            exists = any(
-                [
-                    (out / Path(f"results_{str(filename.stem)}.csv")).exists()
-                    for out in self.used_output_folders
-                ]
-            )
+                    if condition and not exists:
+                        missings.append(filename)
 
-            if condition and not exists:
-                missings.append(filename)
+                    # check that the currently checked file has been created before the last
+                    if self.delete_recordings in ["always", "on_cleanup"] and condition:
+                        filename.unlink()
+                elif filename.is_folder():
+                    check_recursive(filename, missings)
 
-            # check that the currently checked file has been created before the last
-            if self.delete_recordings in ["always", "on_cleanup"] and condition:
-                filename.unlink()
+        for fname in self.input.iterdir():
+            check_recursive(fname, missings)
 
         with open(self.output / "missing_files.txt", "w") as missingrecord:
             for line in missings:
