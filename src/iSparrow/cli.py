@@ -9,9 +9,16 @@ import shutil
 
 watcher = None
 
-
 def process_config(custom_cfg: str):
-    pass
+
+    newest_install = get_newest_install()
+
+    default = utils.read_yaml(Path(newest_install)/ "default.yml") 
+    custom = utils.read_yml(custom_cfg)
+
+    utils.update_dict_recursive(default, custom)
+
+    return default["Analysis"]["Watcher"], default["Analysis"]["Model"], default["Analysis"]["Preprocessor"], default["Analysis"]["Recording"], default["Analysis"]["SpeciesPredictor"]
 
 
 def get_install_list():
@@ -20,12 +27,22 @@ def get_install_list():
             "The standard iSparrow config folder does not exist. Has iSparrow been set up?"
         )
 
+    def check_install(folder): 
+        install = utils.read_yaml(folder/ "install.yml")
+    
+        if Path(install["Directories"]["input"]).expanduser().is_dir() is False or 
+        Path(install["Directories"]["output"]).expanduser().is_dir() is False: 
+            shutil.rmtree(str(Path(folder)))  # delete broken installs
+            return False
+        else: 
+            return True
+
     return [
         folder
         for folder in (
             Path(user_config_dir("iSparrow")) / Path("installations")
         ).iterdir()
-        if folder.is_dir()
+        if folder.is_dir() and check_install(folder)
     ]
 
 
@@ -59,6 +76,7 @@ def set_up(cfg: str):
     lookup_dir = (
         user_config_dir("iSparrow") / Path("installations") / f"install_{date}"
     ).mkdir(parents=True, exist_ok=True)
+
     shutil.copy(str(Path(cfg) / "install.yml"), lookup_dir)
     shutil.copy(str(Path(cfg) / "default.yml"), lookup_dir)
 
