@@ -6,217 +6,233 @@ from appdirs import user_config_dir
 from datetime import datetime
 from pathlib import Path
 import shutil
+import threading
 
-watcher = None
-
-def process_config(custom_cfg: str):
-
-    newest_install = get_newest_install()
-
-    default = utils.read_yaml(Path(newest_install)/ "default.yml") 
-    custom = utils.read_yml(custom_cfg)
-
-    utils.update_dict_recursive(default, custom)
-
-    return default["Analysis"]["Watcher"], default["Analysis"]["Model"], default["Analysis"]["Preprocessor"], default["Analysis"]["Recording"], default["Analysis"]["SpeciesPredictor"]
-
-
-def get_install_list():
-    if (Path(user_config_dir("iSparrow")) / Path("installations")).is_dir() is False:
-        raise FileNotFoundError(
-            "The standard iSparrow config folder does not exist. Has iSparrow been set up?"
-        )
-
-    def check_install(folder): 
-        install = utils.read_yaml(folder/ "install.yml")
-    
-        if Path(install["Directories"]["input"]).expanduser().is_dir() is False or 
-        Path(install["Directories"]["output"]).expanduser().is_dir() is False: 
-            shutil.rmtree(str(Path(folder)))  # delete broken installs
-            return False
-        else: 
-            return True
-
-    return [
-        folder
-        for folder in (
-            Path(user_config_dir("iSparrow")) / Path("installations")
-        ).iterdir()
-        if folder.is_dir() and check_install(folder)
-    ]
-
-
-def get_newest_install():
-    sorted_folders = sorted(
-        get_install_list(), key=lambda folder: folder.stat().st_mtime, reverse=True
-    )
-
-    if len(sorted_folders) == 0:
-        raise RuntimeError(
-            "No installations found in",
-            Path(user_config_dir("iSparrow")) / Path("installations"),
-            "This should no happen in a normal installation of iSparrow",
-        )
-    else:
-        return sorted_folders[0]
+WATCHER = None
+HOME = None
+DATA = None
+MODELS = None
+OUTPUT = None
+CONFIG = None
 
 
 @click.group()
-def iSparrow_cli():
-    pass
-
-
-@iSparrow_cli.command()
-@click.option("--cfg", help="custom configuration file", default="")
-def set_up(cfg: str):
-    sus.install(cfg)
-
-    date = datetime.now().strftime("%y%m%d_%H%M%S")
-
-    lookup_dir = (
-        user_config_dir("iSparrow") / Path("installations") / f"install_{date}"
-    ).mkdir(parents=True, exist_ok=True)
-
-    shutil.copy(str(Path(cfg) / "install.yml"), lookup_dir)
-    shutil.copy(str(Path(cfg) / "default.yml"), lookup_dir)
-
-
-@iSparrow_cli.command()
-def start_watcher():
-    global watcher
-    if watcher is None:
-        raise RuntimeError(
-            "Watcher does not exist yet. Please create one first with 'iSparrow create --config=/path/to/optional/custom/config"
-        )
-    watcher.start()
-
-
-@iSparrow_cli.command()
-def pause_watcher():
-    global watcher
-    if watcher is None:
-        raise RuntimeError(
-            "Watcher does not exist yet. Please create one first with 'iSparrow create --config=/path/to/optional/custom/config"
-        )
-    watcher.pause()
-
-
-@iSparrow_cli.command()
-def stop_watcher():
-    global watcher
-    if watcher is None:
-        raise RuntimeError(
-            "Watcher does not exist yet. Please create one first with 'iSparrow create --config=/path/to/optional/custom/config"
-        )
-    watcher.stop()
-
-
-@iSparrow_cli.command()
-def continue_watcher():
-    global watcher
-    if watcher is None:
-        raise RuntimeError(
-            "Watcher does not exist yet. Please create one first with 'iSparrow create --config=/path/to/optional/custom/config"
-        )
-    watcher.go_on()
-
-
-@iSparrow_cli.command()
-def clean_up():
-    global watcher
-    if watcher is None:
-        raise RuntimeError(
-            "Watcher does not exist yet. Please create one first with 'iSparrow create --config=/path/to/optional/custom/config"
-        )
-    watcher.clean_up()
-
-
-@iSparrow_cli.command()
-@click.option(
-    "--model",
-    help="Name of the model to be loaded. must be present in the watcher's model folder and a watcher must be running.",
-)
 @click.option(
     "--cfg",
-    help="Name of the model to be loaded. must be present in the watcher's model folder and a watcher must be running.",
-    default="",
+    help="path to the configuration yaml-file that specifies all necessary parameters",
+    default="None",
 )
-def change_analyzer(model_name: str, cfg: str):
-    global watcher
+@click.option(
+    "--recorder",
+    help="name of a command/app accessible through a terminal that is used to record audio data. If it accepts a yaml-file for configuration itself, can be configured with the passed config file by supplying a node named like the recorder command with all necessary parameters.",
+    default="None",
+)
+@click.option(
+    "--transmitter",
+    help="name of a command/app accessible through a terminal that is used to record audio data. If it accepts a yaml-file for configuration itself, can be configured with the passed config file by supplying a node named like the recorder command with all necessary parameters.",
+    default="None",
+)
+@click.pass_context
+def cli(ctx, cfg: str, recorder: str, transmitter: str):
+    if cfg is None:
+        if Path(cfg).expanduser().is_file() is False:
+            raise FileNotFoundError("Given config file not found")
+        else:
+            user_config = utils.read_yaml(cfg)
+    else:
+        user_config = {}
 
-    _, model_cfg, preprocessor_cfg, recording_cfg, species_predictor_cfg = (
-        process_config(cfg)
-    )
-    watcher.change_analyzer(
-        model_name,
-        preprocessor_config=preprocessor_cfg,
-        model_config=model_cfg,
-        recording_config=recording_cfg,
-        species_predictor_config=species_predictor_cfg,
-    )
+    if Path(Path(user_config_dir("iSparrow")) / "default.yml").is_file() is False:
+        raise FileNotFoundError(
+            "Default config file not found. Has iSparrow been set up? "
+        )
+
+    if Path(Path(user_config_dir("iSparrow")) / "install.yml").is_file() is False:
+        raise FileNotFoundError(
+            "Install config file not found. Has iSparrow been set up? "
+        )
+
+    cfg = utils.read_yaml(Path(user_config_dir("iSparrow")) / "default.yml")
+
+    install = utils.read_yaml(Path(user_config_dir("iSparrow")) / "install.yml")
+
+    for name in ["home", "data", "output", "models"]:
+        if Path(install["Directories"][name]).expanduser().is_dir() is False:
+            raise FileNotFoundError(
+                f"Folder {name} not found, has iSparrow been set up?"
+            )
+
+    utils.update_dict_recursive(cfg, user_config)
+
+    watcher_cfg = cfg["Analysis"]["Watcher"]
+    recording_cfg = cfg["Analysis"]["Recording"]
+    preprocessor_cfg = cfg["Analysis"]["Preprocessor"]
+    model_cfg = cfg["Analysis"]["Model"]
+
+    recorder_cfg = {}
+    transmitter_cfg = {}
+    if recorder in cfg:
+        recorder_cfg = cfg[recorder]
+
+    if transmitter in cfg:
+        transmitter_cfg = cfg[transmitter]
+
+    ctx.obj = {
+        "cfg": cfg,
+        "recorder": recorder,
+        "transmitter": transmitter,
+        "watcher_cfg": watcher_cfg,
+        "recording_cfg": recording_cfg,
+        "preprocessor_cfg": preprocessor_cfg,
+        "transmitter_cfg": transmitter_cfg,
+        "recorder_cfg": recorder_cfg,
+        "model_cfg": model_cfg,
+    }
+
+    ctx.obj["commands"] = {
+        "start_watcher": start_watcher,
+        "start_recorder": start_recorder,
+        "start_transmitter": start_transmitter,
+        "stop_watcher": stop_watcher,
+        "stop_recorder": stop_recorder,
+        "stop_transmitter": stop_transmitter,
+        "change_analyzer": change_analyzer,
+        "show_result": show_results,
+        "show_data": show_data,
+        "clean_up": clean_up,
+        "detach": detach,
+    }
 
 
-@iSparrow_cli.command()
+@cli.result_callback()
+def process_commands(processors, **kwargs):
+    if not processors:
+        ctx = click.get_current_context()
+        ctx.invoke(prompt)
+
+
+@cli.command()
+@click.pass_context
+def prompt(ctx):
+    command_map = ctx.obj["commands"]
+    while True:
+        prompt_msg = "What do you want to do? (type 'exit' to leave): "
+        choice = click.prompt(prompt_msg, type=str)
+        if choice == "exit":
+            click.echo("Exiting...")
+            return
+        chosen_command = command_map.get(choice)
+        if chosen_command:
+            click.echo(f"Executing {choice}...")
+            chosen_command()
+        else:
+            click.echo("Invalid choice.")
+
+
+@cli.command()
 @click.option("--cfg", help="custom configuration file", default="")
-def create_watcher(cfg: str):
+@click.pass_context
+def set_up(ctx, cfg: str):
 
-    # make watcher
-    watcher_cfg, model_cfg, preprocessor_cfg, recording_cfg, species_predictor_cfg = (
-        process_config(cfg)
-    )
-    input_dir = watcher_cfg["input"]
-    output_dir = watcher_cfg["output"]
-    model_dir = watcher_cfg["model_dir"]
-    model_name = watcher_cfg["model_name"]
+    if Path(cfg).expanduser().is_dir() is False:
+        raise FileNotFoundError("Given config foler not found")
 
-    del watcher_cfg["input"]
-    del watcher_cfg["output"]
-    del watcher_cfg["model_dir"]
-    del watcher_cfg["model_name"]
+    click.echo("Starting set up")
 
-    global watcher
-    watcher = SparrowWatcher(
-        input_dir,
-        output_dir,
-        model_dir,
-        model_name,
-        preprocessor_config=preprocessor_cfg,
-        model_config=model_cfg,
-        recording_config=recording_cfg,
-        species_predictor_config=species_predictor_cfg,
-    )
+    sus.install(Path(cfg).expanduser())
 
+    global HOME, DATA, MODELS, OUTPUT, EXAMPLES, CONFIG
 
-@iSparrow_cli.command()
-def status():
-    global watcher
-    click.echo(f"watcher is {'running' if watcher.is_running else 'not running'}")
+    HOME = sus.HOME
+    DATA = sus.DATA
+    MODELS = sus.MODELS
+    OUTPUT = sus.OUTPUT
+    EXAMPLES = sus.EXAMPLES
+    CONFIG = sus.CONFIG
 
+    click.echo("iSparrow set up")
 
-@iSparrow_cli.command()
-def batch_times():
-    global watcher
-    click.echo(watcher.creation_time_first_analyzed)
-    click.echo(watcher.creation_time_last_analyzed)
+    ctx.obj = {}
+    ctx.obj["commands"] = {
+        "start_watcher": start_watcher,
+        "start_recorder": start_recorder,
+        "start_transmitter": start_transmitter,
+        "stop_watcher": stop_watcher,
+        "stop_recorder": stop_recorder,
+        "stop_transmitter": stop_transmitter,
+        "change_analyzer": change_analyzer,
+        "show_result": show_results,
+        "show_data": show_data,
+        "clean_up": clean_up,
+        "detach": detach,
+    }
 
 
-@iSparrow_cli.command()
-def folders():
-    global watcher
-    click.echo("input directory: ", watcher.input_directory)
-    click.echo("output directory: ", watcher.output_directory)
-    click.echo("model directory: ", watcher.model_dir)
-    click.echo("model name: ", watcher.model_name)
+@cli.command()
+def start_watcher():
+
+    print("start_watcher")
 
 
-@iSparrow_cli.command()
-@click.option("--cfg", help="custom configuration file", default="")
-def run(cfg: str = None):
+@cli.command()
+def start_recorder():
 
-    global watcher
-    create_watcher(cfg)
-    watcher.start()
+    print("start_recorder")
+
+
+@cli.command()
+def start_transmitter():
+
+    print("start_transmitter")
+
+
+@cli.command()
+def stop_watcher():
+
+    print("stop_watcher")
+
+
+@cli.command()
+def stop_recorder():
+
+    print("stop_recorder")
+
+
+@cli.command()
+def stop_transmitter():
+
+    print("stop_transmitter")
+
+
+@cli.command()
+def change_analyzer():
+
+    print("change_analyzer")
+
+
+@cli.command()
+def show_results():
+
+    print("show_results")
+
+
+@cli.command()
+def show_data():
+
+    print("show_data")
+
+
+@cli.command()
+def clean_up():
+
+    print("clean_up")
+
+
+@cli.command()
+def detach():
+
+    print("detach")
 
 
 if __name__ == "__main__":
-    iSparrow_cli()
+    cli()

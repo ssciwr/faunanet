@@ -235,10 +235,10 @@ def install(
     cfg_path = Path(cfg_path)
 
     if (Path(cfg_path) / Path("install.yml")).is_file() is False:
-        raise FileNotFoundError("install.yaml file doesn't exist at the given location")
+        raise FileNotFoundError("install.yml file doesn't exist at the given location")
 
     if (Path(cfg_path) / Path("install.yml")).is_file() is False:
-        raise FileNotFoundError("default.yaml file doesn't exist at the given location")
+        raise FileNotFoundError("default.yml file doesn't exist at the given location")
 
     cfg = utils.read_yaml(cfg_path / Path("install.yml"))
 
