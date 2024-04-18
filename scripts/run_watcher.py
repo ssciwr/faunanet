@@ -32,24 +32,48 @@ if __name__ == "__main__":
         "num_threads": 1,
     }
 
+    custom_preprocessor_cfg = {
+        "sample_rate": 48000,
+        "overlap": 0.0,
+        "sample_secs": 3.0,
+        "resample_type": "kaiser_fast",
+    }
+
+    custom_model_cfg = {
+        "num_threads": 1,
+        "sigmoid_sensitivity": 1.0,
+        "default_model_path": str(Path.home() / "iSparrow/models/birdnet_default"),
+    }
+
+    custom_species_predictor_cfg = {}
+
     watcher = SparrowWatcher(
         Path.home() / "iSparrow_data",
-        Path.home() / "iSparrow_results",
+        Path.home() / "iSparrow_output",
         Path.home()/ "iSparrow" / "models",
         "birdnet_default",
         preprocessor_config=deepcopy(preprocessor_cfg),
         model_config=deepcopy(model_cfg),
         recording_config=deepcopy(recording_cfg),
         # species_predictor_config=deepcopy(species_predictor_cfg),
+        delete_recordings="never"
     )
 
     watcher.start()
 
+    time.sleep(280)
 
-    time.sleep(180)
+    watcher.change_analyzer(
+        "birdnet_custom", 
+        preprocessor_config = custom_preprocessor_cfg,
+        model_config = custom_model_cfg,
+        recording_config = recording_cfg
+    )
 
-    # TODO watcher.change_analyzer()
-
-    time.sleep(180)
+    time.sleep(280)
 
     watcher.stop()
+
+    watcher.clean_up()
+
+    print("done")
