@@ -30,24 +30,23 @@ def update_dict_recursive(base, update):
     """
     # basic assumption: update is a sub-tree of base with unknown entry point.
     if isinstance(base, dict) and isinstance(update, dict):
-
-        for kb, vb in base.items():
-            if kb in update:
+        for kb, vb in update.items():
+            if kb in base:
                 # overlapping element branch found
-                if isinstance(vb, dict) and isinstance(update[kb], dict):
+                if isinstance(vb, dict) and isinstance(base[kb], dict):
                     # follow branch if possible
-                    update_dict_recursive(vb, update[kb])
+                    update_dict_recursive(base[kb], vb)
                 else:
                     # assign if not
                     base[kb] = update[kb]
             else:
-                update_dict_recursive(vb, update)  # find entrypoint
+                update_dict_recursive(base, vb)  # find entrypoint
+                base[kb] = vb
     else:
-        pass  # not found and no dictionaries - pass
+        pass
 
 
 def read_yaml(path: str):
-    print(f"...reading config from {path}")
     """
         read_yaml Read the yaml basic config file for iSparrow from path.
                 It contains the install directory, data directory and other things used
