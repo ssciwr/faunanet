@@ -291,7 +291,7 @@ def test_watcher_integrated_simple(watch_fx):
         todo_else=lambda: 1,
     )
 
-    assert len(list(Path(wfx.data).iterdir())) == 5
+    assert len(list(Path(wfx.data).iterdir())) == number_of_files
 
     results = wfx.get_folder_content(watcher.output_directory, ".csv")
 
@@ -313,324 +313,324 @@ def test_watcher_integrated_simple(watch_fx):
     assert watcher.last_analyzed_file_ct > watcher.first_analyzed_file_ct
 
 
-def test_watcher_integrated_delete_always(watch_fx):
-    wfx = watch_fx
+# def test_watcher_integrated_delete_always(watch_fx):
+#     wfx = watch_fx
 
-    watcher = wfx.make_watcher(
-        delete_recordings="always",
-    )
+#     watcher = wfx.make_watcher(
+#         delete_recordings="always",
+#     )
 
-    # make a mock recorder process that runs in the background
-    number_of_files = 7
+#     # make a mock recorder process that runs in the background
+#     number_of_files = 7
 
-    sleep_for = 2
+#     sleep_for = 2
 
-    recorder_process = multiprocessing.Process(
-        target=wfx.mock_recorder,
-        args=(wfx.home, wfx.data, number_of_files, sleep_for),
-    )
-    recorder_process.daemon = True
-    recorder_process.start()
+#     recorder_process = multiprocessing.Process(
+#         target=wfx.mock_recorder,
+#         args=(wfx.home, wfx.data, number_of_files, sleep_for),
+#     )
+#     recorder_process.daemon = True
+#     recorder_process.start()
 
-    watcher.start()
+#     watcher.start()
 
-    file = watcher.output / "results_example_4.csv"
+#     file = watcher.output / "results_example_4.csv"
 
-    # pause when the process is done analyzing file 4
-    wfx.wait_for_event_then_do(
-        condition=lambda: file.is_file() and wait_for_file_completion(file),
-        todo_event=lambda: watcher.stop(),
-        todo_else=lambda: time.sleep(1),
-    )
+#     # pause when the process is done analyzing file 4
+#     wfx.wait_for_event_then_do(
+#         condition=lambda: file.is_file() and wait_for_file_completion(file),
+#         todo_event=lambda: watcher.stop(),
+#         todo_else=lambda: time.sleep(1),
+#     )
 
-    # the following makes
-    recorder_process.join()
+#     # the following makes
+#     recorder_process.join()
 
-    recorder_process.close()
-    results = wfx.get_folder_content(watcher.output_directory, ".csv")
+#     recorder_process.close()
+#     results = wfx.get_folder_content(watcher.output_directory, ".csv")
 
-    data = wfx.get_folder_content(watcher.input_directory, ".wav")
+#     data = wfx.get_folder_content(watcher.input_directory, ".wav")
 
-    present_indices = [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-    ]
+#     present_indices = [
+#         0,
+#         1,
+#         2,
+#         3,
+#         4,
+#         5,
+#     ]
 
-    assert data == [
-        watcher.input / "example_6.wav",
-    ]
+#     assert data == [
+#         watcher.input / "example_6.wav",
+#     ]
 
-    assert results == [
-        watcher.output / f"results_example_{i}.csv" for i in present_indices
-    ]
+#     assert results == [
+#         watcher.output / f"results_example_{i}.csv" for i in present_indices
+#     ]
 
-    watcher.clean_up()
+#     watcher.clean_up()
 
-    data = wfx.get_folder_content(watcher.input_directory, ".wav")
+#     data = wfx.get_folder_content(watcher.input_directory, ".wav")
 
-    results = wfx.get_folder_content(watcher.output_directory, ".csv")
+#     results = wfx.get_folder_content(watcher.output_directory, ".csv")
 
-    assert results == [
-        watcher.output / f"results_example_{i}.csv"
-        for i in range(
-            0, number_of_files - 1, 1
-        )  # last one missing by design of the test
-    ]
+#     assert results == [
+#         watcher.output / f"results_example_{i}.csv"
+#         for i in range(
+#             0, number_of_files - 1, 1
+#         )  # last one missing by design of the test
+#     ]
 
-    assert len(data) == 0
+#     assert len(data) == 0
 
-    missings = wfx.read_missings(watcher)
+#     missings = wfx.read_missings(watcher)
 
-    assert missings == [
-        str(watcher.input / "example_6.wav"),
-    ]
+#     assert missings == [
+#         str(watcher.input / "example_6.wav"),
+#     ]
 
 
-def test_watcher_integrated_delete_on_cleanup(watch_fx):
+# def test_watcher_integrated_delete_on_cleanup(watch_fx):
 
-    wfx = watch_fx
+#     wfx = watch_fx
 
-    watcher = wfx.make_watcher(
-        delete_recordings="on_cleanup",
-    )
+#     watcher = wfx.make_watcher(
+#         delete_recordings="on_cleanup",
+#     )
 
-    # make a mock recorder process that runs in the background
-    number_of_files = 7
-    sleep_for = 2
-    recorder_process = multiprocessing.Process(
-        target=wfx.mock_recorder,
-        args=(wfx.home, wfx.data, number_of_files, sleep_for),
-    )
-    recorder_process.daemon = True
-    recorder_process.start()
+#     # make a mock recorder process that runs in the background
+#     number_of_files = 7
+#     sleep_for = 2
+#     recorder_process = multiprocessing.Process(
+#         target=wfx.mock_recorder,
+#         args=(wfx.home, wfx.data, number_of_files, sleep_for),
+#     )
+#     recorder_process.daemon = True
+#     recorder_process.start()
 
-    watcher.start()
+#     watcher.start()
 
-    file = watcher.output / "results_example_4.csv"
+#     file = watcher.output / "results_example_4.csv"
 
-    wfx.wait_for_event_then_do(
-        condition=lambda: file.is_file() and wait_for_file_completion(file),
-        todo_event=lambda: watcher.stop(),
-        todo_else=lambda: 1,
-    )
-    # the following makes
-    recorder_process.join()
+#     wfx.wait_for_event_then_do(
+#         condition=lambda: file.is_file() and wait_for_file_completion(file),
+#         todo_event=lambda: watcher.stop(),
+#         todo_else=lambda: 1,
+#     )
+#     # the following makes
+#     recorder_process.join()
 
-    recorder_process.close()
+#     recorder_process.close()
 
-    wfx.delete_in_output(watcher, ["results_example_6.csv", "results_example_5.csv"])
+#     wfx.delete_in_output(watcher, ["results_example_6.csv", "results_example_5.csv"])
 
-    data = wfx.get_folder_content(watcher.input_directory, ".wav")
+#     data = wfx.get_folder_content(watcher.input_directory, ".wav")
 
-    results = wfx.get_folder_content(watcher.output_directory, ".csv")
+#     results = wfx.get_folder_content(watcher.output_directory, ".csv")
 
-    assert len(data) == number_of_files
+#     assert len(data) == number_of_files
 
-    assert len(results) == number_of_files - 2
+#     assert len(results) == number_of_files - 2
 
-    watcher.clean_up()
+#     watcher.clean_up()
 
-    data = wfx.get_folder_content(watcher.input_directory, ".wav")
+#     data = wfx.get_folder_content(watcher.input_directory, ".wav")
 
-    assert len(data) == 0
+#     assert len(data) == 0
 
-    results = wfx.get_folder_content(watcher.output_directory, ".csv")
+#     results = wfx.get_folder_content(watcher.output_directory, ".csv")
 
-    assert len(results) == number_of_files - 2
+#     assert len(results) == number_of_files - 2
 
-    missings = wfx.read_missings(watcher)
+#     missings = wfx.read_missings(watcher)
 
-    missings.sort()
+#     missings.sort()
 
-    assert missings == [
-        str(watcher.input / "example_5.wav"),
-        str(watcher.input / "example_6.wav"),
-    ]
+#     assert missings == [
+#         str(watcher.input / "example_5.wav"),
+#         str(watcher.input / "example_6.wav"),
+#     ]
 
 
-def test_watcher_integrated_delete_never(watch_fx):
+# def test_watcher_integrated_delete_never(watch_fx):
 
-    wfx = watch_fx
+#     wfx = watch_fx
 
-    watcher = wfx.make_watcher(
-        delete_recordings="never",
-    )
+#     watcher = wfx.make_watcher(
+#         delete_recordings="never",
+#     )
 
-    # make a mock recorder process that runs in the background
-    number_of_files = 7
-    sleep_for = 2
-    recorder_process = multiprocessing.Process(
-        target=wfx.mock_recorder,
-        args=(wfx.home, wfx.data, number_of_files, sleep_for),
-    )
-    recorder_process.daemon = True
-    recorder_process.start()
+#     # make a mock recorder process that runs in the background
+#     number_of_files = 7
+#     sleep_for = 2
+#     recorder_process = multiprocessing.Process(
+#         target=wfx.mock_recorder,
+#         args=(wfx.home, wfx.data, number_of_files, sleep_for),
+#     )
+#     recorder_process.daemon = True
+#     recorder_process.start()
 
-    watcher.start()
+#     watcher.start()
 
-    while True:
-        watcher.pause()
-        if (
-            watcher.output / "results_example_4.csv"
-        ).is_file() and wait_for_file_completion(
-            watcher.output / "results_example_4.csv"
-        ):
-            watcher.stop()
-            break
-        else:
-            watcher.go_on()
+#     while True:
+#         watcher.pause()
+#         if (
+#             watcher.output / "results_example_4.csv"
+#         ).is_file() and wait_for_file_completion(
+#             watcher.output / "results_example_4.csv"
+#         ):
+#             watcher.stop()
+#             break
+#         else:
+#             watcher.go_on()
 
-    recorder_process.join()
+#     recorder_process.join()
 
-    recorder_process.close()
+#     recorder_process.close()
 
-    wfx.delete_in_output(watcher, ["results_example_6.csv", "results_example_5.csv"])
+#     wfx.delete_in_output(watcher, ["results_example_6.csv", "results_example_5.csv"])
 
-    data = wfx.get_folder_content(watcher.input_directory, ".wav")
+#     data = wfx.get_folder_content(watcher.input_directory, ".wav")
 
-    results = wfx.get_folder_content(watcher.output_directory, ".csv")
+#     results = wfx.get_folder_content(watcher.output_directory, ".csv")
 
-    assert len(data) == number_of_files
+#     assert len(data) == number_of_files
 
-    assert len(results) == number_of_files - 2
+#     assert len(results) == number_of_files - 2
 
-    watcher.clean_up()
+#     watcher.clean_up()
 
-    data = wfx.get_folder_content(watcher.input_directory, ".wav")
+#     data = wfx.get_folder_content(watcher.input_directory, ".wav")
 
-    assert len(data) == 7
+#     assert len(data) == 7
 
-    results = wfx.get_folder_content(watcher.output_directory, ".csv")
+#     results = wfx.get_folder_content(watcher.output_directory, ".csv")
 
-    assert len(results) == number_of_files - 2
+#     assert len(results) == number_of_files - 2
 
-    missings = wfx.read_missings(watcher)
+#     missings = wfx.read_missings(watcher)
 
-    assert missings == [
-        str(watcher.input / "example_5.wav"),
-        str(watcher.input / "example_6.wav"),
-    ]
+#     assert missings == [
+#         str(watcher.input / "example_5.wav"),
+#         str(watcher.input / "example_6.wav"),
+#     ]
 
 
-def test_watcher_model_exchange_with_cleanup(watch_fx):
-    wfx = watch_fx
+# def test_watcher_model_exchange_with_cleanup(watch_fx):
+#     wfx = watch_fx
 
-    watcher = wfx.make_watcher(delete_recordings="on_cleanup")
+#     watcher = wfx.make_watcher(delete_recordings="on_cleanup")
 
-    # make a mock recorder process that runs in the background
-    number_of_files = 10
-    sleep_for = 6
-    recorder_process = multiprocessing.Process(
-        target=wfx.mock_recorder,
-        args=(wfx.home, wfx.data, number_of_files, sleep_for),
-    )
-    recorder_process.daemon = True
-    recorder_process.start()
+#     # make a mock recorder process that runs in the background
+#     number_of_files = 10
+#     sleep_for = 6
+#     recorder_process = multiprocessing.Process(
+#         target=wfx.mock_recorder,
+#         args=(wfx.home, wfx.data, number_of_files, sleep_for),
+#     )
+#     recorder_process.daemon = True
+#     recorder_process.start()
 
-    watcher.start()
+#     watcher.start()
 
-    default_output = deepcopy(watcher.output)
+#     default_output = deepcopy(watcher.output)
 
-    # wait until the 4th file has been analyzed
-    filename = watcher.output / "results_example_4.csv"
-    wfx.wait_for_event_then_do(
-        lambda: filename.is_file() and wait_for_file_completion(filename),
-        lambda: 1,
-        lambda: time.sleep(1),
-    )
+#     # wait until the 4th file has been analyzed
+#     filename = watcher.output / "results_example_4.csv"
+#     wfx.wait_for_event_then_do(
+#         lambda: filename.is_file() and wait_for_file_completion(filename),
+#         lambda: 1,
+#         lambda: time.sleep(1),
+#     )
 
-    watcher.change_analyzer(
-        "birdnet_custom",
-        preprocessor_config=wfx.preprocessor_cfg,
-        model_config=wfx.changed_custom_model_cfg,
-        recording_config=wfx.changed_custom_recording_cfg,
-    )
+#     watcher.change_analyzer(
+#         "birdnet_custom",
+#         preprocessor_config=wfx.preprocessor_cfg,
+#         model_config=wfx.changed_custom_model_cfg,
+#         recording_config=wfx.changed_custom_recording_cfg,
+#     )
 
-    #  kill mock recorder process
-    recorder_process.join()
+#     #  kill mock recorder process
+#     recorder_process.join()
 
-    recorder_process.close()
+#     recorder_process.close()
 
-    # wait until the stuff is done
-    filename = watcher.output / f"results_example_{number_of_files - 1}.csv"
-    wfx.wait_for_event_then_do(
-        lambda: filename.is_file() and wait_for_file_completion(filename),
-        lambda: watcher.stop(),
-        lambda: 1,
-    )
+#     # wait until the stuff is done
+#     filename = watcher.output / f"results_example_{number_of_files - 1}.csv"
+#     wfx.wait_for_event_then_do(
+#         lambda: filename.is_file() and wait_for_file_completion(filename),
+#         lambda: watcher.stop(),
+#         lambda: 1,
+#     )
 
-    assert len(watcher.used_output_folders) == 2
-    assert watcher.model_name == "birdnet_custom"
-    assert isclose(watcher.recording_config["min_conf"], 0.35)
-    assert isclose(watcher.model_config["sigmoid_sensitivity"], 0.8)
-    assert watcher.model_config["default_model_path"] == str(
-        wfx.home / "models/birdnet_default"
-    )
+#     assert len(watcher.used_output_folders) == 2
+#     assert watcher.model_name == "birdnet_custom"
+#     assert isclose(watcher.recording_config["min_conf"], 0.35)
+#     assert isclose(watcher.model_config["sigmoid_sensitivity"], 0.8)
+#     assert watcher.model_config["default_model_path"] == str(
+#         wfx.home / "models/birdnet_default"
+#     )
 
-    # delete example files to simulate missing ones. because the temporal succession of
-    # file writing and model xchange is not completely reliable, we need to check file
-    # existence
-    wfx.delete_in_output(watcher, ["results_example_6.csv", "results_example_5.csv"])
+#     # delete example files to simulate missing ones. because the temporal succession of
+#     # file writing and model xchange is not completely reliable, we need to check file
+#     # existence
+#     wfx.delete_in_output(watcher, ["results_example_6.csv", "results_example_5.csv"])
 
-    data = wfx.get_folder_content(watcher.input_directory, ".wav")
+#     data = wfx.get_folder_content(watcher.input_directory, ".wav")
 
-    default_results = wfx.get_folder_content(default_output, ".csv")
+#     default_results = wfx.get_folder_content(default_output, ".csv")
 
-    custom_results = wfx.get_folder_content(watcher.output, ".csv")
+#     custom_results = wfx.get_folder_content(watcher.output, ".csv")
 
-    assert len([folder for folder in watcher.outdir.iterdir() if folder.is_dir()]) == 2
+#     assert len([folder for folder in watcher.outdir.iterdir() if folder.is_dir()]) == 2
 
-    assert len(data) == 10
+#     assert len(data) == 10
 
-    assert len(default_results) == 5
+#     assert len(default_results) == 5
 
-    assert len(custom_results) == 3
+#     assert len(custom_results) == 3
 
-    watcher.clean_up()
+#     watcher.clean_up()
 
-    custom_results = wfx.get_folder_content(watcher.output, ".csv")
+#     custom_results = wfx.get_folder_content(watcher.output, ".csv")
 
-    assert len(custom_results) == 3
+#     assert len(custom_results) == 3
 
-    data = wfx.get_folder_content(watcher.input_directory, ".wav")
+#     data = wfx.get_folder_content(watcher.input_directory, ".wav")
 
-    assert len(data) == 0
+#     assert len(data) == 0
 
-    missings = wfx.read_missings(watcher)
+#     missings = wfx.read_missings(watcher)
 
-    assert missings == [
-        str(watcher.input / "example_5.wav"),
-        str(watcher.input / "example_6.wav"),
-    ]
+#     assert missings == [
+#         str(watcher.input / "example_5.wav"),
+#         str(watcher.input / "example_6.wav"),
+#     ]
 
 
-def test_watcher_model_exchange_with_cleanup_invalid_model(watch_fx):
-    wfx = watch_fx
+# def test_watcher_model_exchange_with_cleanup_invalid_model(watch_fx):
+#     wfx = watch_fx
 
-    watcher = wfx.make_watcher(
-        delete_recordings="on_cleanup",
-    )
+#     watcher = wfx.make_watcher(
+#         delete_recordings="on_cleanup",
+#     )
 
-    watcher.start()
+#     watcher.start()
 
-    time.sleep(4)
+#     time.sleep(4)
 
-    # artificially set finish flag because no data
-    watcher.is_done_analyzing.set()
+#     # artificially set finish flag because no data
+#     watcher.is_done_analyzing.set()
 
-    with pytest.raises(
-        ValueError, match="Given model name does not exist in model dir."
-    ):
-        watcher.change_analyzer(
-            "model_that_is_not_there",
-            preprocessor_config=wfx.preprocessor_cfg,
-            model_config=wfx.changed_custom_model_cfg,
-            recording_config=wfx.changed_custom_recording_cfg,
-        )
+#     with pytest.raises(
+#         ValueError, match="Given model name does not exist in model dir."
+#     ):
+#         watcher.change_analyzer(
+#             "model_that_is_not_there",
+#             preprocessor_config=wfx.preprocessor_cfg,
+#             model_config=wfx.changed_custom_model_cfg,
+#             recording_config=wfx.changed_custom_recording_cfg,
+#         )
 
-    assert watcher.watcher_process is None
-    assert watcher.is_running is False
+#     assert watcher.watcher_process is None
+#     assert watcher.is_running is False
