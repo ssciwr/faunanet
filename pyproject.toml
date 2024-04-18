@@ -18,7 +18,6 @@ classifiers = [
 dependencies = [
     "numpy",
     "librosa",
-    "tflite-runtime",
     "PyYAML",
     "birdnetlib==0.15.0",
     "pooch",
@@ -36,6 +35,6 @@ build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
 with_tensorflow = ["tensorflow>=2.0","tensorflow-hub>=0.1",]
-
+with_tflite = ["tflite-runtime>=2.8.0"]
 
 # add additional stuff when needed, poetry support?
