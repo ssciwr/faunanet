@@ -106,7 +106,6 @@ class Model(ModelBase):
 
         # Get  feature embeddings
         self.output_layer_index = output_details[0]["index"] - 1
-        print("Default classifier loaded")
 
         # now load the custom classifier
         self.custom_classifier = tflite.Interpreter(
@@ -121,7 +120,6 @@ class Model(ModelBase):
         self.custom_input_layer_index = custom_input_details[0]["index"]
         self.custom_output_layer_index = custom_output_details[0]["index"]
 
-        print("Custom classifier loaded")
 
     def load_species_list(self):
         # TODO
@@ -139,7 +137,6 @@ class Model(ModelBase):
         Returns:
             np.array: Feature embedding produces by the default birdnet CNN.
         """
-        print(" get embeddings")
         self.model.resize_tensor_input(
             self.input_layer_index, [len(data), *data[0].shape]
         )

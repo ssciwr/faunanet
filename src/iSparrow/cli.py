@@ -61,12 +61,13 @@ def process_configs(cfg: str):
                 f"Folder {name} not found, has iSparrow been set up?"
             )
 
-    print("before: ", config)
     utils.update_dict_recursive(config, user_config)
-    print("after: ", config)
 
     # process recording config
-    if "date" in config["Analysis"]["Recording"]:
+    if (
+        "date" in config["Analysis"]["Recording"]
+        and config["Analysis"]["Recording"]["date"] is not None
+    ):
         d = datetime.strptime(config["Analysis"]["Recording"]["date"], "%d-%m-%Y")
         config["Analysis"]["Recording"]["date"] = d
 
@@ -268,8 +269,11 @@ def check_watcher():
     """
     check_watcher _summary_
     """
-    status = "yes" if WATCHER.is_running else "no"
-    click.echo(f"watcher is running? {status}")
+    running = "is" if WATCHER.is_running else "is not"
+    click.echo(f"watcher {running} running")
+
+    paused = "is not" if WATCHER.may_do_work.is_set() else "is"
+    click.echo(f"watcher is {paused} paused")
 
 
 def delete_watcher():
@@ -320,13 +324,15 @@ def stop_watcher():
 
 
 def change_analyzer():
+    global WATCHER
+
+    if WATCHER is None:
+        raise RuntimeError("No watcher initialized")
+
     ctx = click.get_current_context()
     cfg = click.prompt(
         "Please enter the path to the config file defining the new analyzer: "
     )
-
-    print(cfg)
-
     # process configuration files into install and one single config
     (
         _,
@@ -350,10 +356,6 @@ def change_analyzer():
     model_name = mcfg["model_name"]
     del mcfg["model_name"]
 
-    global WATCHER
-
-    print(mcfg)
-
     WATCHER.change_analyzer(
         model_name,
         preprocessor_config=preprocessor_cfg,
@@ -364,12 +366,8 @@ def change_analyzer():
 
 
 def clean_up():
-
+    global WATCHER
     if WATCHER is None:
         raise RuntimeError("No watcher has been initialized, clean_up cannot be run")
 
     WATCHER.clean_up()
-
-
-if __name__ == "__main__":
-    cli()
