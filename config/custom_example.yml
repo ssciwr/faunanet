@@ -1,10 +1,13 @@
 Analysis:
   Model:
     model_name: birdnet_custom
-    default_model_path: birdnet_default
+    default_model_path: /Users/name/iSparrow/models/birdnet_default
     sigmoid_sensitivity: 1.0
     num_threads: 1
 
   Recording:
-    species_presence_threshold: 0.03
+    species_presence_threshold: 0.06
     min_conf: 0.1
+    lon: null
+    lat: null
+    date: null

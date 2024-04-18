@@ -18,11 +18,16 @@ Analysis:
     num_threads: 1
 
   Recording:
-    lat: 42.5
-    lon: -76.45
-    date: 24-01-2024 #format: dd-mm-yyyy, "%Y-%m-%d"
+    # lat: 42.5
+    # lon: -76.45
+    # date: 24-01-2024 #format: dd-mm-yyyy, "%Y-%m-%d"
+    date: null
+    lat: null
+    lon: null
     species_presence_threshold: 0.03
     min_conf: 0.25
+    species_predictor: null
+    file_check_poll_interval: 1
 
   SpeciesPredictor:
     num_threads: 1
