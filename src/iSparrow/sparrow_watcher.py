@@ -11,6 +11,7 @@ from datetime import datetime
 from copy import deepcopy
 import yaml
 import multiprocessing
+import warnings
 
 
 class AnalysisEventHandler(FileSystemEventHandler):
@@ -215,7 +216,10 @@ class SparrowWatcher:
             recording_config (dict, optional): Keyword arguments for the internal SparrowRecording. Defaults to {}.
             species_predictor_config (dict, optional): Keyword arguments for a species presence predictor model. Defaults to {}.
             check_time(int, optional): Sleep time of the thread between checks for new files in seconds. Defaults to 1.
-            delete_recordings(str, optional): Mode for data clean up. Can be one of "never", "on_cleanup", "immediatelly". "never" keeps recordings around indefinitely, "on_cleanup" only deletes them when the `clean_up` method is called, and 'immediatelly' deletes the recording immediatelly after analysis.
+            delete_recordings(str, optional): Mode for data clean up. Can be one of "never", "on_cleanup", "immediatelly".
+                                            "never" keeps recordings around indefinitely, "on_cleanup" only deletes them
+                                            when the `clean_up` method is called, and 'immediatelly' deletes the recording
+                                            immediatelly after analysis.
         Raises:
             ValueError: When the indir parameter is not an existing directory.
             ValueError: When the outdir parameter is not an existing directory.
@@ -342,18 +346,7 @@ class SparrowWatcher:
         # change the model, resume the analyzer
 
         if (self.model_dir / model_name).is_dir() is False:
-            self.stop()
             raise ValueError("Given model name does not exist in model dir.")
-
-        self.model_name = model_name
-
-        self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
-
-        self.used_output_folders.append(self.output)
-
-        self.creation_time_first_analyzed = multiprocessing.Value("d", 0)
-
-        self.model_name = model_name
 
         if preprocessor_config is None:
             preprocessor_config = {}
@@ -367,6 +360,28 @@ class SparrowWatcher:
         if species_predictor_config is None:
             species_predictor_config = {}
 
+        old_name = self.model_name
+
+        old_output = self.output
+
+        old_creation_time_first = self.creation_time_first_analyzed
+
+        old_model_config = deepcopy(self.model_config)
+
+        old_recording_config = deepcopy(self.recording_config)
+
+        old_preprocessor_config = deepcopy(self.preprocessor_config)
+
+        old_species_predictor_config = deepcopy(self.species_predictor_config)
+
+        self.model_name = model_name
+
+        self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
+
+        self.used_output_folders.append(self.output)
+
+        self.creation_time_first_analyzed = multiprocessing.Value("d", 0)
+
         self.preprocessor_config = preprocessor_config
 
         self.model_config = model_config
@@ -376,7 +391,30 @@ class SparrowWatcher:
         self.species_predictor_config = species_predictor_config
 
         # restart process to make changes take effect
-        self.restart()
+        try:
+            self.restart()
+        except Exception as e:
+            self.model_name = old_name
+
+            self.output = old_output
+
+            self.used_output_folders.pop()
+
+            self.creation_time_first_analyzed = old_creation_time_first
+
+            self.preprocessor_config = old_preprocessor_config
+
+            self.model_config = old_model_config
+
+            self.recording_config = old_recording_config
+
+            self.species_predictor_config = old_species_predictor_config
+
+            self.stop()
+
+            raise RuntimeError(
+                "Something went wrong when trying to restart the watcher process after analyzer change. You have to restart the process manually to run it again with the old properties."
+            ) from e
 
     def analyze(self, filename: str, recording: SparrowRecording):
         """
@@ -431,23 +469,40 @@ class SparrowWatcher:
         Raises:
             RuntimeError: When the watcher process is running already.
         """
-
         if self.watcher_process is not None and self.is_running:
             raise RuntimeError("watcher process still running, stop first.")
 
-        self.output.mkdir(exist_ok=True, parents=True)
+        try:
+            self.output.mkdir(exist_ok=True, parents=True)
 
-        self._write_config()
+            self._write_config()
 
-        print("start the watcher process")
-        # create a background watchertask such that the command is handed back to the parent process
+            print("start the watcher process")
+            # create a background watchertask such that the command is handed back to the parent process
 
-        self.may_do_work.set()
-        self.is_done_analyzing.clear()
-        self.watcher_process = multiprocessing.Process(target=watchertask, args=(self,))
-        self.watcher_process.daemon = True
-        self.watcher_process.name = "watcher_process"
-        self.watcher_process.start()
+            self.may_do_work.set()
+            self.is_done_analyzing.clear()
+            self.watcher_process = multiprocessing.Process(
+                target=watchertask, args=(self,)
+            )
+            self.watcher_process.daemon = True
+            self.watcher_process.name = "watcher_process"
+            self.watcher_process.start()
+        except Exception as e:
+
+            if (self.output / "config.yml").is_file():
+                (self.output / "config.yml").unlink()
+
+            if self.output.is_dir():
+                self.output.rmdir()
+
+            self.may_do_work.clear()
+            self.is_done_analyzing.clear()
+            self.watcher_process = None
+
+            raise RuntimeError(
+                "Error, something went wrong when starting the watcher process, undoing changes and returning"
+            ) from e
 
     def restart(self):
         """
@@ -490,15 +545,23 @@ class SparrowWatcher:
             RuntimeError: When the watcher process is not running anymore
         """
         if self.watcher_process is not None and self.watcher_process.is_alive():
-            self.is_done_analyzing.wait()
+            print("trying to stop the watcher process")
+            flag_set = self.is_done_analyzing.wait(timeout=20)
 
-            print("stop the watcher process")
-            self.watcher_process.terminate()
-            self.watcher_process.join()
-            self.watcher_process.close()
-            self.watcher_process = None
-            self.may_do_work.clear()
-            self.is_done_analyzing.set()
+            if flag_set is False:
+                warnings.warn("stop timeout expired, terminating watcher process now.")
+
+            try:
+                self.watcher_process.terminate()
+                self.watcher_process.join()
+                self.watcher_process.close()
+                self.watcher_process = None
+                self.may_do_work.clear()
+                self.is_done_analyzing.set()
+            except Exception as e:
+                raise RuntimeError(
+                    "Something went wrong when trying to stop the watcher process"
+                ) from e
 
         else:
             raise RuntimeError("Cannot stop watcher process, is not alive anymore.")
@@ -512,7 +575,7 @@ class SparrowWatcher:
         """
 
         missings = []
-
+        # FIXME: make this such that it orders the missings correctly.
         for filename in self.input.iterdir():
 
             condition = (

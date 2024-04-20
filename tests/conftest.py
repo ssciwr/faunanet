@@ -1,6 +1,7 @@
 import pytest
 import shutil
-
+import multiprocessing
+multiprocessing.set_start_method("spawn")
 from . import set_up_sparrow_env
 from .fixtures.recording_fixtures import recording_fx
 from .fixtures.preprocessor_fixtures import preprocessor_fx, preprocessor_fx_google
