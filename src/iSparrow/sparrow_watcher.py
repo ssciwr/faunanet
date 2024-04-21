@@ -401,6 +401,7 @@ class SparrowWatcher:
         """
         restart Restart the watcher process. Must be called when, e.g., new models have been loaded or the input or output has changed.
         """
+        print("trying to restart the watcher process")
         self.stop()
         self.start()
 
@@ -439,7 +440,7 @@ class SparrowWatcher:
         """
         if self.watcher_process is not None and self.watcher_process.is_alive():
             print("trying to stop the watcher process")
-            flag_set = self.is_done_analyzing.wait(timeout=30)
+            flag_set = self.is_done_analyzing.wait(timeout=15)
 
             if flag_set is False:
                 warnings.warn("stop timeout expired, terminating watcher process now.")
@@ -466,6 +467,9 @@ class SparrowWatcher:
         model_config: dict = None,
         recording_config: dict = None,
         species_predictor_config: dict = None,
+        pattern: str = ".wav",
+        check_time: int = 1,
+        delete_recordings: str = "never",
     ):
         """
         change_analyzer Change classifier model to the one indicated by name.
@@ -484,6 +488,8 @@ class SparrowWatcher:
             ValueError: _description_
             RuntimeError: _description_
         """
+
+        print("changing analyzer to: ", model_name)
         # import and build new model, pause the analyzer process,
         # change the model, resume the analyzer
         if preprocessor_config is None:
@@ -507,18 +513,19 @@ class SparrowWatcher:
         old_model_config = deepcopy(self.model_config)
         old_recording_config = deepcopy(self.recording_config)
         old_species_predictor_config = deepcopy(self.species_predictor_config)
+        old_pattern = deepcopy(self.pattern)
+        old_check_time = self.check_time
+        old_delete = self.delete_recordings
 
         self.model_name = model_name
-
         self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
-
         self.preprocessor_config = preprocessor_config
-
         self.model_config = model_config
-
         self.recording_config = recording_config
-
         self.species_predictor_config = species_predictor_config
+        self.pattern = pattern
+        self.check_time = check_time
+        self.delete_recordings = delete_recordings
 
         # restart process to make changes take effect
         try:
@@ -531,7 +538,9 @@ class SparrowWatcher:
             self.model_config = old_model_config
             self.recording_config = old_recording_config
             self.species_predictor_config = old_species_predictor_config
-
+            self.pattern = old_pattern
+            self.check_time = old_check_time
+            self.delete_recordings = old_delete
             raise RuntimeError(
                 "Error when restarting the watcher process, needs to be restarted manually. This operation may have led to data loss."
             ) from e
