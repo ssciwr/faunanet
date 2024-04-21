@@ -3,7 +3,6 @@ from iSparrow import SpeciesPredictorBase
 import iSparrow.utils as utils
 
 from pathlib import Path
-import pandas as pd
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 from time import sleep
@@ -13,6 +12,7 @@ import yaml
 import multiprocessing
 import warnings
 import csv
+from copy import deepcopy
 
 
 class AnalysisEventHandler(FileSystemEventHandler):
@@ -458,3 +458,80 @@ class SparrowWatcher:
 
         else:
             raise RuntimeError("Cannot stop watcher process, is not alive anymore.")
+
+    def change_analyzer(
+        self,
+        model_name: str,
+        preprocessor_config: dict = None,
+        model_config: dict = None,
+        recording_config: dict = None,
+        species_predictor_config: dict = None,
+    ):
+        """
+        change_analyzer Change classifier model to the one indicated by name.
+        The given model name must correspond to the name of a folder in the
+        iSparrow models directory created upon install.
+
+        Args:
+            model_name (str): Name of the model to be used
+            preprocessor_config (dict, optional): Parameters for preprocessor given as key(str): value. If empty, default parameters of the preprocessor will be used. Defaults to {}.
+            model_config (dict, optional): Parameters for the model given as key(str): value. If empty, default parameters of the model will be used. Defaults to {}.
+            recording_config (dict, optional): Parameters for the underlyin SparrowRecording object. If empty, default parameters of the recording will be used. Defaults to {}.
+            species_predictor_config (dict, optional): _description_. If empty, default parameters of the species predictor will be used. Defaults to {}.
+            Make sure the model you use is compatible with a species predictor before supplying these.
+
+        Raises:
+            ValueError: _description_
+            RuntimeError: _description_
+        """
+        # import and build new model, pause the analyzer process,
+        # change the model, resume the analyzer
+        if preprocessor_config is None:
+            preprocessor_config = {}
+
+        if model_config is None:
+            model_config = {}
+
+        if recording_config is None:
+            recording_config = {}
+
+        if species_predictor_config is None:
+            species_predictor_config = {}
+
+        if (self.model_dir / model_name).is_dir() is False:
+            raise ValueError("Given model name does not exist in model dir.")
+
+        old_model_name = self.model_name
+        old_output = self.output
+        old_preprocessor_config = deepcopy(self.preprocessor_config)
+        old_model_config = deepcopy(self.model_config)
+        old_recording_config = deepcopy(self.recording_config)
+        old_species_predictor_config = deepcopy(self.species_predictor_config)
+
+        self.model_name = model_name
+
+        self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
+
+        self.preprocessor_config = preprocessor_config
+
+        self.model_config = model_config
+
+        self.recording_config = recording_config
+
+        self.species_predictor_config = species_predictor_config
+
+        # restart process to make changes take effect
+        try:
+            self.restart()
+        except Exception as e:
+            # restore state when something goes wrong
+            self.model_name = old_model_name
+            self.output = old_output
+            self.preprocessor_config = old_preprocessor_config
+            self.model_config = old_model_config
+            self.recording_config = old_recording_config
+            self.species_predictor_config = old_species_predictor_config
+
+            raise RuntimeError(
+                "Error when restarting the watcher process, needs to be restarted manually. This operation may have led to data loss."
+            ) from e
