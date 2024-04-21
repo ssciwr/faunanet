@@ -12,6 +12,7 @@ from copy import deepcopy
 import yaml
 import multiprocessing
 import warnings
+import csv
 
 
 class AnalysisEventHandler(FileSystemEventHandler):
@@ -63,7 +64,7 @@ class AnalysisEventHandler(FileSystemEventHandler):
 def watchertask(watcher):
     """
     watchertask Function to run in the watcher process.
-    Checks if there is a new file every 'watcher.check_time' minutes and
+    Checks if there is a new file every 'watcher.check_time' seconds and
     analyze the file with a sound classifier model.
 
     Args:
@@ -199,7 +200,7 @@ class SparrowWatcher:
         species_predictor_config: dict = None,
         pattern: str = ".wav",
         check_time: int = 1,
-        delete_recordings: str = "on_cleanup",
+        delete_recordings: str = "never",
     ):
         """
         __init__ Create a new Watcher object.
@@ -216,10 +217,9 @@ class SparrowWatcher:
             recording_config (dict, optional): Keyword arguments for the internal SparrowRecording. Defaults to {}.
             species_predictor_config (dict, optional): Keyword arguments for a species presence predictor model. Defaults to {}.
             check_time(int, optional): Sleep time of the thread between checks for new files in seconds. Defaults to 1.
-            delete_recordings(str, optional): Mode for data clean up. Can be one of "never", "on_cleanup", "immediatelly".
-                                            "never" keeps recordings around indefinitely, "on_cleanup" only deletes them
-                                            when the `clean_up` method is called, and 'immediatelly' deletes the recording
-                                            immediatelly after analysis.
+            delete_recordings(str, optional): Mode for data clean up. Can be one of "never" or "always".
+                                            "never" keeps recordings around indefinitely. 'always' deletes the recording
+                                            immediatelly after analysis. Defaults to 'never'.
         Raises:
             ValueError: When the indir parameter is not an existing directory.
             ValueError: When the outdir parameter is not an existing directory.
@@ -261,18 +261,8 @@ class SparrowWatcher:
 
         self.check_time = check_time
 
-        self.creation_time_first_analyzed = multiprocessing.Value("d", 0)
-
-        self.creation_time_last_analyzed = multiprocessing.Value("d", 0)
-
-        self.used_output_folders = [
-            self.output,
-        ]
-
-        if delete_recordings not in ["never", "on_cleanup", "always"]:
-            raise ValueError(
-                "'delete_recordings' must be in 'never', 'on_cleanup', 'always'"
-            )
+        if delete_recordings not in ["never", "always"]:
+            raise ValueError("'delete_recordings' must be in 'never', 'always'")
 
         self.delete_recordings = delete_recordings
 
@@ -311,111 +301,6 @@ class SparrowWatcher:
         else:
             return False
 
-    @property
-    def last_analyzed_file_ct(self):
-        return self.creation_time_last_analyzed.value
-
-    @property
-    def first_analyzed_file_ct(self):
-        return self.creation_time_first_analyzed.value
-
-    def change_analyzer(
-        self,
-        model_name: str,
-        preprocessor_config: dict = None,
-        model_config: dict = None,
-        recording_config: dict = None,
-        species_predictor_config: dict = None,
-    ):
-        """
-        change_analyzer Change classifier model to the one indicated by name.
-        The given model name must correspond to the name of a folder in the
-        iSparrow models directory created upon install.
-
-        Args:
-            model_name (str): Name of the model to be used
-            preprocessor_config (dict, optional): Parameters for preprocessor given as key(str): value. If empty, default parameters of the preprocessor will be used. Defaults to {}.
-            model_config (dict, optional): Parameters for the model given as key(str): value. If empty, default parameters of the model will be used. Defaults to {}.
-            recording_config (dict, optional): Parameters for the underlyin SparrowRecording object. If empty, default parameters of the recording will be used. Defaults to {}.
-            species_predictor_config (dict, optional): _description_. If empty, default parameters of the species predictor will be used. Defaults to {}.
-            Make sure the model you use is compatible with a species predictor before supplying these.
-        Raises:
-            ValueError: When the model name is not present in the models directory of iSparrow
-        """
-        # import and build new model, pause the analyzer process,
-        # change the model, resume the analyzer
-
-        if (self.model_dir / model_name).is_dir() is False:
-            raise ValueError("Given model name does not exist in model dir.")
-
-        if preprocessor_config is None:
-            preprocessor_config = {}
-
-        if model_config is None:
-            model_config = {}
-
-        if recording_config is None:
-            recording_config = {}
-
-        if species_predictor_config is None:
-            species_predictor_config = {}
-
-        old_name = self.model_name
-
-        old_output = self.output
-
-        old_creation_time_first = self.creation_time_first_analyzed
-
-        old_model_config = deepcopy(self.model_config)
-
-        old_recording_config = deepcopy(self.recording_config)
-
-        old_preprocessor_config = deepcopy(self.preprocessor_config)
-
-        old_species_predictor_config = deepcopy(self.species_predictor_config)
-
-        self.model_name = model_name
-
-        self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
-
-        self.used_output_folders.append(self.output)
-
-        self.creation_time_first_analyzed = multiprocessing.Value("d", 0)
-
-        self.preprocessor_config = preprocessor_config
-
-        self.model_config = model_config
-
-        self.recording_config = recording_config
-
-        self.species_predictor_config = species_predictor_config
-
-        # restart process to make changes take effect
-        try:
-            self.restart()
-        except Exception as e:
-            self.model_name = old_name
-
-            self.output = old_output
-
-            self.used_output_folders.pop()
-
-            self.creation_time_first_analyzed = old_creation_time_first
-
-            self.preprocessor_config = old_preprocessor_config
-
-            self.model_config = old_model_config
-
-            self.recording_config = old_recording_config
-
-            self.species_predictor_config = old_species_predictor_config
-
-            self.stop()
-
-            raise RuntimeError(
-                "Something went wrong when trying to restart the watcher process after analyzer change. You have to restart the process manually to run it again with the old properties."
-            ) from e
-
     def analyze(self, filename: str, recording: SparrowRecording):
         """
         analyze Analyze a file pointed to by 'filename' and save the results as csv file to 'output'.
@@ -442,11 +327,6 @@ class SparrowWatcher:
 
         self.is_done_analyzing.set()  # give good-to-go for main process
 
-        if self.creation_time_first_analyzed.value < 1e-9:
-            self.creation_time_first_analyzed.value = Path(filename).stat().st_ctime
-
-        self.creation_time_last_analyzed.value = Path(filename).stat().st_ctime
-
         if self.delete_recordings == "always":
             Path(filename).unlink()
 
@@ -457,9 +337,16 @@ class SparrowWatcher:
         Args:
             suffix (str, optional): _description_. Defaults to "".
         """
-        pd.DataFrame(results).to_csv(
-            self.output / Path(f"results_{suffix}.csv"), index=False
-        )
+
+        with open(self.output / Path(f"results_{suffix}.csv"), "w") as csvfile:
+            if len(results) == 0:
+                writer = csv.writer(csvfile)
+                writer.writerow([])
+            else:
+                colnames = results[0].keys()
+                writer = csv.DictWriter(csvfile, fieldnames=colnames)
+                writer.writeheader()
+                writer.writerows(results)
 
     def start(self):
         """
@@ -498,10 +385,16 @@ class SparrowWatcher:
 
             self.may_do_work.clear()
             self.is_done_analyzing.clear()
+
+            if self.watcher_process.is_alive():
+                self.watcher_process.terminate()
+                self.watcher_process.join()
+                self.watcher_process.close()
+
             self.watcher_process = None
 
             raise RuntimeError(
-                "Error, something went wrong when starting the watcher process, undoing changes and returning"
+                "Something went wrong when starting the watcher process, undoing changes and returning"
             ) from e
 
     def restart(self):
@@ -546,7 +439,7 @@ class SparrowWatcher:
         """
         if self.watcher_process is not None and self.watcher_process.is_alive():
             print("trying to stop the watcher process")
-            flag_set = self.is_done_analyzing.wait(timeout=20)
+            flag_set = self.is_done_analyzing.wait(timeout=30)
 
             if flag_set is False:
                 warnings.warn("stop timeout expired, terminating watcher process now.")
@@ -565,39 +458,3 @@ class SparrowWatcher:
 
         else:
             raise RuntimeError("Cannot stop watcher process, is not alive anymore.")
-
-    def clean_up(self):
-        """
-        clean_up Delete the input files which have been analyzed and delete them if 'delete_recordings' is 'on_cleanup'.
-                Files that have not yet been analyzed are analyzed *with the current model* before deletion. This means
-                that if they belong to a different batch that has been analyzed with a different model, they still will
-                be missing in there and be added to the current batch.
-        """
-
-        missings = []
-        # FIXME: make this such that it orders the missings correctly.
-        for filename in self.input.iterdir():
-
-            condition = (
-                filename.stat().st_ctime < self.creation_time_last_analyzed.value
-                if self.is_running
-                else True
-            )
-
-            exists = any(
-                [
-                    (out / Path(f"results_{str(filename.stem)}.csv")).exists()
-                    for out in self.used_output_folders
-                ]
-            )
-
-            if condition and not exists:
-                missings.append(filename)
-
-            # check that the currently checked file has been created before the last
-            if self.delete_recordings in ["always", "on_cleanup"] and condition:
-                filename.unlink()
-
-        with open(self.output / "missing_files.txt", "w") as missingrecord:
-            for line in missings:
-                missingrecord.write(f"{line}\n")

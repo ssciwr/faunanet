@@ -21,7 +21,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.8", "3.12"]
+        python-version: ["3.9", "3.12"]
     steps:
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
@@ -35,6 +35,13 @@ jobs:
     - name: Install windows dependencies 
       if: matrix.os == 'windows-latest'
       run: choco install ffmpeg
+
+    - name: Install linux dependencies 
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt update
+        sudo apt -y upgrade
+        sudo apt -y install ffmpeg libavcodec-extra
 
     - name: Getting repository
       uses: actions/checkout@v3
@@ -57,4 +64,4 @@ jobs:
 
     - name: Run pytest unittests
       run: |
-        python -m pytest -vvs
+        python -m pytest -vv

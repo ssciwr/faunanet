@@ -14,7 +14,7 @@ OUTPUT = ""
 
 
 # add a fixture with session scope that emulates the result of a later to-be-implemented-install-routine
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def install(request):
     print("Creating iSparrow folders and downloading data... ")
     set_up_sparrow_env.install(for_tests=True)

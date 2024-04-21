@@ -154,9 +154,8 @@ class WatchFixture:
 
     def delete_in_output(self, watcher, files: list):
         for f in files:
-            for out in watcher.used_output_folders:
-                if (out / f).exists():
-                    (out / f).unlink()
+            if (watcher.output / f).exists():
+                (watcher.output / f).unlink()
 
     def delete_in_input(self, watcher, files: list):
         for f in files:
