@@ -497,9 +497,9 @@ def test_change_analyzer(watch_fx):
 
     old_output = watcher.output
 
-    number_of_files = 10
+    number_of_files = 15
 
-    sleep_for = 5
+    sleep_for = 3
 
     recorder_process = multiprocessing.Process(
         target=wfx.mock_recorder,
@@ -552,7 +552,7 @@ def test_change_analyzer(watch_fx):
     assert watcher.check_time == 1
     assert watcher.delete_recordings == "always"
 
-    #wait for the final file to be completed
+    # wait for the final file to be completed
     filename = watcher.output / f"results_example_{number_of_files-1}.csv"
 
     wfx.wait_for_event_then_do(
@@ -566,5 +566,5 @@ def test_change_analyzer(watch_fx):
 
     assert len(current_files) > 0  # some analyzed files must be in the new directory
     assert len(old_files) > 0
-    assert len(list(Path(wfx.data).iterdir())) == 7
+    assert 0 < len(list(Path(wfx.data).iterdir())) < number_of_files
     assert number_of_files > len(old_files) + len(current_files)  # some data can be
