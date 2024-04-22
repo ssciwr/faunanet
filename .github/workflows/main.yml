@@ -21,7 +21,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest,] #[ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.9",] # "3.12"]
+        python-version: ["3.9", "3.12"]
     steps:
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
@@ -64,4 +64,4 @@ jobs:
 
     - name: Run pytest unittests
       run: |
-        python -m pytest -vv
+        python -m pytest -vvs
