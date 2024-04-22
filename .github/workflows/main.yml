@@ -64,6 +64,6 @@ jobs:
 
     - name: Run pytest unittests
       run: |
-        python -m pytest -vvs
+        python -m pytest -vv
 
         
