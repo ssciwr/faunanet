@@ -54,7 +54,7 @@ jobs:
 
     - name: activate venv on windows 
       if: matrix.os == 'windows-latest'
-      run: .\venv\Scripts\activate
+      run: .\.venv\Scripts\activate
 
     - name: Install dependencies
       run: | 
