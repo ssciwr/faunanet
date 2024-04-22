@@ -1,6 +1,7 @@
 import pytest
 import shutil
 import multiprocessing
+
 multiprocessing.set_start_method("spawn")
 from . import set_up_sparrow_env
 from .fixtures.recording_fixtures import recording_fx
@@ -31,12 +32,3 @@ def install(request):
         shutil.rmtree(str(OUTPUT))
 
     request.addfinalizer(teardown)
-
-
-@pytest.fixture()
-def folders():
-    home = set_up_sparrow_env.HOME
-    data = set_up_sparrow_env.DATA
-    output = set_up_sparrow_env.OUTPUT
-
-    return home, data, output
