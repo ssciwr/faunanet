@@ -568,3 +568,105 @@ def test_change_analyzer(watch_fx):
     assert len(old_files) > 0
     assert 0 < len(list(Path(wfx.data).iterdir())) < number_of_files
     assert number_of_files > len(old_files) + len(current_files)  # some data can be
+
+
+def test_change_analyzer_exception(watch_fx, mocker):
+
+    wfx = watch_fx
+
+    watcher = wfx.make_watcher(
+        delete_recordings="never",
+    )
+
+    old_output = watcher.output
+    old_recording_cfg = deepcopy(watcher.recording_config)
+    old_model_cfg = deepcopy(watcher.model_config)
+    old_preprocessor_cfg = deepcopy(watcher.preprocessor_config)
+    old_species_predictor_cfg = deepcopy(watcher.species_predictor_config)
+
+    number_of_files = 100
+
+    sleep_for = 3
+
+    recorder_process = multiprocessing.Process(
+        target=wfx.mock_recorder,
+        args=(wfx.home, wfx.data, number_of_files, sleep_for),
+    )
+
+    recorder_process.daemon = True
+
+    watcher.start()
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: watcher.is_running,
+        todo_event=lambda: 1,
+        todo_else=lambda: time.sleep(1),
+    )
+
+    recorder_process.start()
+
+    assert watcher.is_running
+    assert watcher.watcher_process is not None
+
+    filename = watcher.output / "results_example_4.csv"
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: filename.is_file(),
+        todo_event=lambda: 1,
+        todo_else=lambda: time.sleep(0.2),
+    )
+
+    # patch the start method so we get a mock exception that is propagated through the system
+    stop_patched = mocker.patch(
+        "multiprocessing.Process.terminate",
+        side_effect=ValueError("Simulated error occurred"),
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Error when restarting the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss.",
+    ):
+        watcher.change_analyzer(
+            "birdnet_custom",
+            preprocessor_config=wfx.custom_preprocessor_cfg,
+            model_config=wfx.custom_model_cfg,
+            recording_config=wfx.changed_custom_recording_cfg,
+            delete_recordings="always",
+        )
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: watcher.is_running is False,
+        todo_event=lambda: 1,  # do nothing, just stop waiting,
+        todo_else=lambda: time.sleep(0.2),
+    )
+
+    assert watcher.model_name == "birdnet_default"
+    assert watcher.model_config == old_model_cfg
+    assert watcher.preprocessor_config == old_preprocessor_cfg
+    assert watcher.recording_config == old_recording_cfg
+    assert watcher.species_predictor_config == old_species_predictor_cfg
+    assert watcher.output == old_output
+    assert watcher.is_running is False
+    assert watcher.watcher_process is None
+    assert watcher.delete_recordings == "never"
+
+    stop_patched.stop()
+
+    # make sure the process can be started again
+    watcher.start()
+
+    filename = watcher.output / "results_example_25.csv"
+    wfx.wait_for_event_then_do(
+        condition=lambda: filename.is_file(),
+        todo_event=lambda: watcher.stop(),
+        todo_else=lambda: time.sleep(0.2),
+    )
+
+    recorder_process.terminate()
+    recorder_process.clean()
+
+    results = list(watcher.output.iterdir())
+    outputs = list(Path(watcher.outdir).iterdir())
+    assert len(outputs) == 2
+    assert watcher.output in outputs
+    assert len(results) > 0

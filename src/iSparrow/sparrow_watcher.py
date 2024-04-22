@@ -377,10 +377,9 @@ class SparrowWatcher:
             self.watcher_process.start()
         except Exception as e:
 
-            if (self.output / "config.yml").is_file():
-                (self.output / "config.yml").unlink()
-
             if self.output.is_dir():
+                for filename in self.output.iterdir():
+                    filename.unlink()
                 self.output.rmdir()
 
             self.may_do_work.clear()
@@ -489,6 +488,9 @@ class SparrowWatcher:
             RuntimeError: _description_
         """
 
+        if self.watcher_process is None or self.is_running is False:
+            raise RuntimeError("Watcher not running, cannot change analyzer")
+
         print("changing analyzer to: ", model_name)
         # import and build new model, pause the analyzer process,
         # change the model, resume the analyzer
@@ -541,6 +543,13 @@ class SparrowWatcher:
             self.pattern = old_pattern
             self.check_time = old_check_time
             self.delete_recordings = old_delete
+
+            self.may_do_work.clear()
+            self.is_done_analyzing.set()
+
+            if self.is_running:
+                self.stop()
+
             raise RuntimeError(
-                "Error when restarting the watcher process, needs to be restarted manually. This operation may have led to data loss."
+                "Error when restarting the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss."
             ) from e
