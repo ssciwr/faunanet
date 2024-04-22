@@ -1,7 +1,7 @@
 [project]
 name = "iSparrow"
 version = "0.1"
-requires-python = ">= 3.8"
+requires-python = ">= 3.9"
 authors=[{name = "Inga Ulusoy", email = "inga.ulusoy@uni-heidelberg.de"}, {name = "Harald Mack", email = "harald.mack@uni-heidelberg.de"}]
 description = "Smart-IoT-based Passive bioAcoustic monitoRing of site-specific co-pResence of zOonotic Wildlife hosts and humans"
 readme ="README.md"

@@ -166,5 +166,4 @@ class WatchFixture:
 @pytest.fixture()
 def watch_fx():
     w = WatchFixture()
-    w.delete()
     return w
