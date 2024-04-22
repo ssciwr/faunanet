@@ -501,7 +501,7 @@ def test_watcher_integrated_delete_never(watch_fx):
 
     assert len(results) == number_of_files - 2
 
-    
+
 def test_change_analyzer(watch_fx):
     wfx = watch_fx
 
@@ -513,7 +513,7 @@ def test_change_analyzer(watch_fx):
 
     number_of_files = 10
 
-    sleep_for = 10
+    sleep_for = 5
 
     recorder_process = multiprocessing.Process(
         target=wfx.mock_recorder,
@@ -533,20 +533,24 @@ def test_change_analyzer(watch_fx):
     filename = watcher.output / "results_example_4.csv"
 
     wfx.wait_for_event_then_do(
-        condition=lambda: filename.is_file() and wait_for_file_completion(filename),
-        todo_event=lambda: 1,
+        condition=lambda: filename.is_file(),
+        todo_event=lambda: watcher.change_analyzer(
+            "birdnet_custom",
+            preprocessor_config=wfx.custom_preprocessor_cfg,
+            model_config=wfx.custom_model_cfg,
+            recording_config=wfx.changed_custom_recording_cfg,
+            delete_recordings="always",
+        ),
         todo_else=lambda: time.sleep(0.2),
     )
 
     path_add = Path(datetime.now().strftime("%y%m%d_%H%M%S"))
 
-    watcher.change_analyzer(
-        "birdnet_custom",
-        preprocessor_config=wfx.custom_preprocessor_cfg,
-        model_config=wfx.custom_model_cfg,
-        recording_config=wfx.changed_custom_recording_cfg,
-        delete_recordings="never",
-    )
+    # the following makes
+    recorder_process.join()
+
+    recorder_process.close()
+
     assert watcher.model_name == "birdnet_custom"
     assert watcher.output_directory == str(Path(watcher.outdir) / path_add)
     assert (watcher.output / Path("config.yml")).is_file() is True
@@ -560,12 +564,9 @@ def test_change_analyzer(watch_fx):
     assert (watcher.model_dir / watcher.model_name).is_dir()
     assert watcher.pattern == ".wav"
     assert watcher.check_time == 1
-    assert watcher.delete_recordings == "never"
+    assert watcher.delete_recordings == "always"
 
-    # the following makes
-    recorder_process.join()
-
-    recorder_process.close()
+    #wait for the final file to be completed
     filename = watcher.output / f"results_example_{number_of_files-1}.csv"
 
     wfx.wait_for_event_then_do(
@@ -579,7 +580,5 @@ def test_change_analyzer(watch_fx):
 
     assert len(current_files) > 0  # some analyzed files must be in the new directory
     assert len(old_files) > 0
-    assert (
-        len(list(Path(wfx.data).iterdir())) > 0
-    )  #  some files have not been analyzed and hence have not been deleted
+    assert len(list(Path(wfx.data).iterdir())) == 7
     assert number_of_files > len(old_files) + len(current_files)  # some data can be
