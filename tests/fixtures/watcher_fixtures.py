@@ -116,31 +116,10 @@ class WatchFixture:
             **kwargs,
         )
 
-    def delete(self):
-        for f in self.data.iterdir():
-            if f.is_dir():
-                shutil.rmtree(f)
-            elif str(f)[0] == ".":
-                continue
-            else:
-                f.unlink()
-
-        for f in self.output.iterdir():
-            shutil.rmtree(f)
-
     def get_folder_content(self, folder: str, pattern: str):
         files = [f for f in Path(folder).iterdir() if f.suffix == pattern]
         files.sort()
         return files
-
-    def read_missings(self, watcher):
-        missings = []
-        with open(Path(watcher.output) / "missing_files.txt", "r") as mfile:
-            for line in mfile:
-                if line not in ["\n", "\0"]:
-                    missings.append(line.strip("\n"))
-        missings.sort()
-        return missings
 
     def wait_for_event_then_do(
         self, condition: callable, todo_event: callable, todo_else: callable
