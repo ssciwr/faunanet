@@ -41,6 +41,7 @@ class SparrowRecording(RecordingBase):
         species_presence_threshold: float = 0.03,
         min_conf: float = 0.25,
         species_predictor: SpeciesPredictorBase = None,
+        file_check_poll_interval: int = 1,
     ):
         # README: The arguments lon, lat, species_presence_threshold and week_48, date should be moved out of the __init__ at some point, at some point perhaps?
         """
@@ -57,6 +58,7 @@ class SparrowRecording(RecordingBase):
             species_presence_threshold (float, optional): The threshold for the species predictor. A species predicted to be present above that threshold is added to the list of allowed species, below it is excluded. Restricted to [0,1]
             min_conf (float, optional): Minimal confidence to use to consider a detection valid. Defaults to 0.1.
             species_predictor: An instance of a class derived from `SpeciesPredictorBase`. Only applicable if `model` is the birdnet default model.
+            file_check_poll_interval: Inteval in seconds at which the recording should check whether the file to be analyzed is still being written to. Defaults to 1
         """
         self.processor = preprocessor
         self.analyzer = model
@@ -65,6 +67,7 @@ class SparrowRecording(RecordingBase):
         self.filestem = p.stem
         self.species_predictor = None
         self.allowed_species = []
+        self.file_check_poll_interval = file_check_poll_interval
 
         # make sure that all the system components are compatible. Based on name tags. Still a bit susceptible. Fix?
 
@@ -150,9 +153,6 @@ class SparrowRecording(RecordingBase):
 
         self.analyzed = False
 
-    def use_model(self, model_name: str):
-        raise NotImplementedError("Not yet implemented")
-
     def restrict_species_list(
         self,
         lat: float,
@@ -194,8 +194,16 @@ class SparrowRecording(RecordingBase):
         """Read audio data from file and pass it on for preprocessing.
 
         Returns:
-            _type_: _description_
+            list[np.array]: preprocessed audio data
         """
+
+        # README: wait until the file to be opened does not change in size anymore.
+        # only working way in which we do not have to make assumptions about the
+        # system that actually writes the file?
+        utils.wait_for_file_completion(
+            str(self.path), polling_interval=self.file_check_poll_interval
+        )
+
         rawdata = self.processor.read_audio_data(self.path)
 
         return self.process_audio_data(rawdata)
@@ -274,8 +282,8 @@ class SparrowRecording(RecordingBase):
 
             for label, confidence in labeled_predictions:
                 if confidence > self.minimum_confidence:
-
                     if label in allow_list or len(allow_list) == 0:
+
                         qualified_detections.append(
                             {
                                 "start": start,

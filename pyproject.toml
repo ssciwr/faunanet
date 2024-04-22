@@ -1,7 +1,7 @@
 [project]
 name = "iSparrow"
 version = "0.1"
-requires-python = ">= 3.10"
+requires-python = ">= 3.9"
 authors=[{name = "Inga Ulusoy", email = "inga.ulusoy@uni-heidelberg.de"}, {name = "Harald Mack", email = "harald.mack@uni-heidelberg.de"}]
 description = "Smart-IoT-based Passive bioAcoustic monitoRing of site-specific co-pResence of zOonotic Wildlife hosts and humans"
 readme ="README.md"
@@ -17,15 +17,14 @@ dependencies = [
     "librosa", 
     "tensorflow", 
     "PyYAML", 
-    "pandas", 
     "birdnetlib==0.15.0", 
     "pooch", 
     "resampy", # for audio loading
     "tensorflow-hub",
     "validators", # test url validity 
-    "appdirs" # get cache dirs without os dependence etc
+    "appdirs", # get cache dirs without os dependence etc
+    "ffmpeg-python"
 ]
-
 
 [project.urls]
 Repository = "https://github.com/ssciwr/iSparrow"

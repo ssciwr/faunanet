@@ -4,6 +4,10 @@ import librosa
 import audioread
 
 
+class AudioFormatError(Exception):
+    pass
+
+
 class PreprocessorBase(ABC):
     """
     PreprocessorBase A common interface for all custom preprocessor classes
@@ -49,14 +53,13 @@ class PreprocessorBase(ABC):
             self.actual_sampling_rate = rate
 
         except audioread.exceptions.NoBackendError as e:
-            print(e)
-            raise AudioFormatError("Audio format could not be opened.")
+            raise AudioFormatError("Audio format could not be opened.") from e
         except FileNotFoundError as e:
-            print(e)
             raise e
         except Exception as e:
-            print(e)
-            raise AudioFormatError("Generic audio read error occurred from librosa.")
+            raise AudioFormatError(
+                "Generic audio read error occurred from librosa."
+            ) from e
 
         if self.actual_sampling_rate != self.sample_rate:
             raise RuntimeError(

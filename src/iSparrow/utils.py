@@ -2,18 +2,44 @@ import tensorflow as tf
 import tensorflow_hub as tfhub
 
 try:
-    import tflite_runtime as tflite
+    import tflite_runtime.interpreter as tflite
 except Exception:
     from tensorflow import lite as tflite
 
 from pathlib import Path
 import validators as valid
-import importlib
+import importlib.util
+import os
+import time
+import yaml
 
 
 # custom exception to have some more control over what is raised
 class TFModelException(Exception):
     pass
+
+
+def read_yaml(path: str):
+    print(f"...reading config from {path}")
+    """
+        read_yaml Read the yaml basic config file for iSparrow from path.
+                It contains the install directory, data directory and other things used
+                by iSparrow internally.
+
+        Args:
+            path (str): Path to the yaml base config.
+
+        Returns:
+            dict: read base config file.
+        """
+
+    if Path(path).exists() is False:
+        raise FileNotFoundError(f"The folder {path} does not exist")
+
+    with open(Path(path)) as file:
+        base_cfg = yaml.safe_load(file)
+
+    return base_cfg
 
 
 def is_url(potential_url: str) -> bool:
@@ -131,17 +157,63 @@ def load_model_from_file_torch(path: str, _):
     raise NotImplementedError("torch models are not yet supported")
 
 
-def load_module(alias: str, path: str):
+def load_module(module_name: str, file_path: str):
     """
     load_module Load a python module from 'path' with alias 'alias'
 
     Args:
-        path (str): Path to load the module from
+        module_name (str): module alias.
+        file_path (str): Path to load the module from
 
     Returns:
         module: Python module that has been loaded
     """
-    spec = importlib.util.spec_from_file_location(alias, path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    try:
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    except Exception as e:
+        raise RuntimeError(f"Error in loading module {file_path}") from e
     return module
+
+
+def load_name_from_module(module_name: str, file_path: str, name: str):
+    """
+    load_name_from_module Load a python module from 'path' with alias 'alias'
+
+    Args:
+        module_name (str): module alias.
+        file_path (str): Path to load the module from
+        name (str): name to import
+    Returns:
+        module: Python module that has been loaded
+    """
+    module = load_module(module_name, file_path)
+    return getattr(module, name)
+
+
+def wait_for_file_completion(file_path: str, polling_interval=1) -> bool:
+    """
+    wait_for_file_completion Wait for a file to be fully written by checking when its size does no longer change.
+
+    Args:
+        file_path (str): filepath to check
+        polling_interval (int, optional): how often file size should be checked. Defaults to 1.
+
+    Returns:
+        bool: True when the file size does not change any longer. False otherwise
+    """
+    initial_size = os.path.getsize(file_path)
+    is_complete = False
+    while True:
+
+        time.sleep(polling_interval)
+
+        current_size = os.path.getsize(file_path)
+
+        if current_size == initial_size:
+            is_complete = True
+            break
+        else:
+            initial_size = current_size
+    return is_complete
