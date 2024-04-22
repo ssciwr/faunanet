@@ -440,7 +440,7 @@ class SparrowWatcher:
         """
         if self.watcher_process is not None and self.watcher_process.is_alive():
             print("trying to stop the watcher process")
-            flag_set = self.is_done_analyzing.wait(timeout=15)
+            flag_set = self.is_done_analyzing.wait(timeout=30)
 
             if flag_set is False:
                 warnings.warn("stop timeout expired, terminating watcher process now.")
