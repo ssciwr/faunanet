@@ -388,7 +388,7 @@ class SparrowWatcher:
             self.is_done_analyzing.clear()
 
             if self.watcher_process.is_alive():
-                self.watcher_process.terminate()
+                self.watcher_process.kill()
                 self.watcher_process.join()
                 self.watcher_process.close()
 
