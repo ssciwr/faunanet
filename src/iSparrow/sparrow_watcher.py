@@ -245,12 +245,6 @@ class SparrowWatcher:
 
         self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
 
-        self.first_in_batch = multiprocessing.Value(datetime, datetime(1, 1, 1, 0, 0))
-
-        self.last_in_batch = multiprocessing.Value(datetime, datetime(1, 1, 1, 0, 0))
-
-        self.used_outputs.append(self.output)
-
         self.model_dir = Path(model_dir)
 
         if self.model_dir.is_dir() is False:
@@ -328,9 +322,6 @@ class SparrowWatcher:
         # make the main process wait on the finish signal to make sure no
         # corrupt files are produced
         self.is_done_analyzing.clear()
-
-        if self.first_in_batch == datetime(1, 1, 1, 0, 0):
-            self.first_in_batch = datetime.now()
 
         recording.analyze()
 
@@ -533,8 +524,6 @@ class SparrowWatcher:
 
         self.model_name = model_name
         self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
-        self.used_outputs.append(self.output)
-
         self.preprocessor_config = preprocessor_config
         self.model_config = model_config
         self.recording_config = recording_config
@@ -562,8 +551,6 @@ class SparrowWatcher:
             self.output = Path(self.outdir) / Path(
                 datetime.now().strftime("%y%m%d_%H%M%S")
             )
-            self.used_outputs.append(self.output)
-
             if self.is_running:
                 self.stop()
 
