@@ -549,7 +549,6 @@ def test_change_analyzer(watch_fx):
     assert watcher.pattern == ".wav"
     assert watcher.check_time == 1
     assert watcher.delete_recordings == "always"
-
     # wait for the final file to be completed
     filename = watcher.output / f"results_example_{number_of_files-1}.csv"
 
@@ -566,9 +565,10 @@ def test_change_analyzer(watch_fx):
     assert len(old_files) > 0
     assert 0 < len(list(Path(wfx.data).iterdir())) < number_of_files
     assert number_of_files > len(old_files) + len(current_files)  # some data can be
+    assert watcher.used_outputs == [old_output, watcher.output]
 
 
-def test_change_analyzer_restart(watch_fx, mocker):
+def test_change_analyzer_recovery(watch_fx, mocker):
 
     wfx = watch_fx
 
@@ -647,6 +647,7 @@ def test_change_analyzer_restart(watch_fx, mocker):
     assert old_output != watcher.output
     assert len(results_folders) == 2
     assert 5 <= len(results) + len(old_results) <= number_of_files - 1
+    assert watcher.used_outputs == [old_output, watcher.output]
 
     old_cfg = read_yaml(old_output / "config.yml")
     new_cfg = read_yaml(watcher.output / "config.yml")
@@ -657,11 +658,6 @@ def test_change_analyzer_restart(watch_fx, mocker):
 
 def test_change_analyzer_exception(watch_fx, mocker):
     # patch the start method so we get a mock exception that is propagated through the system
-    mocker.patch(
-        "iSparrow.SparrowWatcher.restart",
-        side_effect=ValueError("Simulated error occurred"),
-    )
-
     wfx = watch_fx
 
     watcher = wfx.make_watcher(
@@ -673,7 +669,7 @@ def test_change_analyzer_exception(watch_fx, mocker):
     old_preprocessor_cfg = deepcopy(watcher.preprocessor_config)
     old_species_predictor_cfg = deepcopy(watcher.species_predictor_config)
 
-    number_of_files = 15
+    number_of_files = 20
 
     sleep_for = 3
 
@@ -697,47 +693,14 @@ def test_change_analyzer_exception(watch_fx, mocker):
     assert watcher.is_running
     assert watcher.watcher_process is not None
 
-    filename = watcher.output / "results_example_4.csv"
-
-    wfx.wait_for_event_then_do(
-        condition=lambda: filename.is_file(),
-        todo_event=lambda: 1,
-        todo_else=lambda: time.sleep(0.2),
-    )
-
-    with pytest.raises(
-        RuntimeError,
-        match="Error when restarting the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss.",
-    ):
-        watcher.change_analyzer(
-            "birdnet_custom",
-            preprocessor_config=wfx.custom_preprocessor_cfg,
-            model_config=wfx.custom_model_cfg,
-            recording_config=wfx.changed_custom_recording_cfg,
-            delete_recordings="never",
-        )
-
-    assert watcher.model_name == "birdnet_default"
-    assert watcher.model_config == old_model_cfg
-    assert watcher.preprocessor_config == old_preprocessor_cfg
-    assert watcher.recording_config == old_recording_cfg
-    assert watcher.species_predictor_config == old_species_predictor_cfg
-    assert watcher.is_running is False
-    assert watcher.watcher_process is None
-    assert watcher.delete_recordings == "never"
-
-    watcher.start()
-
-    recorder_process.terminate()
-    watcher.is_done_analyzing.set()
-    watcher.may_do_work.clear()
-
-    filename = watcher.output / f"results_example_{number_of_files -1}.csv"
+    filename = watcher.output / f"results_example_{4}.csv"
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file(),
         todo_event=lambda: 1,  # do nothing, just stop waiting,
         todo_else=lambda: time.sleep(0.2),
     )
+
+    old_output = watcher.output_directory
 
     with pytest.raises(
         ValueError, match="Given model name does not exist in model dir."
@@ -749,5 +712,10 @@ def test_change_analyzer_exception(watch_fx, mocker):
             recording_config=wfx.changed_custom_recording_cfg,
             delete_recordings="always",
         )
-
+    assert watcher.model_name == "birdnet_default"
+    assert watcher.is_running
+    assert watcher.output_directory == old_output
+    assert watcher.used_outputs == [
+        watcher.output,
+    ]
     watcher.stop()
