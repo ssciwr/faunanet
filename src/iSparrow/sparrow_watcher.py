@@ -241,8 +241,6 @@ class SparrowWatcher:
         if self.outdir.is_dir() is False:
             raise ValueError("Output directory does not exist")
 
-        self.used_outputs = []
-
         self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
 
         self.model_dir = Path(model_dir)

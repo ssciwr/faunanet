@@ -348,11 +348,11 @@ def test_watcher_integrated_simple(watch_fx):
 
     recorder_process.join()
 
-    while True:
-        if recorder_process.is_alive() is False:
-            break
-        else:
-            time.sleep(1)
+    wfx.wait_for_event_then_do(
+        condition=lambda: recorder_process.is_alive() is False,
+        todo_event=lambda: recorder_process.terminate(),
+        todo_else=lambda: time.sleep(0.2),
+    )
 
     recorder_process.close()
 
@@ -462,13 +462,12 @@ def test_watcher_integrated_delete_never(watch_fx):
 
     recorder_process.start()
 
-    while True:
-        watcher.pause()
-        if (watcher.output / "results_example_4.csv").is_file():
-            watcher.stop()
-            break
-        else:
-            watcher.go_on()
+    wfx.wait_for_event_then_do(
+        condition=lambda: (watcher.output / "results_example_4.csv").is_file()
+        and wait_for_file_completion(watcher.output / "results_example_4.csv"),
+        todo_event=lambda: watcher.stop(),
+        todo_else=lambda: 1,
+    )
 
     recorder_process.join()
 
@@ -511,7 +510,7 @@ def test_change_analyzer(watch_fx):
     wfx.wait_for_event_then_do(
         condition=lambda: watcher.is_running,
         todo_event=lambda: 1,
-        todo_else=lambda: time.sleep(1),
+        todo_else=lambda: time.sleep(0.2),
     )
 
     recorder_process.start()
@@ -527,7 +526,7 @@ def test_change_analyzer(watch_fx):
             recording_config=wfx.changed_custom_recording_cfg,
             delete_recordings="always",
         ),
-        todo_else=lambda: time.sleep(0.2),
+        todo_else=lambda: time.sleep(0.3),
     )
 
     # the following makes
@@ -555,7 +554,7 @@ def test_change_analyzer(watch_fx):
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file(),
         todo_event=lambda: watcher.stop(),
-        todo_else=lambda: time.sleep(0.2),
+        todo_else=lambda: time.sleep(0.3),
     )
 
     current_files = [f for f in watcher.output.iterdir() if f.suffix == ".csv"]
@@ -565,7 +564,6 @@ def test_change_analyzer(watch_fx):
     assert len(old_files) > 0
     assert 0 < len(list(Path(wfx.data).iterdir())) < number_of_files
     assert number_of_files > len(old_files) + len(current_files)  # some data can be
-    assert watcher.used_outputs == [old_output, watcher.output]
 
 
 def test_change_analyzer_recovery(watch_fx, mocker):
@@ -594,7 +592,7 @@ def test_change_analyzer_recovery(watch_fx, mocker):
     wfx.wait_for_event_then_do(
         condition=lambda: watcher.is_running,
         todo_event=lambda: 1,
-        todo_else=lambda: time.sleep(1),
+        todo_else=lambda: time.sleep(0.5),
     )
 
     recorder_process.start()
@@ -607,7 +605,7 @@ def test_change_analyzer_recovery(watch_fx, mocker):
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file(),
         todo_event=lambda: 1,
-        todo_else=lambda: time.sleep(0.2),
+        todo_else=lambda: time.sleep(0.3),
     )
 
     # patch the start method so we get a mock exception that is propagated through the system
@@ -646,8 +644,8 @@ def test_change_analyzer_recovery(watch_fx, mocker):
 
     assert old_output != watcher.output
     assert len(results_folders) == 2
-    assert 5 <= len(results) + len(old_results) <= number_of_files - 1
-    assert watcher.used_outputs == [old_output, watcher.output]
+    assert len(old_results) == 5
+    assert len(results) <= number_of_files - 1
 
     old_cfg = read_yaml(old_output / "config.yml")
     new_cfg = read_yaml(watcher.output / "config.yml")
@@ -685,7 +683,7 @@ def test_change_analyzer_exception(watch_fx, mocker):
     wfx.wait_for_event_then_do(
         condition=lambda: watcher.is_running,
         todo_event=lambda: 1,
-        todo_else=lambda: time.sleep(1),
+        todo_else=lambda: time.sleep(0.25),
     )
 
     recorder_process.start()
@@ -715,7 +713,9 @@ def test_change_analyzer_exception(watch_fx, mocker):
     assert watcher.model_name == "birdnet_default"
     assert watcher.is_running
     assert watcher.output_directory == old_output
-    assert watcher.used_outputs == [
-        watcher.output,
-    ]
+    assert watcher.model_config == old_model_cfg
+    assert watcher.preprocessor_config == old_preprocessor_cfg
+    assert watcher.recording_config == old_recording_cfg
+    assert watcher.species_predictor_config == old_species_predictor_cfg
+
     watcher.stop()
