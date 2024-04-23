@@ -138,8 +138,11 @@ class SparrowWatcher:
 
         config["Analysis"]["Model"]["name"] = self.model_name
 
-        with open(self.output / "config.yml", "w") as ymlfile:
-            yaml.safe_dump(config, ymlfile)
+        try:
+            with open(self.output / "config.yml", "w") as ymlfile:
+                yaml.safe_dump(config, ymlfile)
+        except Exception as e:
+            raise RuntimeError("Error during config writing ", e) from e
 
     def set_up_recording(
         self,
@@ -238,7 +241,6 @@ class SparrowWatcher:
         if self.outdir.is_dir() is False:
             raise ValueError("Output directory does not exist")
 
-        # this is created on disk in the start method
         self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
 
         self.model_dir = Path(model_dir)
@@ -309,6 +311,7 @@ class SparrowWatcher:
             filename (str): path to the file to analyze.
             recording (SparrowRecording): recording object to use
         """
+        print("analyze ", filename)
         self.may_do_work.wait()  # wait until parent process allows the worker to pick up work
 
         recording.path = filename
@@ -356,14 +359,14 @@ class SparrowWatcher:
         Raises:
             RuntimeError: When the watcher process is running already.
         """
-        if self.watcher_process is not None and self.is_running:
+        if self.is_running:
             raise RuntimeError("watcher process still running, stop first.")
 
+        self.output.mkdir(exist_ok=True, parents=True)
+
+        self._write_config()
+
         try:
-            self.output.mkdir(exist_ok=True, parents=True)
-
-            self._write_config()
-
             print("start the watcher process")
             # create a background watchertask such that the command is handed back to the parent process
 
@@ -510,7 +513,6 @@ class SparrowWatcher:
             raise ValueError("Given model name does not exist in model dir.")
 
         old_model_name = self.model_name
-        old_output = self.output
         old_preprocessor_config = deepcopy(self.preprocessor_config)
         old_model_config = deepcopy(self.model_config)
         old_recording_config = deepcopy(self.recording_config)
@@ -535,7 +537,6 @@ class SparrowWatcher:
         except Exception as e:
             # restore state when something goes wrong
             self.model_name = old_model_name
-            self.output = old_output
             self.preprocessor_config = old_preprocessor_config
             self.model_config = old_model_config
             self.recording_config = old_recording_config
@@ -546,6 +547,9 @@ class SparrowWatcher:
 
             self.may_do_work.clear()
             self.is_done_analyzing.set()
+            self.output = Path(self.outdir) / Path(
+                datetime.now().strftime("%y%m%d_%H%M%S")
+            )
 
             if self.is_running:
                 self.stop()

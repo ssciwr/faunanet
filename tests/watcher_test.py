@@ -530,15 +530,13 @@ def test_change_analyzer(watch_fx):
         todo_else=lambda: time.sleep(0.2),
     )
 
-    path_add = Path(datetime.now().strftime("%y%m%d_%H%M%S"))
-
     # the following makes
     recorder_process.join()
 
     recorder_process.close()
 
     assert watcher.model_name == "birdnet_custom"
-    assert watcher.output_directory == str(Path(watcher.outdir) / path_add)
+    assert watcher.output_directory != old_output
     assert (watcher.output / Path("config.yml")).is_file() is True
     assert watcher.preprocessor_config == wfx.custom_preprocessor_cfg
     assert watcher.model_config == wfx.custom_model_cfg
@@ -570,7 +568,7 @@ def test_change_analyzer(watch_fx):
     assert number_of_files > len(old_files) + len(current_files)  # some data can be
 
 
-def test_change_analyzer_exception(watch_fx, mocker):
+def test_change_analyzer_restart(watch_fx, mocker):
 
     wfx = watch_fx
 
@@ -579,12 +577,103 @@ def test_change_analyzer_exception(watch_fx, mocker):
     )
 
     old_output = watcher.output
+
+    number_of_files = 15
+
+    sleep_for = 6
+
+    recorder_process = multiprocessing.Process(
+        target=wfx.mock_recorder,
+        args=(wfx.home, wfx.data, number_of_files, sleep_for),
+    )
+
+    recorder_process.daemon = True
+
+    watcher.start()
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: watcher.is_running,
+        todo_event=lambda: 1,
+        todo_else=lambda: time.sleep(1),
+    )
+
+    recorder_process.start()
+
+    assert watcher.is_running
+    assert watcher.watcher_process is not None
+
+    filename = watcher.output / "results_example_4.csv"
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: filename.is_file(),
+        todo_event=lambda: 1,
+        todo_else=lambda: time.sleep(0.2),
+    )
+
+    # patch the start method so we get a mock exception that is propagated through the system
+    mocker.patch(
+        "iSparrow.SparrowWatcher.restart",
+        side_effect=ValueError("Simulated error occurred"),
+    )
+    try:
+        watcher.change_analyzer(
+            "birdnet_custom",
+            preprocessor_config=wfx.custom_preprocessor_cfg,
+            model_config=wfx.custom_model_cfg,
+            recording_config=wfx.changed_custom_recording_cfg,
+            delete_recordings="always",
+        )
+    except RuntimeError as e:
+        e == RuntimeError(
+            "Error when restarting the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss."
+        )
+        watcher.start()
+
+    assert watcher.is_running
+    assert watcher.model_name == "birdnet_default"
+    assert watcher.delete_recordings == "never"
+
+    filename = watcher.output / f"results_example_{number_of_files -1}.csv"
+    wfx.wait_for_event_then_do(
+        condition=lambda: filename.is_file() and wait_for_file_completion(filename),
+        todo_event=lambda: watcher.stop(),
+        todo_else=lambda: time.sleep(1),
+    )
+
+    results_folders = [f for f in watcher.outdir.iterdir() if f.is_dir()]
+    results = [f for f in watcher.output.iterdir() if f.suffix == ".csv"]
+    old_results = [f for f in old_output.iterdir() if f.suffix == ".csv"]
+
+    assert old_output != watcher.output
+    assert len(results_folders) == 2
+    assert 5 <= len(results) + len(old_results) <= number_of_files - 1
+
+    old_cfg = read_yaml(old_output / "config.yml")
+    new_cfg = read_yaml(watcher.output / "config.yml")
+    assert old_cfg["Analysis"]["Model"] == new_cfg["Analysis"]["Model"]
+    assert old_cfg["Analysis"]["Preprocessor"] == new_cfg["Analysis"]["Preprocessor"]
+    assert old_cfg["Analysis"]["Recording"] == new_cfg["Analysis"]["Recording"]
+
+
+def test_change_analyzer_exception(watch_fx, mocker):
+    # patch the start method so we get a mock exception that is propagated through the system
+    mocker.patch(
+        "iSparrow.SparrowWatcher.restart",
+        side_effect=ValueError("Simulated error occurred"),
+    )
+
+    wfx = watch_fx
+
+    watcher = wfx.make_watcher(
+        delete_recordings="never",
+    )
+
     old_recording_cfg = deepcopy(watcher.recording_config)
     old_model_cfg = deepcopy(watcher.model_config)
     old_preprocessor_cfg = deepcopy(watcher.preprocessor_config)
     old_species_predictor_cfg = deepcopy(watcher.species_predictor_config)
 
-    number_of_files = 100
+    number_of_files = 15
 
     sleep_for = 3
 
@@ -616,12 +705,6 @@ def test_change_analyzer_exception(watch_fx, mocker):
         todo_else=lambda: time.sleep(0.2),
     )
 
-    # patch the start method so we get a mock exception that is propagated through the system
-    stop_patched = mocker.patch(
-        "multiprocessing.Process.terminate",
-        side_effect=ValueError("Simulated error occurred"),
-    )
-
     with pytest.raises(
         RuntimeError,
         match="Error when restarting the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss.",
@@ -631,42 +714,40 @@ def test_change_analyzer_exception(watch_fx, mocker):
             preprocessor_config=wfx.custom_preprocessor_cfg,
             model_config=wfx.custom_model_cfg,
             recording_config=wfx.changed_custom_recording_cfg,
-            delete_recordings="always",
+            delete_recordings="never",
         )
-
-    wfx.wait_for_event_then_do(
-        condition=lambda: watcher.is_running is False,
-        todo_event=lambda: 1,  # do nothing, just stop waiting,
-        todo_else=lambda: time.sleep(0.2),
-    )
 
     assert watcher.model_name == "birdnet_default"
     assert watcher.model_config == old_model_cfg
     assert watcher.preprocessor_config == old_preprocessor_cfg
     assert watcher.recording_config == old_recording_cfg
     assert watcher.species_predictor_config == old_species_predictor_cfg
-    assert watcher.output == old_output
     assert watcher.is_running is False
     assert watcher.watcher_process is None
     assert watcher.delete_recordings == "never"
 
-    stop_patched.stop()
-
-    # make sure the process can be started again
     watcher.start()
 
-    filename = watcher.output / "results_example_25.csv"
+    recorder_process.terminate()
+    watcher.is_done_analyzing.set()
+    watcher.may_do_work.clear()
+
+    filename = watcher.output / f"results_example_{number_of_files -1}.csv"
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file(),
-        todo_event=lambda: watcher.stop(),
+        todo_event=lambda: 1,  # do nothing, just stop waiting,
         todo_else=lambda: time.sleep(0.2),
     )
 
-    recorder_process.terminate()
-    recorder_process.clean()
+    with pytest.raises(
+        ValueError, match="Given model name does not exist in model dir."
+    ):
+        watcher.change_analyzer(
+            "nonexistent_model",
+            preprocessor_config=wfx.custom_preprocessor_cfg,
+            model_config=wfx.custom_model_cfg,
+            recording_config=wfx.changed_custom_recording_cfg,
+            delete_recordings="always",
+        )
 
-    results = list(watcher.output.iterdir())
-    outputs = list(Path(watcher.outdir).iterdir())
-    assert len(outputs) == 2
-    assert watcher.output in outputs
-    assert len(results) > 0
+    watcher.stop()
