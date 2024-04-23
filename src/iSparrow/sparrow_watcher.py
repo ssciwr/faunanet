@@ -386,12 +386,6 @@ class SparrowWatcher:
 
             self.may_do_work.clear()
             self.is_done_analyzing.clear()
-
-            if self.watcher_process.is_alive():
-                self.watcher_process.kill()
-                self.watcher_process.join()
-                self.watcher_process.close()
-
             self.watcher_process = None
 
             raise RuntimeError(
