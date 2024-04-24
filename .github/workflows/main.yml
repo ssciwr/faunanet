@@ -64,7 +64,7 @@ jobs:
 
     - name: Run pytest unittests
       run: |
-        python -m pytest --cov=./src/iSparrow --cov-report=xml --no-cov-on-fail ./tests -vsx
+        pytest --cov-report=xml --no-cov-on-fail -vsx
         
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4.0.1
