@@ -20,7 +20,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest,] #  macos-latest, windows-latest]
+        os: [ubuntu-latest,windows-latest] #  macos-latest, windows-latest]
         python-version: ["3.9", "3.12"]
     steps:
     - name: Set up Python ${{ matrix.python-version }}
@@ -64,15 +64,14 @@ jobs:
 
     - name: Run pytest unittests
       run: |
-        pytest --cov-report=xml --no-cov-on-fail -vsx
+        pytest --cov=./src/iSparrow --cov-report=xml -vsx
         
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v4.0.1
+      uses: codecov/codecov-action@v4
       with:
-        files: ./coverage.xml
-        fail_ci_if_error: true 
-        verbose: true
         token: ${{ secrets.CODECOV_TOKEN }}
-        name: ${{ matrix.os }}
-        slug: ssciwr/iSparrow
+        files: ./coverage.xml
+        name: ${{ matrix.os }}-${{ matrix.python-version }}
+        fail_ci_if_error: true
+        verbose: true
 

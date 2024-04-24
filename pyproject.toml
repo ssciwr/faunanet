@@ -39,7 +39,6 @@ addopts="-v -x"
 testpaths = ["tests", "notebooks"] 
 
 [tool.coverage.run]
-source=["src/iSparrow"]
 branch = true
 
 [tool.coverage.report]
