@@ -348,11 +348,11 @@ def test_watcher_integrated_simple(watch_fx):
 
     recorder_process.join()
 
-    while True:
-        if recorder_process.is_alive() is False:
-            break
-        else:
-            time.sleep(1)
+    wfx.wait_for_event_then_do(
+        condition=lambda: recorder_process.is_alive() is False,
+        todo_event=lambda: recorder_process.terminate(),
+        todo_else=lambda: time.sleep(0.2),
+    )
 
     recorder_process.close()
 
@@ -393,16 +393,22 @@ def test_watcher_integrated_delete_always(watch_fx):
     # make a mock recorder process that runs in the background
     number_of_files = 7
 
-    sleep_for = 2
+    sleep_for = 10
 
     recorder_process = multiprocessing.Process(
         target=wfx.mock_recorder,
         args=(wfx.home, wfx.data, number_of_files, sleep_for),
     )
+    watcher.start()
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: watcher.is_running,
+        todo_event=lambda: 1,
+        todo_else=lambda: time.sleep(0.2),
+    )
+
     recorder_process.daemon = True
     recorder_process.start()
-
-    watcher.start()
 
     filename = watcher.output / "results_example_4.csv"
 
@@ -410,7 +416,7 @@ def test_watcher_integrated_delete_always(watch_fx):
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file(),
         todo_event=lambda: watcher.stop(),
-        todo_else=lambda: 1,
+        todo_else=lambda: time.sleep(0.2),
     )
 
     # the following makes
@@ -439,23 +445,29 @@ def test_watcher_integrated_delete_never(watch_fx):
 
     # make a mock recorder process that runs in the background
     number_of_files = 7
-    sleep_for = 2
+    sleep_for = 10
     recorder_process = multiprocessing.Process(
         target=wfx.mock_recorder,
         args=(wfx.home, wfx.data, number_of_files, sleep_for),
     )
     recorder_process.daemon = True
-    recorder_process.start()
 
     watcher.start()
 
-    while True:
-        watcher.pause()
-        if (watcher.output / "results_example_4.csv").is_file():
-            watcher.stop()
-            break
-        else:
-            watcher.go_on()
+    wfx.wait_for_event_then_do(
+        condition=lambda: watcher.is_running,
+        todo_event=lambda: 1,
+        todo_else=lambda: time.sleep(0.2),
+    )
+
+    recorder_process.start()
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: (watcher.output / "results_example_4.csv").is_file()
+        and wait_for_file_completion(watcher.output / "results_example_4.csv"),
+        todo_event=lambda: watcher.stop(),
+        todo_else=lambda: 1,
+    )
 
     recorder_process.join()
 
@@ -473,3 +485,237 @@ def test_watcher_integrated_delete_never(watch_fx):
     assert len(data) == number_of_files
 
     assert len(results) == number_of_files - 2
+
+
+def test_change_analyzer(watch_fx):
+    wfx = watch_fx
+
+    watcher = wfx.make_watcher(
+        delete_recordings="never",
+    )
+
+    old_output = watcher.output
+
+    number_of_files = 15
+
+    sleep_for = 3
+
+    recorder_process = multiprocessing.Process(
+        target=wfx.mock_recorder,
+        args=(wfx.home, wfx.data, number_of_files, sleep_for),
+    )
+    recorder_process.daemon = True
+    watcher.start()
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: watcher.is_running,
+        todo_event=lambda: 1,
+        todo_else=lambda: time.sleep(0.2),
+    )
+
+    recorder_process.start()
+
+    filename = watcher.output / "results_example_4.csv"
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: filename.is_file(),
+        todo_event=lambda: watcher.change_analyzer(
+            "birdnet_custom",
+            preprocessor_config=wfx.custom_preprocessor_cfg,
+            model_config=wfx.custom_model_cfg,
+            recording_config=wfx.changed_custom_recording_cfg,
+            delete_recordings="always",
+        ),
+        todo_else=lambda: time.sleep(0.3),
+    )
+
+    # the following makes
+    recorder_process.join()
+
+    recorder_process.close()
+
+    assert watcher.model_name == "birdnet_custom"
+    assert watcher.output_directory != old_output
+    assert (watcher.output / Path("config.yml")).is_file() is True
+    assert watcher.preprocessor_config == wfx.custom_preprocessor_cfg
+    assert watcher.model_config == wfx.custom_model_cfg
+    assert watcher.recording_config == wfx.changed_custom_recording_cfg
+    assert watcher.is_running is True
+    assert watcher.watcher_process is not None
+    assert watcher.input_directory == str(Path.home() / "iSparrow_data" / "tests")
+    assert watcher.output.is_dir() is True  # not yet created
+    assert (watcher.model_dir / watcher.model_name).is_dir()
+    assert watcher.pattern == ".wav"
+    assert watcher.check_time == 1
+    assert watcher.delete_recordings == "always"
+    # wait for the final file to be completed
+    filename = watcher.output / f"results_example_{number_of_files-1}.csv"
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: filename.is_file(),
+        todo_event=lambda: watcher.stop(),
+        todo_else=lambda: time.sleep(0.3),
+    )
+
+    current_files = [f for f in watcher.output.iterdir() if f.suffix == ".csv"]
+    old_files = [f for f in old_output.iterdir() if f.suffix == ".csv"]
+
+    assert len(current_files) > 0  # some analyzed files must be in the new directory
+    assert len(old_files) > 0
+    assert 0 < len(list(Path(wfx.data).iterdir())) < number_of_files
+    assert number_of_files > len(old_files) + len(current_files)  # some data can be
+
+
+def test_change_analyzer_recovery(watch_fx, mocker):
+
+    wfx = watch_fx
+
+    watcher = wfx.make_watcher(
+        delete_recordings="never",
+    )
+
+    old_output = watcher.output
+
+    number_of_files = 15
+
+    sleep_for = 6
+
+    recorder_process = multiprocessing.Process(
+        target=wfx.mock_recorder,
+        args=(wfx.home, wfx.data, number_of_files, sleep_for),
+    )
+
+    recorder_process.daemon = True
+
+    watcher.start()
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: watcher.is_running,
+        todo_event=lambda: 1,
+        todo_else=lambda: time.sleep(0.5),
+    )
+
+    recorder_process.start()
+
+    assert watcher.is_running
+    assert watcher.watcher_process is not None
+
+    filename = watcher.output / "results_example_4.csv"
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: filename.is_file(),
+        todo_event=lambda: 1,
+        todo_else=lambda: time.sleep(0.3),
+    )
+
+    # patch the start method so we get a mock exception that is propagated through the system
+    mocker.patch(
+        "iSparrow.SparrowWatcher.restart",
+        side_effect=ValueError("Simulated error occurred"),
+    )
+    try:
+        watcher.change_analyzer(
+            "birdnet_custom",
+            preprocessor_config=wfx.custom_preprocessor_cfg,
+            model_config=wfx.custom_model_cfg,
+            recording_config=wfx.changed_custom_recording_cfg,
+            delete_recordings="always",
+        )
+    except RuntimeError as e:
+        e == RuntimeError(
+            "Error when restarting the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss."
+        )
+        watcher.start()
+
+    assert watcher.is_running
+    assert watcher.model_name == "birdnet_default"
+    assert watcher.delete_recordings == "never"
+
+    filename = watcher.output / f"results_example_{number_of_files -1}.csv"
+    wfx.wait_for_event_then_do(
+        condition=lambda: filename.is_file() and wait_for_file_completion(filename),
+        todo_event=lambda: watcher.stop(),
+        todo_else=lambda: time.sleep(1),
+    )
+
+    results_folders = [f for f in watcher.outdir.iterdir() if f.is_dir()]
+    results = [f for f in watcher.output.iterdir() if f.suffix == ".csv"]
+    old_results = [f for f in old_output.iterdir() if f.suffix == ".csv"]
+
+    assert old_output != watcher.output
+    assert len(results_folders) == 2
+    assert len(old_results) == 5
+    assert len(results) <= number_of_files - 1
+
+    old_cfg = read_yaml(old_output / "config.yml")
+    new_cfg = read_yaml(watcher.output / "config.yml")
+    assert old_cfg["Analysis"]["Model"] == new_cfg["Analysis"]["Model"]
+    assert old_cfg["Analysis"]["Preprocessor"] == new_cfg["Analysis"]["Preprocessor"]
+    assert old_cfg["Analysis"]["Recording"] == new_cfg["Analysis"]["Recording"]
+
+
+def test_change_analyzer_exception(watch_fx, mocker):
+    # patch the start method so we get a mock exception that is propagated through the system
+    wfx = watch_fx
+
+    watcher = wfx.make_watcher(
+        delete_recordings="never",
+    )
+
+    old_recording_cfg = deepcopy(watcher.recording_config)
+    old_model_cfg = deepcopy(watcher.model_config)
+    old_preprocessor_cfg = deepcopy(watcher.preprocessor_config)
+    old_species_predictor_cfg = deepcopy(watcher.species_predictor_config)
+
+    number_of_files = 20
+
+    sleep_for = 3
+
+    recorder_process = multiprocessing.Process(
+        target=wfx.mock_recorder,
+        args=(wfx.home, wfx.data, number_of_files, sleep_for),
+    )
+
+    recorder_process.daemon = True
+
+    watcher.start()
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: watcher.is_running,
+        todo_event=lambda: 1,
+        todo_else=lambda: time.sleep(0.25),
+    )
+
+    recorder_process.start()
+
+    assert watcher.is_running
+    assert watcher.watcher_process is not None
+
+    filename = watcher.output / f"results_example_{4}.csv"
+    wfx.wait_for_event_then_do(
+        condition=lambda: filename.is_file(),
+        todo_event=lambda: 1,  # do nothing, just stop waiting,
+        todo_else=lambda: time.sleep(0.2),
+    )
+
+    old_output = watcher.output_directory
+
+    with pytest.raises(
+        ValueError, match="Given model name does not exist in model dir."
+    ):
+        watcher.change_analyzer(
+            "nonexistent_model",
+            preprocessor_config=wfx.custom_preprocessor_cfg,
+            model_config=wfx.custom_model_cfg,
+            recording_config=wfx.changed_custom_recording_cfg,
+            delete_recordings="always",
+        )
+    assert watcher.model_name == "birdnet_default"
+    assert watcher.is_running
+    assert watcher.output_directory == old_output
+    assert watcher.model_config == old_model_cfg
+    assert watcher.preprocessor_config == old_preprocessor_cfg
+    assert watcher.recording_config == old_recording_cfg
+    assert watcher.species_predictor_config == old_species_predictor_cfg
+
+    watcher.stop()
