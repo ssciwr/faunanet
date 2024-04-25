@@ -35,11 +35,12 @@ build-backend = "setuptools.build_meta"
 # Tools 
 [tool.pytest.ini_options]
 minversion = "6.0"
-# addopts="-v -x"
-# testpaths = ["tests"] 
+addopts="-v -x"
+testpaths = ["tests"] 
 
-# [tool.coverage.run]
-# branch = true
+[tool.coverage.run]
+branch = true
+source = ["./src/iSparrow"]
 
 [tool.coverage.report]
 # Regexes for lines to exclude from consideration
