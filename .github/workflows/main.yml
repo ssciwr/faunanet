@@ -63,9 +63,7 @@ jobs:
         python3 -m pip install -r requirements-dev.txt
 
     - name: Run pytest unittests
-      run: |
-        coverage run -m pytest
-        coverage xml
+      run: pytest --cov-report=xml
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4
       with:

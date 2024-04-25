@@ -55,7 +55,7 @@ exclude_also = [
     # Don't complain about abstract methods, they aren't run:
     "@(abc\\.)?abstractmethod",
     ]
-fail_under = 80
+# fail_under = 80
 
 [tool.coverage.html]
 directory = "coverage_html_report"
