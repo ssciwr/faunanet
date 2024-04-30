@@ -42,7 +42,7 @@ class AnalysisEventHandler(FileSystemEventHandler):
             watcher: (SparrowWatcher): Watcher this Handler is used with
         """
         self.pattern = watcher.pattern
-        self.recording = watcher.set_up_recording()
+        self.recording = watcher.set_up_recording(watcher.model_name, watcher.config)
         self.callback = watcher.analyze
 
     def on_created(self, event):
@@ -144,9 +144,7 @@ class SparrowWatcher:
         except Exception as e:
             raise RuntimeError("Error during config writing ", e) from e
 
-    def set_up_recording(
-        self,
-    ) -> SparrowRecording:
+    def set_up_recording(self, model_name: str, config: dict) -> SparrowRecording:
         """
         set_up_recording Set up the recording object used for analyzing audio files.
 
@@ -156,31 +154,32 @@ class SparrowWatcher:
         Returns:
             SparrowRecording: New instance of SpeciesRecording created with config dictionaries held by the caller.
         """
+
+        recording_config = deepcopy(config["Recording"])
+
         preprocessor = utils.load_name_from_module(
             "pp",
-            self.model_dir / Path(self.model_name) / "preprocessor.py",
+            self.model_dir / Path(model_name) / "preprocessor.py",
             "Preprocessor",
         )(**self.preprocessor_config)
 
         model = utils.load_name_from_module(
-            "mo", self.model_dir / Path(self.model_name) / "model.py", "Model"
-        )(model_path=self.model_dir / self.model_name, **self.model_config)
+            "mo", self.model_dir / Path(model_name) / "model.py", "Model"
+        )(model_path=self.model_dir / model_name, **self.model_config)
 
         # process species range predictor
-        if all(
-            name in self.recording_config for name in ["date", "lat", "lon"]
-        ) and all(
-            self.recording_config[name] is not None for name in ["date", "lat", "lon"]
+        if all(name in recording_config for name in ["date", "lat", "lon"]) and all(
+            recording_config[name] is not None for name in ["date", "lat", "lon"]
         ):
 
             try:
                 # we can use the species predictor
                 species_predictor = SpeciesPredictorBase(
-                    model_path=self.model_dir / self.model_name,
-                    **self.species_predictor_config,
+                    model_path=self.model_dir / model_name,
+                    **config["SpeciesPredictor"],
                 )
 
-                self.recording_config["species_predictor"] = species_predictor
+                recording_config["species_predictor"] = species_predictor
 
             except Exception as e:
                 raise ValueError(
@@ -189,7 +188,7 @@ class SparrowWatcher:
 
         # create recording object
         # species predictor is applied here once and then used for all the analysis calls that may follow
-        return SparrowRecording(preprocessor, model, "", **self.recording_config)
+        return SparrowRecording(preprocessor, model, "", **recording_config)
 
     def __init__(
         self,
@@ -287,6 +286,10 @@ class SparrowWatcher:
         self.recording_config = deepcopy(recording_config)
 
         self.species_predictor_config = deepcopy(species_predictor_config)
+
+        self.first_analyzed_file = multiprocessing.Value(str, "")
+
+        self.last_analyzed_file = multiprocessing.Value(str, "")
 
     @property
     def output_directory(self):
@@ -549,3 +552,29 @@ class SparrowWatcher:
             raise RuntimeError(
                 "Error when restarting the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss."
             ) from e
+
+    def clean_up(self):
+        """
+        clean_up _summary_
+
+        """
+
+        for folder in self.outdir.iterdir():
+
+            if folder.is_dir() is False:
+                continue
+
+            cfg = utils.read_yaml(folder / "config.yml")
+
+            first = cfg["Analysis"]["first_analyzed"]
+            last = cfg["Analysis"]["last_analyzed"]
+
+            recording = self.set_up_recording(
+                cfg["Analysis"]["Model"]["model_path"], cfg
+            )
+
+            input_folder = Path(cfg["Analysis"]["input"])
+
+            for filename in input_folder.iterdir():
+                if filename.is_file() is False:
+                    continue
