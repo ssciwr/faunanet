@@ -758,14 +758,23 @@ def test_cleanup(watch_fx):
         todo_else=lambda: time.sleep(0.2),
     )
 
+    time.sleep(10)
+    watcher.go_on()
+
     old_output = watcher.output
     old_input = watcher.input
 
-    filename = watcher.input / f"example_{10}.wav"
+    filename = watcher.input / f"example_{9}.wav"
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file(),
-        todo_event=lambda: watcher.restart(),  # do nothing, just stop waiting,
-        todo_else=lambda: time.sleep(0.2),
+        todo_event=lambda: watcher.change_analyzer(
+            "birdnet_custom",
+            preprocessor_config=wfx.custom_preprocessor_cfg,
+            model_config=wfx.custom_model_cfg,
+            recording_config=wfx.changed_custom_recording_cfg,
+            delete_recordings="always",
+        ),
+        todo_else=lambda: time.sleep(0.3),
     )
     assert len([f for f in old_output.iterdir() if f.suffix == ".csv"]) < 9
     assert len([f for f in old_input.iterdir() if f.suffix == ".wav"]) > 0
@@ -782,10 +791,16 @@ def test_cleanup(watch_fx):
         "missings.txt",
     ]
 
+    print(
+        "is watcher alive: ",
+        watcher.is_done_analyzing,
+        watcher.is_running,
+        watcher.may_do_work,
+    )
     filename = watcher.input / f"example_{number_of_files-1}.wav"
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file(),
-        todo_event=lambda: watcher.stop(),  # do nothing, just stop waiting,
+        todo_event=lambda: watcher.stop(),
         todo_else=lambda: time.sleep(0.2),
     )
 

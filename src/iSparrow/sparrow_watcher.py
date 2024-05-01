@@ -12,7 +12,6 @@ import yaml
 import multiprocessing
 import warnings
 import csv
-from ctypes import c_wchar_p
 
 
 class AnalysisEventHandler(FileSystemEventHandler):
@@ -46,6 +45,8 @@ class AnalysisEventHandler(FileSystemEventHandler):
             watcher.model_name,
             watcher.recording_config,
             watcher.species_predictor_config,
+            watcher.model_config,
+            watcher.preprocessor_config,
         )
         self.callback = watcher.analyze
 
@@ -132,8 +133,9 @@ class SparrowWatcher:
             "Analysis": {
                 "input": str(self.input),
                 "output": str(self.output),
-                "delete_recording": self.delete_recordings,
+                "delete_recordings": self.delete_recordings,
                 "pattern": self.pattern,
+                "model_name": self.model_name,
                 "check_time": self.check_time,
                 "model_dir": str(self.model_dir),
                 "Preprocessor": deepcopy(self.preprocessor_config),
@@ -143,8 +145,6 @@ class SparrowWatcher:
             }
         }
 
-        config["Analysis"]["Model"]["name"] = self.model_name
-
         try:
             with open(self.output / "config.yml", "w") as ymlfile:
                 yaml.safe_dump(config, ymlfile)
@@ -152,7 +152,12 @@ class SparrowWatcher:
             raise RuntimeError("Error during config writing ", e) from e
 
     def _set_up_recording(
-        self, model_name: str, recording_config: dict, species_predictor_config: dict
+        self,
+        model_name: str,
+        recording_config: dict,
+        species_predictor_config: dict,
+        model_config: dict,
+        preprocessor_config: dict,
     ) -> SparrowRecording:
         """
         _set_up_recording Build a new recording from configs
@@ -161,6 +166,8 @@ class SparrowWatcher:
             model_name (str): name of the model to use
             recording_config (dict): recording config
             species_predictor_config (dict): species_predictor config
+            model_config (dict): model config data
+            preprocessor_config (dict): preprocessor config data
 
         Raises:
             ValueError: In case the species presence predictor is used. When the an error occurs during the creation of the species predictor model.
@@ -174,11 +181,11 @@ class SparrowWatcher:
             "pp",
             self.model_dir / Path(model_name) / "preprocessor.py",
             "Preprocessor",
-        )(**self.preprocessor_config)
+        )(**preprocessor_config)
 
         model = utils.load_name_from_module(
             "mo", self.model_dir / Path(model_name) / "model.py", "Model"
-        )(model_path=self.model_dir / model_name, **self.model_config)
+        )(model_path=self.model_dir / model_name, **model_config)
 
         # process species range predictor
         if all(name in recording_config for name in ["date", "lat", "lon"]) and all(
@@ -301,9 +308,9 @@ class SparrowWatcher:
 
         self.species_predictor_config = deepcopy(species_predictor_config)
 
-        self.first_analyzed_file = multiprocessing.Value(c_wchar_p, "")
+        self.first_analyzed_file = multiprocessing.Value("d", 0.0)
 
-        self.last_analyzed_file = multiprocessing.Value(c_wchar_p, "")
+        self.last_analyzed_file = multiprocessing.Value("d", 0.0)
 
     @property
     def output_directory(self):
@@ -337,15 +344,15 @@ class SparrowWatcher:
         # make the main process wait on the finish signal to make sure no
         # corrupt files are produced
         self.is_done_analyzing.clear()
-        print("analyze: ", filename)
+
         recording.analyze()
 
         results = recording.detections
 
         if self.first_analyzed_file.value == "":
-            self.first_analyzed_file.value = datetime.now().strftime("%y%m%d_%H%M%S")
+            self.first_analyzed_file.value = Path(filename).stat().st_ctime
 
-        self.last_analyzed_file.value = datetime.now().strftime("%y%m%d_%H%M%S")
+        self.last_analyzed_file.value = Path(filename).stat().st_ctime
         self.save_results(self.output, results, suffix=Path(filename).stem)
 
         self.is_done_analyzing.set()  # give good-to-go for main process
@@ -594,15 +601,16 @@ class SparrowWatcher:
         )
 
         for outfolder in outputfolders:
-
+            print("cleaning up", outfolder)
             missings = []
 
             cfg = utils.read_yaml(outfolder / "config.yml")
-
             recording = self._set_up_recording(
-                cfg["Analysis"]["Model"]["model_path"],
+                cfg["Analysis"]["model_name"],
                 cfg["Analysis"]["Recording"],
                 cfg["Analysis"]["SpeciesPredictor"],
+                cfg["Analysis"]["Model"],
+                cfg["Analysis"]["Preprocessor"],
             )
 
             input_folder = Path(cfg["Analysis"]["input"])
@@ -614,10 +622,11 @@ class SparrowWatcher:
             )
 
             for audiofile in audiofiles:
+                print("     file:", audiofile)
 
                 if (
                     outfolder / Path(f"results_{audiofile.stem}.csv")
-                ).if_file() is False:
+                ).is_file() is False:
 
                     recording.path = audiofile
                     recording.analyzed = False  # reactivate
@@ -630,4 +639,5 @@ class SparrowWatcher:
                         audiofile.unlink()
 
             with open(outfolder / "missings.txt", "w") as missingsfile:
-                missingsfile.write(missings)
+                for item in missings:
+                    missingsfile.write(str(item) + "\n")
