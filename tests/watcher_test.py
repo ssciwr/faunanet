@@ -719,3 +719,88 @@ def test_change_analyzer_exception(watch_fx, mocker):
     assert watcher.species_predictor_config == old_species_predictor_cfg
 
     watcher.stop()
+
+
+def test_cleanup(watch_fx):
+    wfx = watch_fx
+
+    watcher = wfx.make_watcher(
+        delete_recordings="always",
+    )
+
+    # let the watcher run in such a way that we have 2 batches with
+    # the first missing 5 files
+    number_of_files = 20
+
+    sleep_for = 3
+
+    recorder_process = multiprocessing.Process(
+        target=wfx.mock_recorder,
+        args=(wfx.home, wfx.data, number_of_files, sleep_for),
+    )
+
+    recorder_process.daemon = True
+
+    watcher.start()
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: watcher.is_running,
+        todo_event=lambda: 1,
+        todo_else=lambda: time.sleep(0.25),
+    )
+
+    recorder_process.start()
+
+    filename = watcher.output / f"results_example_{5}.csv"
+    wfx.wait_for_event_then_do(
+        condition=lambda: filename.is_file(),
+        todo_event=lambda: watcher.pause(),  # do nothing, just stop waiting,
+        todo_else=lambda: time.sleep(0.2),
+    )
+
+    old_output = watcher.output
+    old_input = watcher.input
+
+    filename = watcher.input / f"example_{10}.wav"
+    wfx.wait_for_event_then_do(
+        condition=lambda: filename.is_file(),
+        todo_event=lambda: watcher.restart(),  # do nothing, just stop waiting,
+        todo_else=lambda: time.sleep(0.2),
+    )
+    assert len([f for f in old_output.iterdir() if f.suffix == ".csv"]) < 9
+    assert len([f for f in old_input.iterdir() if f.suffix == ".wav"]) > 0
+
+    watcher.clean_up()
+
+    assert len([f for f in old_output.iterdir() if f.suffix == ".csv"]) == 9
+
+    assert [f for f in old_output.iterdir() if f.suffix == ".yml"] == [
+        "config.yml",
+    ]
+
+    assert [f for f in old_output.iterdir() if f.suffix == ".txt"] == [
+        "missings.txt",
+    ]
+
+    filename = watcher.input / f"example_{number_of_files-1}.wav"
+    wfx.wait_for_event_then_do(
+        condition=lambda: filename.is_file(),
+        todo_event=lambda: watcher.stop(),  # do nothing, just stop waiting,
+        todo_else=lambda: time.sleep(0.2),
+    )
+
+    assert len([f for f in watcher.output.iterdir() if f.suffix == ".csv"]) < 10
+    assert len([f for f in watcher.input.iterdir() if f.suffix == ".wav"]) > 0
+
+    watcher.clean_up()
+
+    assert len([f for f in watcher.output.iterdir() if f.suffix == ".csv"]) == 10
+    assert len([f for f in watcher.input.iterdir() if f.suffix == ".wav"]) == 0
+
+    assert [f for f in watcher.output.iterdir() if f.suffix == ".yml"] == [
+        "config.yml",
+    ]
+
+    assert [f for f in watcher.output.iterdir() if f.suffix == ".txt"] == [
+        "missings.txt",
+    ]

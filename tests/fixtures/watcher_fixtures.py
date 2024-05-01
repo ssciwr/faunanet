@@ -95,7 +95,7 @@ class WatchFixture:
         for i in range(0, number, 1):
 
             time.sleep(sleep_for)  # add a dummy time to emulate recording time
-
+            print('recording', i)
             shutil.copy(
                 Path(home) / Path("example/soundscape.wav"),
                 Path(data) / Path(f"example_{i}.wav"),
