@@ -42,7 +42,7 @@ class AnalysisEventHandler(FileSystemEventHandler):
             watcher: (SparrowWatcher): Watcher this Handler is used with
         """
         self.pattern = watcher.pattern
-        self.recording = watcher.set_up_recording(watcher.model_name, watcher.config)
+        self.recording = watcher._set_up_recording(watcher.model_name, watcher.config)
         self.callback = watcher.analyze
 
     def on_created(self, event):
@@ -128,6 +128,9 @@ class SparrowWatcher:
             "Analysis": {
                 "input": str(self.input),
                 "output": str(self.output),
+                "delete_recording": self.delete_recordings,
+                "pattern": self.pattern,
+                "check_time": self.check_time,
                 "model_dir": str(self.model_dir),
                 "Preprocessor": deepcopy(self.preprocessor_config),
                 "Model": deepcopy(self.model_config),
@@ -144,7 +147,7 @@ class SparrowWatcher:
         except Exception as e:
             raise RuntimeError("Error during config writing ", e) from e
 
-    def set_up_recording(self, model_name: str, config: dict) -> SparrowRecording:
+    def _set_up_recording(self, model_name: str, config: dict) -> SparrowRecording:
         """
         set_up_recording Set up the recording object used for analyzing audio files.
 
@@ -218,7 +221,8 @@ class SparrowWatcher:
             model_config (dict, optional): Keyword arguments for the model instance. Defaults to {}.
             recording_config (dict, optional): Keyword arguments for the internal SparrowRecording. Defaults to {}.
             species_predictor_config (dict, optional): Keyword arguments for a species presence predictor model. Defaults to {}.
-            check_time(int, optional): Sleep time of the thread between checks for new files in seconds. Defaults to 1.
+            pattern (str, optional): filename pattern to look for. defaults to '.wav'.
+            check_time(int, optional): Sleep time of the watcher between checks for new files in seconds. Defaults to 1.
             delete_recordings(str, optional): Mode for data clean up. Can be one of "never" or "always".
                                             "never" keeps recordings around indefinitely. 'always' deletes the recording
                                             immediatelly after analysis. Defaults to 'never'.
@@ -328,22 +332,23 @@ class SparrowWatcher:
 
         results = recording.detections
 
-        self.save_results(results, suffix=Path(filename).stem)
+        self.save_results(self.output, results, suffix=Path(filename).stem)
 
         self.is_done_analyzing.set()  # give good-to-go for main process
 
         if self.delete_recordings == "always":
             Path(filename).unlink()
 
-    def save_results(self, results: list, suffix=""):
+    def save_results(self, outfolder: str, results: list, suffix=""):
         """
         save_results Save results to csv file.
 
         Args:
+            outfolder (str): folder to save the results in
             suffix (str, optional): _description_. Defaults to "".
         """
 
-        with open(self.output / Path(f"results_{suffix}.csv"), "w") as csvfile:
+        with open(Path(outfolder) / Path(f"results_{suffix}.csv"), "w") as csvfile:
             if len(results) == 0:
                 writer = csv.writer(csvfile)
                 writer.writerow([])
@@ -481,6 +486,11 @@ class SparrowWatcher:
             recording_config (dict, optional): Parameters for the underlyin SparrowRecording object. If empty, default parameters of the recording will be used. Defaults to {}.
             species_predictor_config (dict, optional): _description_. If empty, default parameters of the species predictor will be used. Defaults to {}.
             Make sure the model you use is compatible with a species predictor before supplying these.
+            pattern (str, optional): filename pattern to look for. defaults to '.wav'.
+            check_time(int, optional): Sleep time of the watcher between checks for new files in seconds. Defaults to 1.
+            delete_recordings(str, optional): Mode for data clean up. Can be one of "never" or "always".
+                                            "never" keeps recordings around indefinitely. 'always' deletes the recording
+                                            immediatelly after analysis. Defaults to 'never'.
 
         Raises:
             ValueError: _description_
@@ -555,19 +565,25 @@ class SparrowWatcher:
 
     def clean_up(self):
         """
-        clean_up _summary_
-
+        clean_up Go over previous folders and run analysis on any files that have not been analyzed before.
         """
 
-        for folder in self.outdir.iterdir():
+        outputfolders = (
+            folder
+            for folder in self.outdir.iterdir()
+            if (
+                folder == self.output
+                or not folder.is_dir()
+                or (folder / "missings.txt").is_file()
+            )
+            is False
+        )
 
-            if folder.is_dir() is False:
-                continue
+        for outfolder in outputfolders:
 
-            cfg = utils.read_yaml(folder / "config.yml")
+            missings = []
 
-            first = cfg["Analysis"]["first_analyzed"]
-            last = cfg["Analysis"]["last_analyzed"]
+            cfg = utils.read_yaml(outfolder / "config.yml")
 
             recording = self.set_up_recording(
                 cfg["Analysis"]["Model"]["model_path"], cfg
@@ -575,6 +591,27 @@ class SparrowWatcher:
 
             input_folder = Path(cfg["Analysis"]["input"])
 
-            for filename in input_folder.iterdir():
-                if filename.is_file() is False:
-                    continue
+            audiofiles = (
+                f
+                for f in input_folder.iterdir()
+                if f.suffix == cfg["Analysis"]["pattern"]
+            )
+
+            for audiofile in audiofiles:
+
+                if (
+                    outfolder / Path(f"results_{audiofile.stem}.csv")
+                ).if_file() is False:
+
+                    recording.path = audiofile
+                    recording.analyzed = False  # reactivate
+                    recording.analyze()
+                    results = recording.detections
+                    self.save_results(outfolder, results, suffix=audiofile.stem)
+                    missings.append(audiofile)
+
+                    if cfg["Analysis"]["delete_recordings"] == "always":
+                        audiofile.unlink()
+
+            with open(outfolder / "missings.txt", "w") as missingsfile:
+                missingsfile.write(missings)
