@@ -13,7 +13,6 @@ from datetime import datetime
 
 def test_watcher_construction(watch_fx):
     wfx = watch_fx
-    path_add = Path(datetime.now().strftime("%y%m%d_%H%M%S"))
 
     watcher = SparrowWatcher(
         wfx.data,
@@ -27,12 +26,12 @@ def test_watcher_construction(watch_fx):
     )
 
     # check member variables
-    assert str(watcher.output) == str(Path(watcher.outdir) / path_add)
     assert str(watcher.input) == str(Path.home() / "iSparrow_data" / "tests")
     assert str(watcher.outdir) == str(Path.home() / "iSparrow_output" / "tests")
+    assert watcher.output is None
+    assert watcher.old_output is None
     assert str(watcher.model_dir) == str(Path.home() / "iSparrow/models")
     assert str(watcher.model_name) == "birdnet_default"
-    assert watcher.output_directory == str(Path(watcher.outdir) / path_add)
     assert watcher.input_directory == str(Path.home() / "iSparrow_data" / "tests")
     assert watcher.is_running is False
     assert watcher.output.is_dir() is False  # not yet created
@@ -44,15 +43,14 @@ def test_watcher_construction(watch_fx):
     assert watcher.check_time == 1
     assert watcher.delete_recordings == "never"
 
-    path_add = Path(datetime.now().strftime("%y%m%d_%H%M%S"))
     default_watcher = SparrowWatcher(
         wfx.data,
         wfx.output,
         wfx.home / "models",
         "birdnet_default",
     )
-
-    assert str(default_watcher.output) == str(Path(default_watcher.outdir) / path_add)
+    assert default_watcher.output is None
+    assert default_watcher.old_output is None
     assert str(default_watcher.input) == str(Path.home() / "iSparrow_data" / "tests")
     assert str(default_watcher.outdir) == str(Path.home() / "iSparrow_output" / "tests")
     assert str(default_watcher.model_dir) == str(Path.home() / "iSparrow/models")
@@ -721,16 +719,155 @@ def test_change_analyzer_exception(watch_fx, mocker):
     watcher.stop()
 
 
-def test_cleanup(watch_fx):
+@pytest.mark.parametrize(
+    "delete_mode, delete_mode_custom, wave_files_retained,wave_files_retained_custom",
+    [
+        ({"delete_recordings": "always"}, {"delete_recordings": "never"}, False, True),
+        # ({"delete_recordings": "never"}, True)
+    ],
+)
+def test_cleanup(
+    watch_fx,
+    delete_mode,
+    delete_mode_custom,
+    wave_files_retained,
+    wave_files_retained_custom,
+):
     wfx = watch_fx
 
-    watcher = wfx.make_watcher(
-        delete_recordings="always",
+    watcher = wfx.make_watcher(**delete_mode)
+
+    number_of_files = 25
+
+    sleep_for = 5
+
+    recorder_process = multiprocessing.Process(
+        target=wfx.mock_recorder,
+        args=(wfx.home, wfx.data, number_of_files, sleep_for),
     )
 
-    # let the watcher run in such a way that we have 2 batches with
-    # the first missing 5 files
-    number_of_files = 20
+    recorder_process.daemon = True
+
+    watcher.start()
+
+    old_output = watcher.output
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: watcher.is_running,
+        todo_event=lambda: recorder_process.start(),
+        todo_else=lambda: time.sleep(0.25),
+    )
+
+    filename = watcher.output / f"results_example_{5}.csv"
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: filename.is_file(),
+        todo_event=lambda: watcher.pause(),
+        todo_else=lambda: time.sleep(0.2),
+    )
+
+    assert len([f for f in old_output.iterdir() if f.suffix == ".csv"]) <= 6
+
+    filename = watcher.input / f"example_{9}.wav"
+
+    wfx.wait_for_event_then_do(
+        condition=lambda: filename.is_file(),
+        todo_event=lambda: watcher.go_on(),
+        todo_else=lambda: time.sleep(0.2),
+    )
+
+    watcher.change_analyzer(
+        "birdnet_custom",
+        preprocessor_config=wfx.custom_preprocessor_cfg,
+        model_config=wfx.custom_model_cfg,
+        recording_config=wfx.changed_custom_recording_cfg,
+        **delete_mode_custom,
+    )
+
+    for i in range(0, 10):
+        assert (watcher.input / f"example_{i}.wav").is_file() is wave_files_retained
+        assert (watcher.old_output / f"results_example_{i}.csv").is_file() is True
+
+    assert set([f.name for f in old_output.iterdir() if f.suffix == ".yml"]) == set(
+        [
+            "batch_info.yml",
+            "config.yml",
+        ]
+    )
+
+    assert [f.name for f in old_output.iterdir() if f.suffix == ".txt"] == [
+        "missings.txt",
+    ]
+
+    # because we copy over the same file over and over as a mock recording,
+    # we can compare with old files to make sure the clean-up method behaves
+    # like the normal analysis function
+    missing_files = wfx.read_missings(old_output)
+
+    assert len(missing_files) > 0
+
+    reference = wfx.read_csv(old_output / "results_example_0.csv")
+
+    for m in missing_files:
+        rows = wfx.read_csv(old_output / f"results_{Path(m).stem}.csv")
+        assert rows == reference
+
+    filename = watcher.input / f"example_{16}.wav"
+    wfx.wait_for_event_then_do(
+        condition=lambda: filename.is_file(),
+        todo_event=lambda: watcher.stop(),  # do nothing, just stop waiting,
+        todo_else=lambda: time.sleep(0.2),
+    )
+
+    recorder_process.join()
+
+    recorder_process.close()
+
+    old_files = [f.stem for f in watcher.old_output.iterdir() if f.suffix == ".csv"]
+
+    pre_cleanup_files = [f.stem for f in watcher.output.iterdir() if f.suffix == ".csv"]
+
+    assert len(pre_cleanup_files) <= 8
+
+    assert set([f.name for f in watcher.output.iterdir() if f.suffix == ".yml"]) == set(
+        [
+            "batch_info.yml",
+            "config.yml",
+        ]
+    )
+
+    for i in range(len(old_files), len(old_files) + len(pre_cleanup_files)):
+        assert (
+            Path(watcher.input / f"example_{i}.wav").is_file()
+            is wave_files_retained_custom
+        )
+
+    for i in range(len(old_files) + len(pre_cleanup_files), number_of_files):
+        assert Path(watcher.input / f"example_{i}.wav").is_file() is True
+
+    watcher.clean_up()
+
+    assert [f.name for f in watcher.output.iterdir() if f.suffix == ".txt"] == [
+        "missings.txt",
+    ]
+
+    missing_files = wfx.read_missings(old_output)
+
+    assert len(missing_files) > 0
+    post_cleanup_files = [
+        f.stem for f in watcher.output.iterdir() if f.suffix == ".csv"
+    ]
+    assert len(old_files) + len(post_cleanup_files) == number_of_files
+
+    all_files = [f"results_example_{i}" for i in range(0, number_of_files)]
+
+    assert set(old_files + post_cleanup_files) == set(all_files)
+
+
+def test_cleanup_exceptions(watch_fx, mocker):
+    wfx = watch_fx
+
+    number_of_files = 8
 
     sleep_for = 3
 
@@ -745,77 +882,17 @@ def test_cleanup(watch_fx):
 
     wfx.wait_for_event_then_do(
         condition=lambda: watcher.is_running,
-        todo_event=lambda: 1,
+        todo_event=lambda: recorder_process.start(),
         todo_else=lambda: time.sleep(0.25),
     )
 
-    recorder_process.start()
+    with pytest.raises(
+        RuntimeError,
+        match="The watcher process is still running and there is no previous output directory to run clean_up on.",
+    ):
+        watcher.clean_up()
 
-    filename = watcher.output / f"results_example_{5}.csv"
-    wfx.wait_for_event_then_do(
-        condition=lambda: filename.is_file(),
-        todo_event=lambda: watcher.pause(),  # do nothing, just stop waiting,
-        todo_else=lambda: time.sleep(0.2),
-    )
+    recorder.join()
+    recorder.close()
 
-    time.sleep(10)
-    watcher.go_on()
-
-    old_output = watcher.output
-    old_input = watcher.input
-
-    filename = watcher.input / f"example_{9}.wav"
-    wfx.wait_for_event_then_do(
-        condition=lambda: filename.is_file(),
-        todo_event=lambda: watcher.change_analyzer(
-            "birdnet_custom",
-            preprocessor_config=wfx.custom_preprocessor_cfg,
-            model_config=wfx.custom_model_cfg,
-            recording_config=wfx.changed_custom_recording_cfg,
-            delete_recordings="always",
-        ),
-        todo_else=lambda: time.sleep(0.3),
-    )
-    assert len([f for f in old_output.iterdir() if f.suffix == ".csv"]) < 9
-    assert len([f for f in old_input.iterdir() if f.suffix == ".wav"]) > 0
-
-    watcher.clean_up()
-
-    assert len([f for f in old_output.iterdir() if f.suffix == ".csv"]) == 9
-
-    assert [f for f in old_output.iterdir() if f.suffix == ".yml"] == [
-        "config.yml",
-    ]
-
-    assert [f for f in old_output.iterdir() if f.suffix == ".txt"] == [
-        "missings.txt",
-    ]
-
-    print(
-        "is watcher alive: ",
-        watcher.is_done_analyzing,
-        watcher.is_running,
-        watcher.may_do_work,
-    )
-    filename = watcher.input / f"example_{number_of_files-1}.wav"
-    wfx.wait_for_event_then_do(
-        condition=lambda: filename.is_file(),
-        todo_event=lambda: watcher.stop(),
-        todo_else=lambda: time.sleep(0.2),
-    )
-
-    assert len([f for f in watcher.output.iterdir() if f.suffix == ".csv"]) < 10
-    assert len([f for f in watcher.input.iterdir() if f.suffix == ".wav"]) > 0
-
-    watcher.clean_up()
-
-    assert len([f for f in watcher.output.iterdir() if f.suffix == ".csv"]) == 10
-    assert len([f for f in watcher.input.iterdir() if f.suffix == ".wav"]) == 0
-
-    assert [f for f in watcher.output.iterdir() if f.suffix == ".yml"] == [
-        "config.yml",
-    ]
-
-    assert [f for f in watcher.output.iterdir() if f.suffix == ".txt"] == [
-        "missings.txt",
-    ]
+    watcher.stop()

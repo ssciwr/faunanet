@@ -7,6 +7,7 @@ from iSparrow.utils import wait_for_file_completion
 from iSparrow import SparrowWatcher
 from .. import set_up_sparrow_env
 from copy import deepcopy
+import csv
 
 
 class WatchFixture:
@@ -95,7 +96,7 @@ class WatchFixture:
         for i in range(0, number, 1):
 
             time.sleep(sleep_for)  # add a dummy time to emulate recording time
-            print('recording', i)
+            print("recording", i)
             shutil.copy(
                 Path(home) / Path("example/soundscape.wav"),
                 Path(data) / Path(f"example_{i}.wav"),
@@ -140,6 +141,22 @@ class WatchFixture:
         for f in files:
             if (watcher.input / f).exists():
                 (watcher.input / f).unlink()
+
+    def read_csv(self, filepath):
+        rows = []
+
+        with open(filepath, "r") as file:
+            reader = csv.reader(file)
+            rows = [row for row in reader]
+
+        return rows
+
+    def read_missings(self, path):
+        missing_files = []
+        with open(path / "missings.txt", "r") as file:
+            # Read all lines from the file and strip any leading/trailing whitespace
+            missing_files = [line.strip() for line in file.readlines()]
+        return missing_files
 
 
 @pytest.fixture()

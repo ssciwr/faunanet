@@ -12,6 +12,7 @@ import yaml
 import multiprocessing
 import warnings
 import csv
+import time
 
 
 class AnalysisEventHandler(FileSystemEventHandler):
@@ -261,7 +262,8 @@ class SparrowWatcher:
         if self.outdir.is_dir() is False:
             raise ValueError("Output directory does not exist")
 
-        self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
+        self.output = None
+        self.old_output = None
 
         self.model_dir = Path(model_dir)
 
@@ -390,6 +392,8 @@ class SparrowWatcher:
         if self.is_running:
             raise RuntimeError("watcher process still running, stop first.")
 
+        self.old_output = self.output
+        self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
         self.output.mkdir(exist_ok=True, parents=True)
 
         self._write_config()
@@ -397,15 +401,14 @@ class SparrowWatcher:
         try:
             print("start the watcher process")
             # create a background watchertask such that the command is handed back to the parent process
-
-            self.may_do_work.set()
-            self.is_done_analyzing.clear()
             self.watcher_process = multiprocessing.Process(
                 target=watchertask, args=(self,)
             )
             self.watcher_process.daemon = True
             self.watcher_process.name = "watcher_process"
             self.watcher_process.start()
+            self.may_do_work.set()
+            self.is_done_analyzing.clear()
         except Exception as e:
 
             if self.output.is_dir():
@@ -470,6 +473,21 @@ class SparrowWatcher:
                 warnings.warn("stop timeout expired, terminating watcher process now.")
 
             try:
+                with open(self.output / "batch_info.yml", "w") as bfile:
+                    yaml.safe_dump(
+                        {
+                            "first": self.first_analyzed_file.value,
+                            "last": self.last_analyzed_file.value,
+                        },
+                        bfile,
+                    )
+
+            except Exception as e:
+                raise RuntimeError(
+                    "Something went wrong when writing the batch info file"
+                ) from e
+
+            try:
                 self.watcher_process.terminate()
                 self.watcher_process.join()
                 self.watcher_process.close()
@@ -498,7 +516,10 @@ class SparrowWatcher:
         """
         change_analyzer Change classifier model to the one indicated by name.
         The given model name must correspond to the name of a folder in the
-        iSparrow models directory created upon install.
+        iSparrow models directory created upon install. A clean-up method is
+        run after model change to compensate any loss of analysis data that
+        may occur during the restart of the watcher process with a different
+        model.
 
         Args:
             model_name (str): Name of the model to be used
@@ -547,9 +568,7 @@ class SparrowWatcher:
         old_pattern = deepcopy(self.pattern)
         old_check_time = self.check_time
         old_delete = self.delete_recordings
-
         self.model_name = model_name
-        self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
         self.preprocessor_config = preprocessor_config
         self.model_config = model_config
         self.recording_config = recording_config
@@ -557,6 +576,8 @@ class SparrowWatcher:
         self.pattern = pattern
         self.check_time = check_time
         self.delete_recordings = delete_recordings
+        self.first_analyzed_file = multiprocessing.Value("d", 0.0)
+        self.last_analyzed_file = multiprocessing.Value("d", 0.0)
 
         # restart process to make changes take effect
         try:
@@ -571,12 +592,8 @@ class SparrowWatcher:
             self.pattern = old_pattern
             self.check_time = old_check_time
             self.delete_recordings = old_delete
-
             self.may_do_work.clear()
             self.is_done_analyzing.set()
-            self.output = Path(self.outdir) / Path(
-                datetime.now().strftime("%y%m%d_%H%M%S")
-            )
             if self.is_running:
                 self.stop()
 
@@ -584,27 +601,77 @@ class SparrowWatcher:
                 "Error when restarting the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss."
             ) from e
 
+        # run clean up such that there is no gap in analyzed data
+        try:
+            self.clean_up()
+        except Exception as e:
+            status = (
+                "still running"
+                if self.is_running
+                else "not running, any changes have been undone."
+            )
+            if self.is_running is False:
+                self.model_name = old_model_name
+                self.preprocessor_config = old_preprocessor_config
+                self.model_config = old_model_config
+                self.recording_config = old_recording_config
+                self.species_predictor_config = old_species_predictor_config
+                self.pattern = old_pattern
+                self.check_time = old_check_time
+                self.delete_recordings = old_delete
+
+                self.may_do_work.clear()
+                self.is_done_analyzing.set()
+                self.output = Path(self.outdir) / Path(
+                    datetime.now().strftime("%y%m%d_%H%M%S")
+                )
+            raise RuntimeError(
+                f"Error when cleaning up data after analyzer change, watcher is {status}. This error may have lead to corrupt data in newly created analysis files."
+            ) from e
+
     def clean_up(self):
         """
-        clean_up Go over previous folders and run analysis on any files that have not been analyzed before.
+        clean_up Fix analysis inconsistencies by analysing files that have not been analyzed before in a given batch. If the watcher is running and there is a previous batch folder,
+                 this previous batch will be completed. If there is not and the watcher is not running, the current batch will be completed. No clean_up is performed when
+                 the watcher is running and there is no previous batch folder.
+
+        Raises:
+            RuntimeError: When this method is called while the watcher is running and no previous batch folder exists
         """
 
-        outputfolders = (
-            folder
-            for folder in self.outdir.iterdir()
-            if (
-                folder == self.output
-                or not folder.is_dir()
-                or (folder / "missings.txt").is_file()
+        if self.is_running and self.old_output == self.output:
+            raise RuntimeError(
+                "The watcher process is still running and there is no previous output directory to run clean_up on."
             )
-            is False
-        )
 
-        for outfolder in outputfolders:
-            print("cleaning up", outfolder)
-            missings = []
+        if self.is_running:
+            outputfolder = self.old_output
+        else:
+            outputfolder = self.output
 
-            cfg = utils.read_yaml(outfolder / "config.yml")
+        missings = []
+
+        cfg = utils.read_yaml(outputfolder / "config.yml")
+
+        batch_info = utils.read_yaml(outputfolder / "batch_info.yml")
+
+        if self.first_analyzed_file.value == batch_info["first"]:
+            upper_limit_time = time.time()
+        else:
+            upper_limit_time = self.first_analyzed_file.value
+
+        input_folder = Path(cfg["Analysis"]["input"])
+
+        audiofiles = [
+            f
+            for f in input_folder.iterdir()
+            if f.suffix == cfg["Analysis"]["pattern"]
+            and not (outputfolder / Path(f"results_{f.stem}.csv")).is_file()
+            and batch_info["last"] <= f.stat().st_ctime < upper_limit_time
+        ]
+
+        if len(audiofiles) > 0:
+
             recording = self._set_up_recording(
                 cfg["Analysis"]["model_name"],
                 cfg["Analysis"]["Recording"],
@@ -613,31 +680,17 @@ class SparrowWatcher:
                 cfg["Analysis"]["Preprocessor"],
             )
 
-            input_folder = Path(cfg["Analysis"]["input"])
-
-            audiofiles = (
-                f
-                for f in input_folder.iterdir()
-                if f.suffix == cfg["Analysis"]["pattern"]
-            )
-
             for audiofile in audiofiles:
-                print("     file:", audiofile)
+                recording.path = audiofile
+                recording.analyzed = False  # reactivate
+                recording.analyze()
+                results = recording.detections
+                self.save_results(outputfolder, results, suffix=audiofile.stem)
+                missings.append(audiofile)
 
-                if (
-                    outfolder / Path(f"results_{audiofile.stem}.csv")
-                ).is_file() is False:
+                if cfg["Analysis"]["delete_recordings"] == "always":
+                    audiofile.unlink()
 
-                    recording.path = audiofile
-                    recording.analyzed = False  # reactivate
-                    recording.analyze()
-                    results = recording.detections
-                    self.save_results(outfolder, results, suffix=audiofile.stem)
-                    missings.append(audiofile)
-
-                    if cfg["Analysis"]["delete_recordings"] == "always":
-                        audiofile.unlink()
-
-            with open(outfolder / "missings.txt", "w") as missingsfile:
+            with open(outputfolder / "missings.txt", "w") as missingsfile:
                 for item in missings:
                     missingsfile.write(str(item) + "\n")
