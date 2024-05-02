@@ -719,23 +719,12 @@ def test_change_analyzer_exception(watch_fx, mocker):
     watcher.stop()
 
 
-@pytest.mark.parametrize(
-    "delete_mode, delete_mode_custom, wave_files_retained,wave_files_retained_custom",
-    [
-        ({"delete_recordings": "always"}, {"delete_recordings": "never"}, False, True),
-        # ({"delete_recordings": "never"}, True)
-    ],
-)
 def test_cleanup(
     watch_fx,
-    delete_mode,
-    delete_mode_custom,
-    wave_files_retained,
-    wave_files_retained_custom,
 ):
     wfx = watch_fx
 
-    watcher = wfx.make_watcher(**delete_mode)
+    watcher = wfx.make_watcher(delete_recordings="always")
 
     number_of_files = 25
 
@@ -781,11 +770,11 @@ def test_cleanup(
         preprocessor_config=wfx.custom_preprocessor_cfg,
         model_config=wfx.custom_model_cfg,
         recording_config=wfx.changed_custom_recording_cfg,
-        **delete_mode_custom,
+        delete_recordings="never",
     )
 
     for i in range(0, 10):
-        assert (watcher.input / f"example_{i}.wav").is_file() is wave_files_retained
+        assert (watcher.input / f"example_{i}.wav").is_file() is False
         assert (watcher.old_output / f"results_example_{i}.csv").is_file() is True
 
     assert set([f.name for f in old_output.iterdir() if f.suffix == ".yml"]) == set(
@@ -837,10 +826,7 @@ def test_cleanup(
     )
 
     for i in range(len(old_files), len(old_files) + len(pre_cleanup_files)):
-        assert (
-            Path(watcher.input / f"example_{i}.wav").is_file()
-            is wave_files_retained_custom
-        )
+        assert Path(watcher.input / f"example_{i}.wav").is_file() is True
 
     for i in range(len(old_files) + len(pre_cleanup_files), number_of_files):
         assert Path(watcher.input / f"example_{i}.wav").is_file() is True
