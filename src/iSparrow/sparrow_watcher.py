@@ -303,6 +303,10 @@ class SparrowWatcher:
         else:
             return False
 
+    @property
+    def is_sleeping(self):
+        return not self.may_do_work.is_set()
+
     def analyze(self, filename: str, recording: SparrowRecording):
         """
         analyze Analyze a file pointed to by 'filename' and save the results as csv file to 'output'.

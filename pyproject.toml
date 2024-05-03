@@ -23,7 +23,8 @@ dependencies = [
     "tensorflow-hub",
     "validators", # test url validity 
     "appdirs", # get cache dirs without os dependence etc
-    "ffmpeg-python"
+    "ffmpeg-python", 
+    "click"
 ]
 
 [project.urls]
