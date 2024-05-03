@@ -251,3 +251,40 @@ def clean_up():
         )
     else:
         WATCHER.clean_up()
+
+
+@watcher_cli.command()
+@click.option("--attribute", help="Attribute to retrieve from Watcher. ", default=None)
+def get_from_watcher(attribute: str):
+    global WATCHER
+    if attribute is None:
+        click.echo("Cannot retrieve attribute 'None'")
+    elif WATCHER is None:
+        click.echo("No existing Watcher, run 'start' first. ")
+    else:
+        try:
+            attr = str(WATCHER.__getattribute__(attribute))
+            click.echo(attr)
+        except Exception as e:
+            click.echo(
+                "Something went wrong while retrieving attribute of Watcher ", attribute
+            )
+
+
+@watcher_cli.command()
+def sparrow_info():
+    try:
+        install_cfg = read_yaml(user_config_dir / "install.yml")
+        click.echo("installation: ", install.cfg)
+    except Exception as e:
+        click.echo("Could not sucessfully retrieve install config: ", e)
+
+    try:
+        default_cfg = read_yml(user_config_dir / "default.yml")
+        click.echo(default_cfg)
+    except Exception as e:
+        click.echo("Could not successfully retrieve default config: ", e)
+
+
+if __name__ == "__main__":
+    watcher_cli()
