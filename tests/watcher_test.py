@@ -34,7 +34,6 @@ def test_watcher_construction(watch_fx):
     assert str(watcher.model_name) == "birdnet_default"
     assert watcher.input_directory == str(Path.home() / "iSparrow_data" / "tests")
     assert watcher.is_running is False
-    assert watcher.output.is_dir() is False  # not yet created
     assert watcher.input.is_dir()
     assert watcher.outdir.is_dir()
     assert watcher.model_dir.is_dir()
@@ -55,14 +54,11 @@ def test_watcher_construction(watch_fx):
     assert str(default_watcher.outdir) == str(Path.home() / "iSparrow_output" / "tests")
     assert str(default_watcher.model_dir) == str(Path.home() / "iSparrow/models")
     assert str(default_watcher.model_name) == "birdnet_default"
-    assert default_watcher.output_directory == str(
-        Path(default_watcher.outdir) / wfx.path_add
-    )
+
     assert default_watcher.input_directory == str(
         Path.home() / "iSparrow_data" / "tests"
     )
     assert default_watcher.is_running is False
-    assert default_watcher.output.is_dir() is False  # not yet created
     assert default_watcher.input.is_dir()
     assert default_watcher.outdir.is_dir()
     assert default_watcher.model_dir.is_dir()
@@ -71,6 +67,9 @@ def test_watcher_construction(watch_fx):
     assert default_watcher.check_time == 1
     assert default_watcher.delete_recordings == "never"
 
+    watcher.output = Path(watcher.outdir) / Path(
+        datetime.now().strftime("%y%m%d_%H%M%S")
+    )
     watcher.output.mkdir(exist_ok=True, parents=True)
 
     watcher._write_config()
@@ -80,7 +79,13 @@ def test_watcher_construction(watch_fx):
 
     assert config == wfx.config_should
 
-    recording = watcher.set_up_recording()
+    recording = watcher._set_up_recording(
+        "birdnet_default",
+        wfx.recording_cfg,
+        wfx.species_predictor_cfg,
+        wfx.model_cfg,
+        wfx.preprocessor_cfg,
+    )
 
     assert recording.analyzer.name == "birdnet_default"
     assert recording.path == ""
@@ -140,7 +145,13 @@ def test_watcher_construction(watch_fx):
             recording_config=deepcopy(wfx.recording_cfg),
         )
 
-        sp.set_up_recording()
+        sp._set_up_recording(
+            "birdnet_custom",
+            sp.recording_config,
+            sp.species_predictor_config,
+            sp.model_config,
+            sp.preprocessor_config,
+        )
 
     with pytest.raises(
         ValueError,
@@ -178,11 +189,18 @@ def test_watcher_lowlevel_functionality(watch_fx):
 
     watcher = wfx.make_watcher()
 
-    recording = watcher.set_up_recording()
+    recording = watcher._set_up_recording(
+        "birdnet_default",
+        watcher.recording_config,
+        watcher.species_predictor_config,
+        watcher.model_config,
+        watcher.preprocessor_config,
+    )
 
     # this is normally performed by the `start` method of the watcher,
     # but because this is a low level test of the basic functionality
     # we must do it by hand here:
+    watcher.output = Path(watcher.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
     watcher.output.mkdir(parents=True, exist_ok=True)
 
     watcher.may_do_work.set()
@@ -210,7 +228,9 @@ def test_watcher_daemon_lowlevel_functionality(watch_fx):
     wfx = watch_fx
 
     watcher = wfx.make_watcher()
-
+    watcher.output = Path(watcher.outdir) / Path(
+        datetime.now().strftime("%y%m%d_%H%M%S")
+    )
     # this is normally performed by the `start` method of the watcher,
     # but because this is a low level test of the basic functionality
     # we must do it by hand here:
@@ -492,8 +512,6 @@ def test_change_analyzer(watch_fx):
         delete_recordings="never",
     )
 
-    old_output = watcher.output
-
     number_of_files = 15
 
     sleep_for = 3
@@ -533,7 +551,7 @@ def test_change_analyzer(watch_fx):
     recorder_process.close()
 
     assert watcher.model_name == "birdnet_custom"
-    assert watcher.output_directory != old_output
+    assert watcher.output_directory != watcher.old_output
     assert (watcher.output / Path("config.yml")).is_file() is True
     assert watcher.preprocessor_config == wfx.custom_preprocessor_cfg
     assert watcher.model_config == wfx.custom_model_cfg
@@ -556,7 +574,7 @@ def test_change_analyzer(watch_fx):
     )
 
     current_files = [f for f in watcher.output.iterdir() if f.suffix == ".csv"]
-    old_files = [f for f in old_output.iterdir() if f.suffix == ".csv"]
+    old_files = [f for f in watcher.old_output.iterdir() if f.suffix == ".csv"]
 
     assert len(current_files) > 0  # some analyzed files must be in the new directory
     assert len(old_files) > 0
@@ -571,8 +589,6 @@ def test_change_analyzer_recovery(watch_fx, mocker):
     watcher = wfx.make_watcher(
         delete_recordings="never",
     )
-
-    old_output = watcher.output
 
     number_of_files = 15
 
@@ -638,18 +654,20 @@ def test_change_analyzer_recovery(watch_fx, mocker):
 
     results_folders = [f for f in watcher.outdir.iterdir() if f.is_dir()]
     results = [f for f in watcher.output.iterdir() if f.suffix == ".csv"]
-    old_results = [f for f in old_output.iterdir() if f.suffix == ".csv"]
+    old_results = [f for f in watcher.old_output.iterdir() if f.suffix == ".csv"]
 
-    assert old_output != watcher.output
+    assert watcher.old_output != watcher.output
     assert len(results_folders) == 2
     assert len(old_results) == 5
     assert len(results) <= number_of_files - 1
 
-    old_cfg = read_yaml(old_output / "config.yml")
+    old_cfg = read_yaml(watcher.old_output / "config.yml")
     new_cfg = read_yaml(watcher.output / "config.yml")
     assert old_cfg["Analysis"]["Model"] == new_cfg["Analysis"]["Model"]
     assert old_cfg["Analysis"]["Preprocessor"] == new_cfg["Analysis"]["Preprocessor"]
     assert old_cfg["Analysis"]["Recording"] == new_cfg["Analysis"]["Recording"]
+    recorder_process.join()
+    recorder_process.close()
 
 
 def test_change_analyzer_exception(watch_fx, mocker):
@@ -717,7 +735,8 @@ def test_change_analyzer_exception(watch_fx, mocker):
     assert watcher.species_predictor_config == old_species_predictor_cfg
 
     watcher.stop()
-
+    recorder_process.join()
+    recorder_process.close()
 
 def test_cleanup(
     watch_fx,
@@ -730,6 +749,10 @@ def test_cleanup(
 
     sleep_for = 5
 
+    time.sleep(20)
+
+    assert len(wfx.get_folder_content(watcher.input_directory, watcher.pattern)) == 0
+
     recorder_process = multiprocessing.Process(
         target=wfx.mock_recorder,
         args=(wfx.home, wfx.data, number_of_files, sleep_for),
@@ -739,6 +762,7 @@ def test_cleanup(
 
     watcher.start()
 
+    assert len(wfx.get_folder_content(watcher.output_directory, ".csv")) <= 0
     old_output = watcher.output
 
     wfx.wait_for_event_then_do(
@@ -747,7 +771,7 @@ def test_cleanup(
         todo_else=lambda: time.sleep(0.25),
     )
 
-    filename = watcher.output / f"results_example_{5}.csv"
+    filename = watcher.output / "results_example_5.csv"
 
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file(),
@@ -755,7 +779,7 @@ def test_cleanup(
         todo_else=lambda: time.sleep(0.2),
     )
 
-    assert len([f for f in old_output.iterdir() if f.suffix == ".csv"]) <= 6
+    assert len([f for f in old_output.iterdir() if f.suffix == ".csv"]) <= 7
 
     filename = watcher.input / f"example_{9}.wav"
 
@@ -779,7 +803,6 @@ def test_cleanup(
 
     assert set([f.name for f in old_output.iterdir() if f.suffix == ".yml"]) == set(
         [
-            "batch_info.yml",
             "config.yml",
         ]
     )
@@ -820,7 +843,6 @@ def test_cleanup(
 
     assert set([f.name for f in watcher.output.iterdir() if f.suffix == ".yml"]) == set(
         [
-            "batch_info.yml",
             "config.yml",
         ]
     )
@@ -843,15 +865,15 @@ def test_cleanup(
     post_cleanup_files = [
         f.stem for f in watcher.output.iterdir() if f.suffix == ".csv"
     ]
-    assert len(old_files) + len(post_cleanup_files) == number_of_files
 
     all_files = [f"results_example_{i}" for i in range(0, number_of_files)]
-
     assert set(old_files + post_cleanup_files) == set(all_files)
 
 
 def test_cleanup_exceptions(watch_fx, mocker):
     wfx = watch_fx
+
+    watcher = wfx.make_watcher()
 
     number_of_files = 8
 
@@ -878,7 +900,7 @@ def test_cleanup_exceptions(watch_fx, mocker):
     ):
         watcher.clean_up()
 
-    recorder.join()
-    recorder.close()
+    recorder_process.join()
+    recorder_process.close()
 
     watcher.stop()

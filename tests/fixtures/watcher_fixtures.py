@@ -77,12 +77,14 @@ class WatchFixture:
         # don't change the model config itself
         model_cfg2 = deepcopy(self.model_cfg)
 
-        model_cfg2["name"] = "birdnet_default"
-
         self.config_should = {
             "Analysis": {
                 "input": str(self.data),
                 "output": str(self.output / self.path_add),
+                "check_time": 1, 
+                "delete_recordings": "never", 
+                "pattern": ".wav",
+                "model_name": "birdnet_default",
                 "model_dir": str(self.home / "models"),
                 "Preprocessor": deepcopy(self.preprocessor_cfg),
                 "Model": model_cfg2,

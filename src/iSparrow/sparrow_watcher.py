@@ -396,6 +396,9 @@ class SparrowWatcher:
         self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
         self.output.mkdir(exist_ok=True, parents=True)
 
+        if self.old_output is None:
+            self.old_output = self.output
+
         self._write_config()
 
         try:
@@ -471,21 +474,6 @@ class SparrowWatcher:
 
             if flag_set is False:
                 warnings.warn("stop timeout expired, terminating watcher process now.")
-
-            try:
-                with open(self.output / "batch_info.yml", "w") as bfile:
-                    yaml.safe_dump(
-                        {
-                            "first": self.first_analyzed_file.value,
-                            "last": self.last_analyzed_file.value,
-                        },
-                        bfile,
-                    )
-
-            except Exception as e:
-                raise RuntimeError(
-                    "Something went wrong when writing the batch info file"
-                ) from e
 
             try:
                 self.watcher_process.terminate()
@@ -649,16 +637,11 @@ class SparrowWatcher:
         else:
             outputfolder = self.output
 
+        print("folders: ", self.old_output, self.output)
+
         missings = []
 
         cfg = utils.read_yaml(outputfolder / "config.yml")
-
-        batch_info = utils.read_yaml(outputfolder / "batch_info.yml")
-
-        if self.first_analyzed_file.value == batch_info["first"]:
-            upper_limit_time = time.time()
-        else:
-            upper_limit_time = self.first_analyzed_file.value
 
         input_folder = Path(cfg["Analysis"]["input"])
 
@@ -667,7 +650,6 @@ class SparrowWatcher:
             for f in input_folder.iterdir()
             if f.suffix == cfg["Analysis"]["pattern"]
             and not (outputfolder / Path(f"results_{f.stem}.csv")).is_file()
-            and batch_info["last"] <= f.stat().st_ctime < upper_limit_time
         ]
 
         if len(audiofiles) > 0:
