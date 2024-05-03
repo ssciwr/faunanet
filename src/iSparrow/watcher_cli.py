@@ -272,18 +272,14 @@ def get_from_watcher(attribute: str):
 
 
 @watcher_cli.command()
-def sparrow_info():
-    try:
-        install_cfg = read_yaml(user_config_dir / "install.yml")
-        click.echo("installation: ", install.cfg)
-    except Exception as e:
-        click.echo("Could not sucessfully retrieve install config: ", e)
-
-    try:
-        default_cfg = read_yml(user_config_dir / "default.yml")
-        click.echo(default_cfg)
-    except Exception as e:
-        click.echo("Could not successfully retrieve default config: ", e)
+def status():
+    global WATCHER
+    if WATCHER is None:
+        click.echo("No watcher present")
+    elif WATCHER.is_sleeping:
+        click.echo("Watcher is sleeping")
+    elif WATCHER.is_running:
+        click.echo("Watcher is running")
 
 
 if __name__ == "__main__":
