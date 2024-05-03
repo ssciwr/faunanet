@@ -310,10 +310,6 @@ class SparrowWatcher:
 
         self.species_predictor_config = deepcopy(species_predictor_config)
 
-        self.first_analyzed_file = multiprocessing.Value("d", 0.0)
-
-        self.last_analyzed_file = multiprocessing.Value("d", 0.0)
-
     @property
     def output_directory(self):
         return str(self.output)
@@ -351,10 +347,6 @@ class SparrowWatcher:
 
         results = recording.detections
 
-        if self.first_analyzed_file.value == "":
-            self.first_analyzed_file.value = Path(filename).stat().st_ctime
-
-        self.last_analyzed_file.value = Path(filename).stat().st_ctime
         self.save_results(self.output, results, suffix=Path(filename).stem)
 
         self.is_done_analyzing.set()  # give good-to-go for main process
@@ -564,8 +556,6 @@ class SparrowWatcher:
         self.pattern = pattern
         self.check_time = check_time
         self.delete_recordings = delete_recordings
-        self.first_analyzed_file = multiprocessing.Value("d", 0.0)
-        self.last_analyzed_file = multiprocessing.Value("d", 0.0)
 
         # restart process to make changes take effect
         try:

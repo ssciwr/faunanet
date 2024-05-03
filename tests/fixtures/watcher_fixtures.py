@@ -81,8 +81,8 @@ class WatchFixture:
             "Analysis": {
                 "input": str(self.data),
                 "output": str(self.output / self.path_add),
-                "check_time": 1, 
-                "delete_recordings": "never", 
+                "check_time": 1,
+                "delete_recordings": "never",
                 "pattern": ".wav",
                 "model_name": "birdnet_default",
                 "model_dir": str(self.home / "models"),
@@ -107,6 +107,10 @@ class WatchFixture:
             wait_for_file_completion(Path(data) / Path(f"example_{i}.wav"))
 
     def make_watcher(self, **kwargs):
+
+        self.path_add = Path(datetime.now().strftime("%y%m%d_%H%M%S"))
+        self.config_should["Analysis"]["output"] = str(self.output / self.path_add)
+
         return SparrowWatcher(
             self.data,
             self.output,

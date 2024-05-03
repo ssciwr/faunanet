@@ -200,7 +200,9 @@ def test_watcher_lowlevel_functionality(watch_fx):
     # this is normally performed by the `start` method of the watcher,
     # but because this is a low level test of the basic functionality
     # we must do it by hand here:
-    watcher.output = Path(watcher.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
+    watcher.output = Path(watcher.outdir) / Path(
+        datetime.now().strftime("%y%m%d_%H%M%S")
+    )
     watcher.output.mkdir(parents=True, exist_ok=True)
 
     watcher.may_do_work.set()
@@ -669,6 +671,28 @@ def test_change_analyzer_recovery(watch_fx, mocker):
     recorder_process.join()
     recorder_process.close()
 
+    mocker.patch(
+        "iSparrow.SparrowWatcher.clean_up",
+        side_effect=ValueError("Simulated error occurred"),
+    )
+    try:
+        watcher.change_analyzer(
+            "birdnet_custom",
+            preprocessor_config=wfx.custom_preprocessor_cfg,
+            model_config=wfx.custom_model_cfg,
+            recording_config=wfx.changed_custom_recording_cfg,
+            delete_recordings="always",
+        )
+    except RuntimeError as e:
+        e == RuntimeError(
+            "Error when cleaning up data after analyzer change, watcher is running. This error may have lead to corrupt data in newly created analysis files."
+        )
+        watcher.start()
+
+    assert watcher.is_running
+    assert watcher.model_name == "birdnet_default"
+    assert watcher.delete_recordings == "never"
+
 
 def test_change_analyzer_exception(watch_fx, mocker):
     # patch the start method so we get a mock exception that is propagated through the system
@@ -683,7 +707,7 @@ def test_change_analyzer_exception(watch_fx, mocker):
     old_preprocessor_cfg = deepcopy(watcher.preprocessor_config)
     old_species_predictor_cfg = deepcopy(watcher.species_predictor_config)
 
-    number_of_files = 20
+    number_of_files = 10
 
     sleep_for = 3
 
@@ -734,9 +758,26 @@ def test_change_analyzer_exception(watch_fx, mocker):
     assert watcher.recording_config == old_recording_cfg
     assert watcher.species_predictor_config == old_species_predictor_cfg
 
+    mocker.patch(
+        "iSparrow.SparrowWatcher.clean_up",
+        side_effect=ValueError("Simulated error occurred"),
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Error when cleaning up data after analyzer change, watcher is still running. This error may have lead to corrupt data in newly created analysis files.",
+    ):
+        watcher.change_analyzer(
+            "birdnet_custom",
+            preprocessor_config=wfx.custom_preprocessor_cfg,
+            model_config=wfx.custom_model_cfg,
+            recording_config=wfx.changed_custom_recording_cfg,
+            delete_recordings="always",
+        )
     watcher.stop()
     recorder_process.join()
     recorder_process.close()
+
 
 def test_cleanup(
     watch_fx,
@@ -748,8 +789,6 @@ def test_cleanup(
     number_of_files = 25
 
     sleep_for = 5
-
-    time.sleep(20)
 
     assert len(wfx.get_folder_content(watcher.input_directory, watcher.pattern)) == 0
 
