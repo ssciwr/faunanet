@@ -1,6 +1,6 @@
 from iSparrow import SparrowWatcher
-from iSparrow import set_up_sparrow, SPARROW_HOME, SPARROW_MODELS
-from utils import read_yaml, update_dict_recursive
+import iSparrow.sparrow_setup as sps
+from iSparrow.utils import read_yaml, update_dict_recursive
 from pathlib import Path
 from platformdirs import user_config_dir
 import cmd
@@ -83,7 +83,7 @@ class SparrowCmd(cmd.Cmd):
             print("No config file provided, falling back to default")
 
         try:
-            set_up_sparrow(cfg)
+            sps.set_up_sparrow(cfg)
 
         except Exception as e:
             print("Could not set up iSparrow", e, "caused by: ", e.__cause__)

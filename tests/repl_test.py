@@ -19,7 +19,7 @@ def test_repl_pause():
     pass
 
 
-def test_repl_continut():
+def test_repl_continue():
     pass
 
 
