@@ -84,9 +84,6 @@ class SparrowCmd(cmd.Cmd):
 
         try:
             set_up_sparrow(cfg)
-            global HOME, MODELS
-            HOME = SPARROW_HOME
-            MODELS = SPARROW_MODELS
 
         except Exception as e:
             print("Could not set up iSparrow", e, "caused by: ", e.__cause__)
@@ -108,7 +105,7 @@ class SparrowCmd(cmd.Cmd):
         cfgpath = None
 
         if len(inputs) > 1:
-            print("Invalid input. Expected: set_up --cfg=<config_file>")
+            print("Invalid input. Expected: start --cfg=<config_file>")
             return
         elif len(inputs) == 1:
             cfgpath = Path(inputs[0]).expanduser().resolve()
@@ -170,20 +167,138 @@ class SparrowCmd(cmd.Cmd):
                 )
 
     def do_stop(self, line):
-        print("stopping watcher")
-
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
+
+        if self.watcher is None:
+            print("Cannot stop watcher, no watcher present")
+
+        elif self.watcher.is_running is False:
+            print("Cannot stop watcher, is not running")
+        else:
+            try:
+                self.watcher.stop()
+            except Exception as e:
+                print(
+                    f"Could not stop watcher: {e} caused by {e.__cause__}. Watcher process will be killed now and all resources released. This may have left data in a corrupt state. A new watcher must be started if this session is to be continued."
+                )
+                self.watcher.watcher_process.kill()
+                self.watcher = None
+
+    def do_pause(self, line):
+        if len(line) > 0:
+            print("Invalid input. Expected no arguments.")
+
+        if self.watcher is None:
+            print("Cannot pause watcher, no watcher present")
+
+        elif self.watcher.is_running is False:
+            print("Cannot pause watcher, is not running")
+        elif self.watcher.is_sleeping:
+            print("Cannot pause watcher, is already sleeping")
+        else:
+            try:
+                self.watcher.pause()
+            except Exception as e:
+                print(f"Could not pause watcher: {e} caused by {e.__cause__}")
+
+    def do_continue(self, line):
+        if len(line) > 0:
+            print("Invalid input. Expected no arguments.")
+        if self.watcher is None:
+            print("Cannot continue watcher, no watcher present")
+        elif self.watcher.is_running is False:
+            print("Cannot continue watcher, is not running")
+        elif self.watcher.is_sleeping is False:
+            print("Cannot continue watcher, is not sleeping")
+        else:
+            try:
+                self.watcher.go_on()
+            except Exception as e:
+                print(f"Could not continue watcher: {e} caused by {e.__cause__}")
+
+    def do_restart(self, line):
+        if len(line) > 0:
+            print("Invalid input. Expected no arguments.")
+
+        if self.watcher is None:
+            print("Cannot restart watcher, no watcher present")
+
+        elif self.watcher.is_running is False:
+            print("Cannot restart watcher, is not running")
+        elif self.watcher.is_sleeping is False:
+            print("Cannot restart watcher, is sleeping and must be continued first")
+        else:
+            try:
+                self.watcher.restart()
+            except Exception as e:
+                print(f"Could not restart watcher: {e} caused by {e.__cause__}")
 
     def do_exit(self, line):
         print("Exiting sparrow shell")
         return True
 
     def clean_up(self, line):
-        print("Cleaning up iSparrow")
+        if len(line) > 0:
+            print("Invalid input. Expected no arguments.")
+
+        if self.watcher is None:
+            print("Cannot stop watcher, no watcher present")
+
+        else:
+            try:
+                self.watcher.clean_up()
+            except Exception as e:
+                print("An error occured during cleanup. ")
 
     def change_analyzer(self, line):
-        print("Chaning analyzer")
+        if self.watcher is None:
+            print("No watcher present, cannot change analyzer")
+        elif self.watcher.is_running is False:
+            print("Cannot change analyzer, watcher is not running")
+        elif self.watcher.is_sleeping:
+            print("Cannot change analyzer, watcher is sleeping")
+        else:
+            inputs = process_line(
+                line,
+                ["--cfg"],
+            )
+
+            cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
+
+            cfgpath = None
+
+            if len(inputs) > 1:
+                print("Invalid input. Expected: change_analyzer --cfg=<config_file>")
+                return
+            elif len(inputs) == 1:
+                cfgpath = Path(inputs[0]).expanduser().resolve()
+            elif len(inputs) == 0:
+                cfgpath = None
+            else:
+                print("No config file provided, cannot change analyzer")
+                return
+
+            if cfgpath is not None:
+                custom_cfg = read_yaml(cfgpath)
+                update_dict_recursive(cfg, custom_cfg)
+            try:
+                self.watcher.change_analyzer(
+                    model_name=cfg["Analysis"]["modelname"],
+                    preprocessor_config=cfg["Data"]["Preprocessor"],
+                    model_config=cfg["Analysis"]["Model"],
+                    recording_config=cfg["Analysis"]["Recording"],
+                    species_predictor_config=cfg["Analysis"].get(
+                        "SpeciesPredictor", None
+                    ),
+                    pattern=cfg["Analysis"]["pattern"],
+                    check_time=cfg["Analysis"]["check_time"],
+                    delete_recordings=cfg["Analysis"]["delete_recordings"],
+                )
+            except Exception as e:
+                print(
+                    f"An error occured while trying to change the analyzer: {e} caused by {e.__cause__}"
+                )
 
     def postloop(self):
         if self.watcher is not None:
