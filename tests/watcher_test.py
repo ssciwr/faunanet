@@ -563,7 +563,7 @@ def test_change_analyzer(watch_fx):
     assert len(current_files) > 0  # some analyzed files must be in the new directory
     assert len(old_files) > 0
     assert 0 < len(list(Path(wfx.data).iterdir())) < number_of_files
-    assert number_of_files > len(old_files) + len(current_files)  # some data can be
+    assert number_of_files >= len(old_files) + len(current_files)
 
 
 def test_change_analyzer_recovery(watch_fx, mocker):

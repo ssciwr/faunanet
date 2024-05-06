@@ -13,9 +13,7 @@ class RecordingFixture:
         filepath = Path(__file__).resolve()
         self.testpath = filepath.parent.parent
 
-        cfgpath = (
-            filepath.parent.parent.parent / Path("config") / Path("install_cfg.yml")
-        )
+        cfgpath = filepath.parent.parent.parent / Path("config") / Path("install.yml")
         with open(cfgpath, "r") as file:
             sparrow_cfg = yaml.safe_load(file)
             sparrow_cfg = sparrow_cfg["Directories"]

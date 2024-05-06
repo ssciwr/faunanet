@@ -11,9 +11,7 @@ class ModelFixture:
         self.filepath = Path(__file__).resolve()
         self.testpath = self.filepath.parent.parent
         cfgpath = (
-            self.filepath.parent.parent.parent
-            / Path("config")
-            / Path("install_cfg.yml")
+            self.filepath.parent.parent.parent / Path("config") / Path("install.yml")
         )
 
         with open(cfgpath, "r") as file:
