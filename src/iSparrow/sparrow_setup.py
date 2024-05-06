@@ -1,8 +1,9 @@
 import shutil
 import pooch
+import yaml
 from pathlib import Path
-from iSparrow import utils
 from platformdirs import user_config_dir, user_cache_dir
+from iSparrow import utils
 
 SPARROW_HOME = None
 SPARROW_DATA = None
@@ -13,7 +14,7 @@ SPARROW_CONFIG = None
 SPARROW_CACHE = None
 
 
-def make_directories(base_cfg_dirs: dict, for_tests: bool = False):
+def make_directories(base_cfg_dirs: dict):
     """
     make_directories Make all the directories for sparrow.
 
@@ -51,14 +52,8 @@ def make_directories(base_cfg_dirs: dict, for_tests: bool = False):
     isd = Path(base_cfg_dirs["data"]).expanduser().resolve()
     iso = Path(base_cfg_dirs["output"]).expanduser().resolve()
     ise = (Path(base_cfg_dirs["home"]).expanduser() / Path("example")).resolve()
-    iscfg = Path(user_config_dir()) / "iSparrow"
-    iscache = Path(user_cache_dir()) / "iSparrow"
-
-    if for_tests:
-        isd = isd / "tests"
-        iso = iso / "tests"
-        iscfg = iscfg / "tests"
-        iscache = iscache / "tests"
+    iscfg = Path(user_config_dir()) / Path(base_cfg_dirs["config"])
+    iscache = Path(user_cache_dir()) / Path(base_cfg_dirs["cache"])
 
     for p in [ish, ism, isd, iso, ise, iscfg, iscache]:
         p.mkdir(parents=True, exist_ok=True)
@@ -227,27 +222,25 @@ def copy_files(modeldir):
 
 
 # add a fixture with session scope that emulates the result of a later to-be-implemented-install-routine
-def set_up_sparrow(custom_config: str = None, for_tests: bool = True):
+def set_up_sparrow(custom_config: str = None):
     print("Creating iSparrow folders and downloading data... ")
 
     current = Path(__file__).resolve().parent
 
-    # make config directory
-    basic_cfgpath = Path(user_config_dir()) / "iSparrow"
-    basic_cfgpath.mkdir(parents=True, exist_ok=True)
-
-    for name in ["install.yml", "default.yml"]:
-        shutil.copy(current.parent.parent / "config" / Path(name), basic_cfgpath)
-
-    install_cfg = utils.read_yaml(basic_cfgpath / "install.yml")
+    install_cfg = utils.read_yaml(current.parent.parent / "config" / "install.yml")
 
     if custom_config is not None:
         custom_install_config = utils.read_yaml(custom_config / "install.yml")
         utils.update_dict_recursive(install_cfg, custom_install_config)
 
     home, models, data, output, examples, config, cache = make_directories(
-        install_cfg["Directories"], for_tests=for_tests
+        install_cfg["Directories"]
     )
+
+    with open(Path(config) / "install.yml", "w") as yfile:
+        yaml.safe_dump(install_cfg, yfile)
+
+    shutil.copy(current.parent.parent / "config" / Path("default.yml"), config)
 
     download_model_files(models.resolve())
 

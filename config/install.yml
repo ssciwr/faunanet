@@ -3,3 +3,5 @@ Directories:
   data: ~/iSparrow_data
   models: ~/iSparrow/models 
   output: ~/iSparrow_output
+  config: iSparrow 
+  cache: iSparrow
