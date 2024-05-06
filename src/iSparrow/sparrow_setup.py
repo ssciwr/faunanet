@@ -2,12 +2,15 @@ import shutil
 import pooch
 from pathlib import Path
 from iSparrow import utils
+from platformdirs import user_config_dir, user_cache_dir
 
-HOME = None
-DATA = None
-MODELS = None
-OUTPUT = None
-EXAMPLES = None
+SPARROW_HOME = None
+SPARROW_DATA = None
+SPARROW_MODELS = None
+SPARROW_OUTPUT = None
+SPARROW_EXAMPLES = None
+SPARROW_CONFIG = None
+SPARROW_CACHE = None
 
 
 def make_directories(base_cfg_dirs: dict, for_tests: bool = False):
@@ -48,16 +51,19 @@ def make_directories(base_cfg_dirs: dict, for_tests: bool = False):
     isd = Path(base_cfg_dirs["data"]).expanduser().resolve()
     iso = Path(base_cfg_dirs["output"]).expanduser().resolve()
     ise = (Path(base_cfg_dirs["home"]).expanduser() / Path("example")).resolve()
+    iscfg = Path(user_config_dir()) / "iSparrow"
+    iscache = Path(user_cache_dir()) / "iSparrow"
 
     if for_tests:
         isd = isd / "tests"
         iso = iso / "tests"
+        iscfg = iscfg / "tests"
+        iscache = iscache / "tests"
 
-    print(ish, ism, isd, iso, ise)
-    for p in [ish, ism, isd, iso, ise]:
+    for p in [ish, ism, isd, iso, ise, iscfg, iscache]:
         p.mkdir(parents=True, exist_ok=True)
 
-    return ish, ism, isd, iso, ise
+    return ish, ism, isd, iso, ise, iscfg, iscache
 
 
 def download_model_files(isparrow_model_dir: str):
@@ -207,7 +213,8 @@ def copy_files(modeldir):
     copy the current preprocessors into the model directory, as is intended later
     """
     current = Path(__file__).resolve().parent
-    local_pp_dir = current.parent / "models"
+
+    local_pp_dir = current.parent.parent / "models"
 
     for name in ["birdnet_default", "birdnet_custom", "google_perch"]:
         shutil.copy(
@@ -220,17 +227,26 @@ def copy_files(modeldir):
 
 
 # add a fixture with session scope that emulates the result of a later to-be-implemented-install-routine
-def install(for_tests: bool = True):
+def set_up_sparrow(custom_config: str = None, for_tests: bool = True):
     print("Creating iSparrow folders and downloading data... ")
-    # user cfg can override stuff that the base cfg has. When the two are merged, the result has
-    # the base_cfg values whereever user does not have anything
 
-    cfg_path = Path(__file__).resolve().parent.parent / "config"
+    current = Path(__file__).resolve().parent
 
-    cfg = utils.read_yaml(cfg_path / Path("install_cfg.yml"))
+    # make config directory
+    basic_cfgpath = Path(user_config_dir()) / "iSparrow"
+    basic_cfgpath.mkdir(parents=True, exist_ok=True)
 
-    home, models, data, output, examples = make_directories(
-        cfg["Directories"], for_tests=for_tests
+    for name in ["install.yml", "default.yml"]:
+        shutil.copy(current.parent.parent / "config" / Path(name), basic_cfgpath)
+
+    install_cfg = utils.read_yaml(basic_cfgpath / "install.yml")
+
+    if custom_config is not None:
+        custom_install_config = utils.read_yaml(custom_config / "install.yml")
+        utils.update_dict_recursive(install_cfg, custom_install_config)
+
+    home, models, data, output, examples, config, cache = make_directories(
+        install_cfg["Directories"], for_tests=for_tests
     )
 
     download_model_files(models.resolve())
@@ -239,13 +255,14 @@ def install(for_tests: bool = True):
 
     copy_files(models.resolve())
 
-    shutil.copy(cfg_path / Path("install_cfg.yml"), home)
+    global SPARROW_HOME, SPARROW_DATA, SPARROW_MODELS, SPARROW_OUTPUT, SPARROW_EXAMPLES, SPARROW_CACHE, SPARROW_CONFIG
 
-    global HOME, DATA, MODELS, OUTPUT, EXAMPLES
-    HOME = home
-    DATA = data
-    MODELS = models
-    OUTPUT = output
-    EXAMPLES = examples
+    SPARROW_HOME = home
+    SPARROW_DATA = data
+    SPARROW_MODELS = models
+    SPARROW_OUTPUT = output
+    SPARROW_EXAMPLES = examples
+    SPARROW_CACHE = cache
+    SPARROW_CONFIG = config
 
     print("Installation finished")
