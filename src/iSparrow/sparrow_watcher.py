@@ -14,6 +14,8 @@ import warnings
 import csv
 from copy import deepcopy
 
+multiprocessing.set_start_method("spawn")
+
 
 class AnalysisEventHandler(FileSystemEventHandler):
     """
