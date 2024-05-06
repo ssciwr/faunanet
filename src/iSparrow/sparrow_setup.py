@@ -52,8 +52,8 @@ def make_directories(base_cfg_dirs: dict):
     isd = Path(base_cfg_dirs["data"]).expanduser().resolve()
     iso = Path(base_cfg_dirs["output"]).expanduser().resolve()
     ise = (Path(base_cfg_dirs["home"]).expanduser() / Path("example")).resolve()
-    iscfg = Path(user_config_dir()) / Path(base_cfg_dirs["config"])
-    iscache = Path(user_cache_dir()) / Path(base_cfg_dirs["cache"])
+    iscfg = Path(user_config_dir()) / "iSparrow"
+    iscache = Path(user_cache_dir()) / "iSparrow"
 
     for p in [ish, ism, isd, iso, ise, iscfg, iscache]:
         p.mkdir(parents=True, exist_ok=True)

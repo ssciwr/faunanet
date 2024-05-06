@@ -4,9 +4,13 @@ from utils import read_yaml, update_dict_recursive
 from pathlib import Path
 from platformdirs import user_config_dir
 import cmd
+import multiprocessing
 
 
 def process_line(line: str, keywords: str = None):
+
+    if line == "":
+        return []
 
     if keywords is not None:
         for keyword in keywords:
@@ -86,10 +90,13 @@ class SparrowCmd(cmd.Cmd):
 
         except Exception as e:
             print("Could not set up iSparrow", e, "caused by: ", e.__cause__)
-            raise RuntimeError from e
 
     def do_start(self, line):
-        full_cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
+
+        cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
+        install_cfg = read_yaml(
+            Path(user_config_dir()) / Path("iSparrow") / "install.yml"
+        )
 
         inputs = process_line(
             line,
@@ -98,73 +105,85 @@ class SparrowCmd(cmd.Cmd):
             ],
         )
 
+        cfgpath = None
+
+        if len(inputs) > 1:
+            print("Invalid input. Expected: set_up --cfg=<config_file>")
+            return
+        elif len(inputs) == 1:
+            cfgpath = Path(inputs[0]).expanduser().resolve()
+        elif len(inputs) == 0:
+            cfgpath = None
+        else:
+            print("No config file provided, falling back to default")
+
         if self.watcher is None:
 
-            if cfg is not None:
-                custom_cfg = read_yaml(cfg)
-                update_dict_recursive(full_cfg, custom_cfg)
-
-                input = cfg["Data"]["input"]
-            else:
-                input = input
-
-            if output is None:
-                output = cfg["Data"]["output"]
-            else:
-                output = output
+            if cfgpath is not None:
+                custom_cfg = read_yaml(cfgpath)
+                update_dict_recursive(cfg, custom_cfg)
 
             try:
-
                 self.watcher = SparrowWatcher(
-                    indir=input,
-                    outdir=output,
-                    model_dir=MODELS,
-                    model_name=full_cfg["Analysis"]["model_name"],
-                    model_config=full_cfg["Analysis"]["Model"],
-                    preprocessor_config=full_cfg["Data"]["Preprocessor"],
-                    recording_config=full_cfg["Analysis"]["Recording"],
-                    species_predictor_config=full_cfg["Analysis"].get(
+                    indir=Path(cfg["Data"]["input"]).expanduser().resolve(),
+                    outdir=Path(cfg["Data"]["output"]).expanduser().resolve(),
+                    model_dir=Path(install_cfg["Directories"]["models"])
+                    .expanduser()
+                    .resolve(),
+                    model_name=cfg["Analysis"]["modelname"],
+                    model_config=cfg["Analysis"]["Model"],
+                    preprocessor_config=cfg["Data"]["Preprocessor"],
+                    recording_config=cfg["Analysis"]["Recording"],
+                    species_predictor_config=cfg["Analysis"].get(
                         "SpeciesPredictor", None
                     ),
-                    pattern=full_cfg["Analysis"]["pattern"],
-                    check_time=full_cfg["Analysis"]["check_time"],
-                    delete_recordings=full_cfg["Analysis"]["delete_recordings"],
+                    pattern=cfg["Analysis"]["pattern"],
+                    check_time=cfg["Analysis"]["check_time"],
+                    delete_recordings=cfg["Analysis"]["delete_recordings"],
                 )
             except Exception as e:
-                click.echo(
-                    f"An error occured while trying to start the watcher: {e} caused by {e.__cause__}"
+                print(
+                    f"An error occured while trying to build the watcher: {e} caused by {e.__cause__}"
                 )
                 self.watcher = None
 
             try:
                 self.watcher.start()
             except RuntimeError as e:
-                click.echo(
-                    f"Something went wrong while trying to start the watcher process: {e} caused by  {e.__cause__}. A new start attempt can be made when the error has been addressed.",
+                print(
+                    f"Something went wrong while trying to start the watcher: {e} caused by  {e.__cause__}. A new start attempt can be made when the error has been addressed.",
                 )
 
         elif self.watcher.is_running:
-            click.echo(
+            print(
                 "The watcher is running. Cannot be started again with different parameters. Try 'change_analyzer' to use different parameters."
             )
         else:
-            click.echo(
+            print(
                 "It appears that there is a watcher process that is not running. Trying to start"
             )
             try:
                 self.watcher.start()
             except RuntimeError as e:
-                click.echo(
+                print(
                     f"Something went wrong while trying to start the watcher process: {e} caused by  {e.__cause__}. A new start attempt can be made when the error has been addressed."
                 )
 
     def do_stop(self, line):
         print("stopping watcher")
-        pass
+
+        if len(line) > 0:
+            print("Invalid input. Expected no arguments.")
 
     def do_exit(self, line):
         print("Exiting sparrow shell")
         return True
+
+    def clean_up(self, line):
+        print("Cleaning up iSparrow")
+
+    def change_analyzer(self, line):
+        print("Chaning analyzer")
 
     def postloop(self):
         if self.watcher is not None:
@@ -178,4 +197,5 @@ class SparrowCmd(cmd.Cmd):
 
 
 if __name__ == "__main__":
+    multiprocessing.set_start_method("spawn")
     SparrowCmd().cmdloop()

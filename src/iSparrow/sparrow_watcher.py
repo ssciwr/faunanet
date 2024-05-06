@@ -14,8 +14,6 @@ import warnings
 import csv
 from copy import deepcopy
 
-multiprocessing.set_start_method("spawn")
-
 
 class AnalysisEventHandler(FileSystemEventHandler):
     """
@@ -189,6 +187,15 @@ class SparrowWatcher:
                     "An error occured during species range predictor creation. Does you model provide a model file called 'species_presence_model'?"
                 ) from e
 
+        # make sure the date is set correctly
+        if "date" in self.recording_config:
+
+            if self.recording_config["date"] == "today":
+                self.recording_config["date"] = datetime.now()
+            else:
+                self.recording_config["date"] = datetime.strptime(
+                    self.recording_config["date"], "%d/%m/%Y"
+                )
         # create recording object
         # species predictor is applied here once and then used for all the analysis calls that may follow
         return SparrowRecording(preprocessor, model, "", **self.recording_config)
