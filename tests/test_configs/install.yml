@@ -1,5 +1,5 @@
 Directories: 
-  home: ~/iSparrow
-  data: ~/iSparrow_data/tests
-  models: ~/iSparrow/models 
-  output: ~/iSparrow_output/tests
+  home: ~/iSparrow_tests
+  data: ~/iSparrow_tests_data
+  models: ~/iSparrow_tests/models 
+  output: ~/iSparrow_tests_output
