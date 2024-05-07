@@ -65,30 +65,15 @@ jobs:
 
     - name: Run pytest unittests
       run: pytest
+      if: ${{ matrix.os != 'ubuntu-latest' || matrix.python-version != 3.12 }}
 
-  coverage: 
-    name: Coverage Testing
-    runs-on: ubuntu-latest
-    steps: 
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.9"
-    
-    - name: Getting repository
-      uses: actions/checkout@v3
-      
-    - name: Install dependencies
-      run: | 
-        python3 -m pip install --upgrade pip
-        python3 -m pip install -e .
-        python3 -m pip install -r requirements-dev.txt 
-
-    - name: make coverage report 
+    - name: Run pytest unittests with coverage 
       run: pytest --cov=./src/iSparrow --cov-report=xml
+      if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == 3.12 }}
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4
+      if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == 3.12 }}
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./coverage.xml
