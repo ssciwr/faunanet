@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 from iSparrow.utils import wait_for_file_completion
 from iSparrow import SparrowWatcher
-from .. import set_up_sparrow_env
+import iSparrow.sparrow_setup as sps
 from copy import deepcopy
 
 
@@ -13,9 +13,9 @@ class WatchFixture:
 
     def __init__(self):
 
-        self.home = Path(set_up_sparrow_env.HOME)
-        self.data = Path(set_up_sparrow_env.DATA)
-        self.output = Path(set_up_sparrow_env.OUTPUT)
+        self.home = Path(sps.SPARROW_HOME)
+        self.data = Path(sps.SPARROW_DATA)
+        self.output = Path(sps.SPARROW_OUTPUT)
 
         self.data.mkdir(parents=True, exist_ok=True)
         self.output.mkdir(parents=True, exist_ok=True)
