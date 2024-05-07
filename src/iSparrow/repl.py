@@ -7,31 +7,29 @@ import cmd
 import multiprocessing
 
 
-def process_line(line: str, keywords: str = None):
+def process_line_into_kwargs(line: str, keywords: list = None):
 
     if line == "":
-        return []
-
-    if keywords is not None:
-        for keyword in keywords:
-            if keyword not in line:
-                print(
-                    "Invalid input. Expected options structure is --name=<arg> which must contain keywords ",
-                    keywords,
-                )
-                return None
+        return {}
 
     if "=" not in line:
-        print("Invalid input. Expected options structure is --name=<arg>")
-        return None
+        raise ValueError("Invalid input. Expected options structure is --name=<arg>")
 
-    kwargs = line.split("=")
-    args = []
+    if keywords is None:
+        raise ValueError("Keywords must be provided with passed line")
 
-    for i in range(1, len(kwargs), 2):
-        args.append(kwargs[i].strip())
+    for k in keywords:
+        if k not in line:
+            raise ValueError(f"Keyword {k} not found in passed line")
 
-    return args
+    kwargs = {
+        name.lstrip("-"): key
+        for part in line.split(" ")
+        if "=" in part
+        for name, key in [part.split("=")]
+    }
+
+    return kwargs
 
 
 class SparrowCmd(cmd.Cmd):
@@ -41,9 +39,6 @@ class SparrowCmd(cmd.Cmd):
     def __init__(self):
         super().__init__()
         self.watcher = None
-        self.input = None
-        self.output = None
-        self.models = None
 
     def do_help(self, line):
         print("Commands: ")
@@ -56,17 +51,18 @@ class SparrowCmd(cmd.Cmd):
         )
 
     def do_set_up(self, line):
-        print("Setting up iSparrow")
-
-        inputs = process_line(
-            line,
-            [
-                "--cfg=",
-            ],
-        )
-        if inputs is None:
+        inputs = None
+        try:
+            inputs = process_line_into_kwargs(
+                line,
+                [
+                    "--cfg=",
+                ],
+            )
+        except Exception as e:
             print(
-                "Something in the setup command parsing went wrong. Check your passed commands"
+                "Something in the setup command parsing went wrong. Check your passed commands. Caused by: ",
+                e,
             )
             return
 
@@ -76,10 +72,9 @@ class SparrowCmd(cmd.Cmd):
             print("Invalid input. Expected: set_up --cfg=<config_file>")
             return
         elif len(inputs) == 1:
-            cfg = Path(inputs[0]).expanduser().resolve()
+            cfg = Path(inputs["cfg"]).expanduser().resolve()
         elif len(inputs) == 0:
             cfg = None
-        else:
             print("No config file provided, falling back to default")
 
         try:
@@ -95,7 +90,7 @@ class SparrowCmd(cmd.Cmd):
             Path(user_config_dir()) / Path("iSparrow") / "install.yml"
         )
 
-        inputs = process_line(
+        inputs = process_line_into_kwargs(
             line,
             [
                 "--cfg=",
@@ -238,19 +233,6 @@ class SparrowCmd(cmd.Cmd):
         print("Exiting sparrow shell")
         return True
 
-    def clean_up(self, line):
-        if len(line) > 0:
-            print("Invalid input. Expected no arguments.")
-
-        if self.watcher is None:
-            print("Cannot stop watcher, no watcher present")
-
-        else:
-            try:
-                self.watcher.clean_up()
-            except Exception as e:
-                print("An error occured during cleanup. ")
-
     def change_analyzer(self, line):
         if self.watcher is None:
             print("No watcher present, cannot change analyzer")
@@ -259,7 +241,7 @@ class SparrowCmd(cmd.Cmd):
         elif self.watcher.is_sleeping:
             print("Cannot change analyzer, watcher is sleeping")
         else:
-            inputs = process_line(
+            inputs = process_line_into_kwargs(
                 line,
                 ["--cfg"],
             )
