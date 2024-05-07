@@ -2,6 +2,7 @@ import pytest
 from pathlib import Path
 import yaml
 from iSparrow import utils
+import iSparrow.sparrow_setup as sps
 
 
 def make_preprocessor(cfg_name: str):
@@ -11,14 +12,9 @@ def make_preprocessor(cfg_name: str):
 
     filepath = Path(__file__).resolve()
     testpath = filepath.parent.parent
-    cfgpath = filepath.parent.parent.parent / Path("config") / Path("install_cfg.yml")
-    with open(cfgpath, "r") as file:
-        sparrow_cfg = yaml.safe_load(file)
-        sparrow_cfg = sparrow_cfg["Directories"]
-
-    sparrow_folder = Path(sparrow_cfg["home"]).expanduser()
-    models_folder = sparrow_folder / "models"
-    example_folder = sparrow_folder / "example"
+    home = Path(sps.SPARROW_HOME)
+    models_folder = home / "models"
+    example_folder = home / "example"
 
     with open(testpath / Path("test_configs") / cfg_name, "r") as file:
         cfg = yaml.safe_load(file)

@@ -4,16 +4,15 @@ import datetime
 from birdnetlib.species import SpeciesList
 from birdnetlib.utils import return_week_48_from_datetime
 from shutil import rmtree
+import os
 from . import utils
+
 
 # README: Would be more logically consistent to have this inherit from Sparrow's `ModelBase` class,
 # but that would require a lot of copy-cat code from birdnetlib.
 
 
 class SpeciesPredictorBase(SpeciesList):
-
-    # make this a class attribute since it´s the same always
-    cache_dir = user_cache_dir() / Path("iSparrow") / Path("species_lists")
 
     def __init__(
         self,
@@ -63,8 +62,15 @@ class SpeciesPredictorBase(SpeciesList):
 
         self.name = "birdnet_default"
 
-        if SpeciesPredictorBase.cache_dir.exists() is False:
-            SpeciesPredictorBase.cache_dir.mkdir(parents=True, exist_ok=True)
+        if os.getenv("SPARROW_TEST_MODE") == "True":
+            self.cache_dir = (
+                user_cache_dir() / Path("iSparrow_tests") / Path("species_lists")
+            )
+        else:
+            self.cache_dir = user_cache_dir() / Path("iSparrow") / Path("species_lists")
+
+        if self.cache_dir.exists() is False:
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         super().__init__()  # super class handles model loading
 
@@ -160,15 +166,13 @@ class SpeciesPredictorBase(SpeciesList):
 
         if (
             self.use_cache
-            and (
-                SpeciesPredictorBase.cache_dir / cache_folder / "species_list.txt"
-            ).exists()
+            and (self.cache_dir / cache_folder / "species_list.txt").exists()
         ):
 
             self.read_from_file = True
 
             return self._read_labels_file(
-                Path(SpeciesPredictorBase.cache_dir) / cache_folder / "species_list.txt"
+                Path(self.cache_dir) / cache_folder / "species_list.txt"
             )
 
         # provides raw species presence data in self.result
@@ -184,7 +188,7 @@ class SpeciesPredictorBase(SpeciesList):
         if self.use_cache:  # store when requested. Round given coords to 2 decimals
 
             self._write_to_file(
-                Path(SpeciesPredictorBase.cache_dir) / cache_folder,
+                Path(self.cache_dir) / cache_folder,
                 detections,
             )
 
@@ -245,13 +249,10 @@ class SpeciesPredictorBase(SpeciesList):
             for row in formatted_results:
                 output.write(row + "\n")
 
-    @classmethod
-    def clear_cache(
-        cls,
-    ):
+    def clear_cache(self):
         """
         clear_cache Remove the cache folder completely
 
         """
-        if cls.cache_dir.exists():
-            rmtree(str(cls.cache_dir))
+        if self.cache_dir.exists():
+            rmtree(str(self.cache_dir))

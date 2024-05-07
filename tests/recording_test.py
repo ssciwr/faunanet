@@ -86,25 +86,22 @@ def test_analysis_custom(recording_fx):
     )
 
     assert recording.analyzer.model_path == str(
-        recording_fx.sparrow_folder
+        recording_fx.home
         / Path("models")
         / Path("birdnet_custom")
         / Path("model.tflite")
     )
     assert recording.analyzer.labels_path == str(
-        recording_fx.sparrow_folder
-        / Path("models")
-        / Path("birdnet_custom")
-        / Path("labels.txt")
+        recording_fx.home / Path("models") / Path("birdnet_custom") / Path("labels.txt")
     )
     assert recording.analyzer.default_model_path == str(
-        recording_fx.sparrow_folder
+        recording_fx.home
         / Path("models")
         / Path("birdnet_default")
         / Path("model.tflite")
     )
     assert recording.analyzer.default_labels_path == str(
-        recording_fx.sparrow_folder
+        recording_fx.home
         / Path("models")
         / Path("birdnet_default")
         / Path("labels.txt")
@@ -250,7 +247,7 @@ def test_species_list_restriction(recording_fx):
 
     date = datetime(day=int(date_raw[0]), month=int(date_raw[1]), year=int(date_raw[2]))
 
-    species_predictor_model_path = recording_fx.sparrow_folder / Path(
+    species_predictor_model_path = recording_fx.home / Path(
         recording_fx.default_cfg["Analysis"]["Model"]["model_path"]
     )
 

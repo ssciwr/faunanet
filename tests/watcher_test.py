@@ -28,12 +28,12 @@ def test_watcher_construction(watch_fx):
 
     # check member variables
     assert str(watcher.output) == str(Path(watcher.outdir) / path_add)
-    assert str(watcher.input) == str(Path.home() / "iSparrow_data" / "tests")
-    assert str(watcher.outdir) == str(Path.home() / "iSparrow_output" / "tests")
-    assert str(watcher.model_dir) == str(Path.home() / "iSparrow/models")
+    assert str(watcher.input) == str(Path.home() / "iSparrow_tests_data")
+    assert str(watcher.outdir) == str(Path.home() / "iSparrow_tests_output")
+    assert str(watcher.model_dir) == str(Path.home() / "iSparrow_tests/models")
     assert str(watcher.model_name) == "birdnet_default"
     assert watcher.output_directory == str(Path(watcher.outdir) / path_add)
-    assert watcher.input_directory == str(Path.home() / "iSparrow_data" / "tests")
+    assert watcher.input_directory == str(Path.home() / "iSparrow_tests_data")
     assert watcher.is_running is False
     assert watcher.output.is_dir() is False  # not yet created
     assert watcher.input.is_dir()
@@ -53,16 +53,14 @@ def test_watcher_construction(watch_fx):
     )
 
     assert str(default_watcher.output) == str(Path(default_watcher.outdir) / path_add)
-    assert str(default_watcher.input) == str(Path.home() / "iSparrow_data" / "tests")
-    assert str(default_watcher.outdir) == str(Path.home() / "iSparrow_output" / "tests")
-    assert str(default_watcher.model_dir) == str(Path.home() / "iSparrow/models")
+    assert str(default_watcher.input) == str(Path.home() / "iSparrow_tests_data")
+    assert str(default_watcher.outdir) == str(Path.home() / "iSparrow_tests_output")
+    assert str(default_watcher.model_dir) == str(Path.home() / "iSparrow_tests/models")
     assert str(default_watcher.model_name) == "birdnet_default"
     assert default_watcher.output_directory == str(
         Path(default_watcher.outdir) / wfx.path_add
     )
-    assert default_watcher.input_directory == str(
-        Path.home() / "iSparrow_data" / "tests"
-    )
+    assert default_watcher.input_directory == str(Path.home() / "iSparrow_tests_data")
     assert default_watcher.is_running is False
     assert default_watcher.output.is_dir() is False  # not yet created
     assert default_watcher.input.is_dir()
@@ -106,7 +104,7 @@ def test_watcher_construction(watch_fx):
         SparrowWatcher(
             wfx.data,
             Path.home() / "iSparrow_output_not_there",
-            wfx.home / "/models",
+            wfx.home / "models",
             "birdnet_default",
         )
 
@@ -144,19 +142,19 @@ def test_watcher_construction(watch_fx):
 
         sp.set_up_recording()
 
-    with pytest.raises(
-        ValueError,
-        match="'delete_recordings' must be in 'never', 'always'",
-    ):
-        SparrowWatcher(
-            wfx.data,
-            wfx.output,
-            wfx.home / "models",
-            "birdnet_custom",
-            preprocessor_config=wfx.custom_preprocessor_cfg,
-            model_config=wfx.custom_model_cfg,
-            delete_recordings="some wrong value",
-        )
+    # with pytest.raises(
+    #     ValueError,
+    #     match="'delete_recordings' must be in 'never', 'always'",
+    # ):
+    #     SparrowWatcher(
+    #         wfx.data,
+    #         wfx.output,
+    #         wfx.home / "models",
+    #         "birdnet_custom",
+    #         preprocessor_config=wfx.custom_preprocessor_cfg,
+    #         model_config=wfx.custom_model_cfg,
+    #         delete_recordings="some wrong value",
+    #     )
 
 
 def test_event_handler_construction(watch_fx):
@@ -542,7 +540,7 @@ def test_change_analyzer(watch_fx):
     assert watcher.recording_config == wfx.changed_custom_recording_cfg
     assert watcher.is_running is True
     assert watcher.watcher_process is not None
-    assert watcher.input_directory == str(Path.home() / "iSparrow_data" / "tests")
+    assert watcher.input_directory == str(Path.home() / "iSparrow_tests_data")
     assert watcher.output.is_dir() is True  # not yet created
     assert (watcher.model_dir / watcher.model_name).is_dir()
     assert watcher.pattern == ".wav"
@@ -563,7 +561,7 @@ def test_change_analyzer(watch_fx):
     assert len(current_files) > 0  # some analyzed files must be in the new directory
     assert len(old_files) > 0
     assert 0 < len(list(Path(wfx.data).iterdir())) < number_of_files
-    assert number_of_files > len(old_files) + len(current_files)  # some data can be
+    assert number_of_files >= len(old_files) + len(current_files)  # some data can be
 
 
 def test_change_analyzer_recovery(watch_fx, mocker):

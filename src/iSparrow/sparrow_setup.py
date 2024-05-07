@@ -1,6 +1,7 @@
 import shutil
 import pooch
 import yaml
+import os
 from pathlib import Path
 from platformdirs import user_config_dir, user_cache_dir
 from iSparrow import utils
@@ -23,7 +24,6 @@ def make_directories(base_cfg_dirs: dict):
         base_cfg_dirs (dict): Dictionary containing paths for the main install ("home"),
         the directory where models are stored ("models"), the one where data may be stored ("data")
         and the "output" directory to store inference results and potentially other data in ("output")
-
     Raises:
         KeyError: A folder given in the config does not exist
 
@@ -55,26 +55,24 @@ def make_directories(base_cfg_dirs: dict):
     iscfg = Path(user_config_dir()) / "iSparrow"
     iscache = Path(user_cache_dir()) / "iSparrow"
 
+    if os.getenv("SPARROW_TEST_MODE") == "True":
+        iscfg = Path(user_config_dir()) / "iSparrow_test"
+        iscache = Path(user_cache_dir()) / "iSparrow_test"
+
     for p in [ish, ism, isd, iso, ise, iscfg, iscache]:
         p.mkdir(parents=True, exist_ok=True)
 
     return ish, ism, isd, iso, ise, iscfg, iscache
 
 
-def download_model_files(isparrow_model_dir: str):
-    """
-    download_model_files Download models and class labels that iSparrow needs to analyze and classify audio data.
-
-    Args:
-        isparrow_homedir (str): Path to the main iSparrow directory
-    """
+def download_model_files(model_dir: str = "models", cache_dir: str = "iSparrow"):
 
     print("... Downloading model files...")
 
-    ism = Path(isparrow_model_dir)
+    ism = Path(model_dir)
 
     if ism.exists() is False:
-        raise FileNotFoundError(f"The folder {isparrow_model_dir} does not exist")
+        raise FileNotFoundError(f"The folder {model_dir} does not exist")
 
     # have filenames and checksum hardcoded for now. "None" indicates unknown or changing filenames
     model_file_names = {
@@ -98,7 +96,7 @@ def download_model_files(isparrow_model_dir: str):
     }
 
     models_data = pooch.create(
-        path=pooch.os_cache("iSparrow"),
+        path=pooch.os_cache(cache_dir),
         base_url="https://huggingface.co/MaHaWo/iSparrow_test_models/resolve/main",
         registry=(model_file_names | label_file_names),
     )
@@ -166,20 +164,21 @@ def download_model_files(isparrow_model_dir: str):
         )
 
 
-def download_example_data(isparrow_example_dir: str):
+def download_example_data(example_dir: str = "examples", cache_dir: str = "iSparrow"):
     """
     download_example_data Download the example audio files used by iSparrow for its tests and examples.
 
     Args:
-        isparrow_example_dir (str): Path to the iSparrow example directory
+        example_dir (str): Path to the iSparrow example directory. Defaults to 'examples'.
+        cache_dir (str): Path to the iSparrow cache directory. Defaults to 'iSparrow'.
     """
 
     print("... Downloading example files...")
 
-    ise = Path(isparrow_example_dir)
+    ise = Path(example_dir)
 
     if ise.exists() is False:
-        raise FileNotFoundError(f"The folder {isparrow_example_dir} does not exist")
+        raise FileNotFoundError(f"The folder {example_dir} does not exist")
 
     # create registries to pull files from. haddcode names and hashes for now
     example_data_file_names = {
@@ -190,7 +189,7 @@ def download_example_data(isparrow_example_dir: str):
     }
 
     example_data = pooch.create(
-        path=pooch.os_cache("iSparrow"),
+        path=pooch.os_cache(cache_dir),
         base_url="https://huggingface.co/datasets/MaHaWo/iSparrow_test_data/resolve/main",
         registry=example_data_file_names,
     )
@@ -223,15 +222,25 @@ def copy_files(modeldir):
 
 # add a fixture with session scope that emulates the result of a later to-be-implemented-install-routine
 def set_up_sparrow(custom_config: str = None):
+    """
+    set_up_sparrow _summary_
+
+    _extended_summary_
+
+    Args:
+        custom_config (str, optional): _description_. Defaults to None.
+    """
     print("Creating iSparrow folders and downloading data... ")
 
     current = Path(__file__).resolve().parent
 
-    install_cfg = utils.read_yaml(current.parent.parent / "config" / "install.yml")
+    install_cfg = utils.read_yaml(
+        current.parent.parent / Path("config") / "install.yml"
+    )
 
     if custom_config is not None:
         custom_install_config = utils.read_yaml(custom_config / "install.yml")
-        utils.update_dict_recursive(install_cfg, custom_install_config)
+        utils.update_dict_leafs_recursive(install_cfg, custom_install_config)
 
     home, models, data, output, examples, config, cache = make_directories(
         install_cfg["Directories"]
@@ -242,9 +251,9 @@ def set_up_sparrow(custom_config: str = None):
 
     shutil.copy(current.parent.parent / "config" / Path("default.yml"), config)
 
-    download_model_files(models.resolve())
+    download_model_files(model_dir=models.resolve(), cache_dir=cache.resolve())
 
-    download_example_data(examples.resolve())
+    download_example_data(example_dir=examples.resolve(), cache_dir=cache.resolve())
 
     copy_files(models.resolve())
 

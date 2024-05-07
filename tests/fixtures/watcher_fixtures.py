@@ -16,7 +16,7 @@ class WatchFixture:
         self.home = Path(sps.SPARROW_HOME)
         self.data = Path(sps.SPARROW_DATA)
         self.output = Path(sps.SPARROW_OUTPUT)
-
+        self.models = Path(sps.SPARROW_MODELS)
         self.data.mkdir(parents=True, exist_ok=True)
         self.output.mkdir(parents=True, exist_ok=True)
 
@@ -57,13 +57,13 @@ class WatchFixture:
         self.custom_model_cfg = {
             "num_threads": 1,
             "sigmoid_sensitivity": 1.0,
-            "default_model_path": str(Path.home() / "iSparrow/models/birdnet_default"),
+            "default_model_path": str(self.models / "birdnet_default"),
         }
 
         self.changed_custom_model_cfg = {
             "num_threads": 1,
             "sigmoid_sensitivity": 0.8,  # change for testing
-            "default_model_path": str(self.home / "models/birdnet_default"),
+            "default_model_path": str(self.models / "birdnet_default"),
         }
 
         self.changed_custom_recording_cfg = {
@@ -82,7 +82,7 @@ class WatchFixture:
             "Analysis": {
                 "input": str(self.data),
                 "output": str(self.output / self.path_add),
-                "model_dir": str(self.home / "models"),
+                "model_dir": str(self.models),
                 "Preprocessor": deepcopy(self.preprocessor_cfg),
                 "Model": model_cfg2,
                 "Recording": deepcopy(self.recording_cfg),

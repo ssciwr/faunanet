@@ -4,6 +4,7 @@ import yaml
 import pandas as pd
 
 from iSparrow import utils
+import iSparrow.sparrow_setup as sps
 
 
 class RecordingFixture:
@@ -13,18 +14,11 @@ class RecordingFixture:
         filepath = Path(__file__).resolve()
         self.testpath = filepath.parent.parent
 
-        cfgpath = (
-            filepath.parent.parent.parent / Path("config") / Path("install_cfg.yml")
-        )
-        with open(cfgpath, "r") as file:
-            sparrow_cfg = yaml.safe_load(file)
-            sparrow_cfg = sparrow_cfg["Directories"]
+        self.home = sps.SPARROW_HOME
 
-        self.sparrow_folder = Path(sparrow_cfg["home"]).expanduser()
+        self.models_folder = sps.SPARROW_MODELS
 
-        self.models_folder = self.sparrow_folder / "models"
-
-        self.example_folder = self.sparrow_folder / "example"
+        self.example_folder = sps.SPARROW_EXAMPLES
 
         with open(self.testpath / Path("test_configs") / "cfg_custom.yml", "r") as file:
             self.custom_cfg = yaml.safe_load(file)
@@ -105,15 +99,15 @@ class RecordingFixture:
         )
 
         self.custom_model = cmm.Model.from_cfg(
-            self.sparrow_folder, self.custom_cfg["Analysis"]["Model"]
+            self.home, self.custom_cfg["Analysis"]["Model"]
         )
 
         self.default_model = dmm.Model.from_cfg(
-            self.sparrow_folder, self.default_cfg["Analysis"]["Model"]
+            self.home, self.default_cfg["Analysis"]["Model"]
         )
 
         self.google_model = gmm.Model.from_cfg(
-            self.sparrow_folder, self.google_cfg["Analysis"]["Model"]
+            self.home, self.google_cfg["Analysis"]["Model"]
         )
 
         self.good_file = self.example_folder / "soundscape.wav"

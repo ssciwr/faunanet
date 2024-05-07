@@ -12,19 +12,19 @@ def test_default_model_construction(model_fx):
     mfx = model_fx
 
     model = mfx.default_module.Model.from_cfg(
-        mfx.sparrow_folder, mfx.default_cfg["Analysis"]["Model"]
+        mfx.home, mfx.default_cfg["Analysis"]["Model"]
     )
 
     assert model.model_path == str(
         Path.home()
-        / Path("iSparrow")
+        / Path("iSparrow_tests")
         / Path("models")
         / Path("birdnet_default")
         / "model.tflite"
     )
     assert model.labels_path == str(
         Path.home()
-        / Path("iSparrow")
+        / Path("iSparrow_tests")
         / Path("models")
         / Path("birdnet_default")
         / "labels.txt"
@@ -39,19 +39,19 @@ def test_custom_model_construction(model_fx):
     mfx = model_fx
 
     model = mfx.custom_module.Model.from_cfg(
-        mfx.sparrow_folder, mfx.custom_cfg["Analysis"]["Model"]
+        mfx.home, mfx.custom_cfg["Analysis"]["Model"]
     )
 
     assert model.default_model_path == str(
         Path.home()
-        / Path("iSparrow")
+        / Path("iSparrow_tests")
         / Path("models")
         / Path("birdnet_default")
         / "model.tflite"
     )
     assert model.default_labels_path == str(
         Path.home()
-        / Path("iSparrow")
+        / Path("iSparrow_tests")
         / Path("models")
         / Path("birdnet_default")
         / "labels.txt"
@@ -59,14 +59,14 @@ def test_custom_model_construction(model_fx):
 
     assert model.model_path == str(
         Path.home()
-        / Path("iSparrow")
+        / Path("iSparrow_tests")
         / Path("models")
         / Path("birdnet_custom")
         / "model.tflite"
     )
     assert model.labels_path == str(
         Path.home()
-        / Path("iSparrow")
+        / Path("iSparrow_tests")
         / Path("models")
         / Path("birdnet_custom")
         / "labels.txt"
@@ -82,12 +82,12 @@ def test_google_model_construction(model_fx):
     mfx = model_fx
 
     model = mfx.google_module.Model.from_cfg(
-        mfx.sparrow_folder, mfx.google_cfg["Analysis"]["Model"]
+        mfx.home, mfx.google_cfg["Analysis"]["Model"]
     )
 
     assert model.model_path == str(
         Path.home()
-        / Path("iSparrow")
+        / Path("iSparrow_tests")
         / Path("models")
         / Path("google_perch")
         / "saved_model.pb"
@@ -95,7 +95,7 @@ def test_google_model_construction(model_fx):
 
     assert model.labels_path == str(
         Path.home()
-        / Path("iSparrow")
+        / Path("iSparrow_tests")
         / Path("models")
         / Path("google_perch")
         / "labels.txt"
@@ -109,7 +109,7 @@ def test_default_model_predict(model_fx):
     mfx = model_fx
 
     model = mfx.default_module.Model.from_cfg(
-        mfx.sparrow_folder, mfx.default_cfg["Analysis"]["Model"]
+        mfx.home, mfx.default_cfg["Analysis"]["Model"]
     )
 
     final_results = []
@@ -151,7 +151,7 @@ def test_custom_model_predict(model_fx):
     mfx = model_fx
 
     model = mfx.custom_module.Model.from_cfg(
-        mfx.sparrow_folder, mfx.custom_cfg["Analysis"]["Model"]
+        mfx.home, mfx.custom_cfg["Analysis"]["Model"]
     )
 
     final_results = []
@@ -189,7 +189,7 @@ def test_google_model_predict(model_fx):
     mfx = model_fx
 
     model = mfx.google_module.Model.from_cfg(
-        mfx.sparrow_folder, mfx.google_cfg["Analysis"]["Model"]
+        mfx.home, mfx.google_cfg["Analysis"]["Model"]
     )
 
     final_results = []
