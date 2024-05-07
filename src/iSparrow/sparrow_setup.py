@@ -30,7 +30,6 @@ def make_directories(base_cfg_dirs: dict):
     Returns:
         tuple: created folders: (isparrow-homefolder, modelsfolder, datafolder, outputfolder, examplefolder)
     """
-    print("...Making direcotries...")
     if "home" not in base_cfg_dirs:
         raise KeyError("The home folder for iSparrow must be given in the base config")
 
@@ -68,8 +67,6 @@ def download_model_files(isparrow_model_dir: str):
     Args:
         isparrow_homedir (str): Path to the main iSparrow directory
     """
-
-    print("... Downloading model files...")
 
     ism = Path(isparrow_model_dir)
 
@@ -174,8 +171,6 @@ def download_example_data(isparrow_example_dir: str):
         isparrow_example_dir (str): Path to the iSparrow example directory
     """
 
-    print("... Downloading example files...")
-
     ise = Path(isparrow_example_dir)
 
     if ise.exists() is False:
@@ -223,7 +218,6 @@ def copy_files(modeldir):
 
 # add a fixture with session scope that emulates the result of a later to-be-implemented-install-routine
 def set_up_sparrow(custom_config: str = None):
-    print("Creating iSparrow folders and downloading data... ")
 
     current = Path(__file__).resolve().parent
 
@@ -257,5 +251,3 @@ def set_up_sparrow(custom_config: str = None):
     SPARROW_EXAMPLES = examples
     SPARROW_CACHE = cache
     SPARROW_CONFIG = config
-
-    print("Installation finished")
