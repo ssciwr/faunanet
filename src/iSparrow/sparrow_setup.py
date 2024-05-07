@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from platformdirs import user_config_dir, user_cache_dir
 from iSparrow import utils
-from importlib_resources import files
+from importlib.resources import files
 import iSparrow
 
 SPARROW_HOME = None
@@ -241,7 +241,7 @@ def set_up_sparrow(custom_config: str = None):
     print("Creating iSparrow folders and downloading data... ")
 
     packagebase = files(iSparrow)
-    install_cfg = utils.read_yaml(packagebase / "config" / "install.yml")
+    install_cfg = utils.read_yaml(packagebase / "install.yml")
 
     if custom_config is not None:
         custom_install_config = utils.read_yaml(custom_config / "install.yml")
@@ -254,7 +254,7 @@ def set_up_sparrow(custom_config: str = None):
     with open(Path(config) / "install.yml", "w") as yfile:
         yaml.safe_dump(install_cfg, yfile)
 
-    shutil.copy(packagebase / "config" / Path("default.yml"), config)
+    shutil.copy(packagebase / "default.yml", config)
 
     download_model_files(model_dir=models.resolve(), cache_dir=cache.resolve())
 

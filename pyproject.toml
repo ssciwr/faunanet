@@ -32,5 +32,8 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 
+[tool.setuptools]
+include-package-data = true
 
-# add additional stuff when needed, poetry support? 
+[tool.setuptools.packages.find]
+where = ["src"]

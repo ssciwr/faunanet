@@ -1,3 +1,6 @@
+import multiprocessing
+
+multiprocessing.set_start_method("spawn", True)
 import pytest
 import shutil
 import multiprocessing
