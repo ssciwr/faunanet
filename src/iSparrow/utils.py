@@ -1,5 +1,4 @@
 import tensorflow as tf
-import tensorflow_hub as tfhub
 
 try:
     import tflite_runtime.interpreter as tflite
@@ -7,7 +6,6 @@ except Exception:
     from tensorflow import lite as tflite
 
 from pathlib import Path
-import validators as valid
 import importlib.util
 import os
 import time
