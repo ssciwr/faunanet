@@ -1,4 +1,4 @@
-from appdirs import user_cache_dir
+from platformdirs import user_cache_dir
 from pathlib import Path
 import datetime
 from birdnetlib.species import SpeciesList

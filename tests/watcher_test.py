@@ -142,19 +142,19 @@ def test_watcher_construction(watch_fx):
 
         sp.set_up_recording()
 
-    # with pytest.raises(
-    #     ValueError,
-    #     match="'delete_recordings' must be in 'never', 'always'",
-    # ):
-    #     SparrowWatcher(
-    #         wfx.data,
-    #         wfx.output,
-    #         wfx.home / "models",
-    #         "birdnet_custom",
-    #         preprocessor_config=wfx.custom_preprocessor_cfg,
-    #         model_config=wfx.custom_model_cfg,
-    #         delete_recordings="some wrong value",
-    #     )
+    with pytest.raises(
+        ValueError,
+        match="'delete_recordings' must be in 'never', 'always'",
+    ):
+        SparrowWatcher(
+            wfx.data,
+            wfx.output,
+            wfx.home / "models",
+            "birdnet_custom",
+            preprocessor_config=wfx.custom_preprocessor_cfg,
+            model_config=wfx.custom_model_cfg,
+            delete_recordings="some wrong value",
+        )
 
 
 def test_event_handler_construction(watch_fx):
