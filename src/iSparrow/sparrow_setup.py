@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 from platformdirs import user_config_dir, user_cache_dir
 from iSparrow import utils
+from importlib_resources import files
+import iSparrow
 
 SPARROW_HOME = None
 SPARROW_DATA = None
@@ -95,20 +97,38 @@ def download_model_files(model_dir: str = "models", cache_dir: str = "iSparrow")
         "google_bird_classification/train_metadata.csv": None,
     }
 
+    model_code = {
+        "birdnet_default_v2.4/model.py": None,
+        "birdnet_custom_v2.4/model.py": None,
+        "google_bird_classification/model.py": None,
+    }
+
+    preprocessor_code = {
+        "birdnet_default_v2.4/preprocessor.py": None,
+        "birdnet_custom_v2.4/preprocessor.py": None,
+        "google_bird_classification/preprocessor.py": None,
+    }
+
     models_data = pooch.create(
         path=pooch.os_cache(cache_dir),
         base_url="https://huggingface.co/MaHaWo/iSparrow_test_models/resolve/main",
-        registry=(model_file_names | label_file_names),
+        registry=(model_file_names | label_file_names | model_code | preprocessor_code),
     )
 
-    for name in ["model.tflite", "labels.txt", "species_presence_model.tflite"]:
+    for name in [
+        "model.tflite",
+        "labels.txt",
+        "species_presence_model.tflite",
+        "model.py",
+        "preprocessor.py",
+    ]:
         (ism / Path("birdnet_default")).mkdir(parents=True, exist_ok=True)
         shutil.copy(
             Path(models_data.fetch(f"birdnet_default_v2.4/{name}", progressbar=False)),
             ism / Path("birdnet_default"),
         )
 
-    for name in ["model.tflite", "labels.txt"]:
+    for name in ["model.tflite", "labels.txt", "model.py", "preprocessor.py"]:
         (ism / Path("birdnet_custom")).mkdir(parents=True, exist_ok=True)
 
         shutil.copy(
@@ -116,7 +136,13 @@ def download_model_files(model_dir: str = "models", cache_dir: str = "iSparrow")
             ism / Path("birdnet_custom"),
         )
 
-    for name in ["saved_model.pb", "labels.txt", "train_metadata.csv"]:
+    for name in [
+        "saved_model.pb",
+        "labels.txt",
+        "train_metadata.csv",
+        "model.py",
+        "preprocessor.py",
+    ]:
         (ism / Path("google_perch")).mkdir(parents=True, exist_ok=True)
 
         shutil.copy(
@@ -202,24 +228,6 @@ def download_example_data(example_dir: str = "examples", cache_dir: str = "iSpar
         )
 
 
-def copy_files(modeldir):
-    """
-    copy the current preprocessors into the model directory, as is intended later
-    """
-    current = Path(__file__).resolve().parent
-
-    local_pp_dir = current.parent.parent / "models"
-
-    for name in ["birdnet_default", "birdnet_custom", "google_perch"]:
-        shutil.copy(
-            local_pp_dir / Path(name) / "preprocessor.py", Path(modeldir) / Path(name)
-        )
-        shutil.copy(local_pp_dir / Path(name) / "model.py", Path(modeldir) / Path(name))
-        shutil.copy(
-            local_pp_dir / Path(name) / "__init__.py", Path(modeldir) / Path(name)
-        )
-
-
 # add a fixture with session scope that emulates the result of a later to-be-implemented-install-routine
 def set_up_sparrow(custom_config: str = None):
     """
@@ -232,11 +240,8 @@ def set_up_sparrow(custom_config: str = None):
     """
     print("Creating iSparrow folders and downloading data... ")
 
-    current = Path(__file__).resolve().parent
-
-    install_cfg = utils.read_yaml(
-        current.parent.parent / Path("config") / "install.yml"
-    )
+    packagebase = files(iSparrow)
+    install_cfg = utils.read_yaml(packagebase / "config" / "install.yml")
 
     if custom_config is not None:
         custom_install_config = utils.read_yaml(custom_config / "install.yml")
@@ -249,13 +254,11 @@ def set_up_sparrow(custom_config: str = None):
     with open(Path(config) / "install.yml", "w") as yfile:
         yaml.safe_dump(install_cfg, yfile)
 
-    shutil.copy(current.parent.parent / "config" / Path("default.yml"), config)
+    shutil.copy(packagebase / "config" / Path("default.yml"), config)
 
     download_model_files(model_dir=models.resolve(), cache_dir=cache.resolve())
 
     download_example_data(example_dir=examples.resolve(), cache_dir=cache.resolve())
-
-    copy_files(models.resolve())
 
     global SPARROW_HOME, SPARROW_DATA, SPARROW_MODELS, SPARROW_OUTPUT, SPARROW_EXAMPLES, SPARROW_CACHE, SPARROW_CONFIG
 
