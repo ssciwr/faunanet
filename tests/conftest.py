@@ -1,9 +1,11 @@
 import pytest
 import shutil
 import multiprocessing
+from pathlib import Path
 
-multiprocessing.set_start_method("spawn")
-from . import set_up_sparrow_env
+import iSparrow.sparrow_setup as sps
+from iSparrow.utils import read_yaml
+
 from .fixtures.recording_fixtures import recording_fx
 from .fixtures.preprocessor_fixtures import preprocessor_fx, preprocessor_fx_google
 from .fixtures.model_fixtures import model_fx
@@ -18,13 +20,13 @@ OUTPUT = ""
 @pytest.fixture(scope="function", autouse=True)
 def install(request):
     print("Creating iSparrow folders and downloading data... ")
-    set_up_sparrow_env.install(for_tests=True)
+    sps.set_up_sparrow(Path(__file__).parent / Path("test_configs"))
     print("Installation finished")
 
     global HOME, DATA, OUTPUT
-    HOME = set_up_sparrow_env.HOME
-    DATA = set_up_sparrow_env.DATA
-    OUTPUT = set_up_sparrow_env.OUTPUT
+    HOME = sps.SPARROW_HOME
+    DATA = sps.SPARROW_DATA
+    OUTPUT = sps.SPARROW_OUTPUT
 
     # remove again after usage
     def teardown():
