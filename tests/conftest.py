@@ -37,12 +37,14 @@ def install(request):
     CONFIG = sps.SPARROW_CONFIG
     CACHE = sps.SPARROW_CACHE
 
+    print("cache: ", CACHE)
+
     # remove again after usage
     def teardown():
         shutil.rmtree(str(DATA))
         shutil.rmtree(str(OUTPUT))
         shutil.rmtree(str(HOME))
         shutil.rmtree(str(CONFIG))
-        shutil.rmtree(str(CACHE))
+        # shutil.rmtree(str(CACHE))
 
     request.addfinalizer(teardown)

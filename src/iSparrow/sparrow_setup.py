@@ -32,7 +32,6 @@ def make_directories(base_cfg_dirs: dict):
     Returns:
         tuple: created folders: (isparrow-homefolder, modelsfolder, datafolder, outputfolder, examplefolder)
     """
-    print("...Making direcotries...")
     if "home" not in base_cfg_dirs:
         raise KeyError("The home folder for iSparrow must be given in the base config")
 
@@ -110,7 +109,7 @@ def download_model_files(model_dir: str = "models", cache_dir: str = "iSparrow")
     }
 
     models_data = pooch.create(
-        path=pooch.os_cache(cache_dir),
+        path=cache_dir,
         base_url="https://huggingface.co/MaHaWo/iSparrow_test_models/resolve/main",
         registry=(model_file_names | label_file_names | model_code | preprocessor_code),
     )
@@ -215,7 +214,7 @@ def download_example_data(example_dir: str = "examples", cache_dir: str = "iSpar
     }
 
     example_data = pooch.create(
-        path=pooch.os_cache(cache_dir),
+        path=cache_dir,
         base_url="https://huggingface.co/datasets/MaHaWo/iSparrow_test_data/resolve/main",
         registry=example_data_file_names,
     )
