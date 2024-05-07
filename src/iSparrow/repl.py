@@ -90,12 +90,19 @@ class SparrowCmd(cmd.Cmd):
             Path(user_config_dir()) / Path("iSparrow") / "install.yml"
         )
 
-        inputs = process_line_into_kwargs(
-            line,
-            [
-                "--cfg=",
-            ],
-        )
+        try:
+            inputs = process_line_into_kwargs(
+                line,
+                [
+                    "--cfg=",
+                ],
+            )
+        except Exception as e:
+            print(
+                "Something in the setup command parsing went wrong. Check your passed commands. Caused by: ",
+                e,
+            )
+            return
 
         cfgpath = None
 
@@ -103,7 +110,7 @@ class SparrowCmd(cmd.Cmd):
             print("Invalid input. Expected: start --cfg=<config_file>")
             return
         elif len(inputs) == 1:
-            cfgpath = Path(inputs[0]).expanduser().resolve()
+            cfgpath = Path(inputs["cfg"]).expanduser().resolve()
         elif len(inputs) == 0:
             cfgpath = None
         else:

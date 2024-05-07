@@ -1,4 +1,5 @@
 import pytest
+import iSparrow.repl
 from iSparrow.repl import SparrowCmd, process_line_into_kwargs
 from iSparrow import SparrowWatcher
 from iSparrow.utils import read_yaml
@@ -53,10 +54,6 @@ def test_do_set_up():
             "--cfg=./tests/test_configs --stuff=superfluous",
             "Invalid input. Expected: set_up --cfg=<config_file>\n",
         ),
-        (
-            "--cfg=./tests/test_configs --stuff=superfluous",
-            "Invalid input. Expected: set_up --cfg=<config_file>\n",
-        ),
     ],
 )
 def test_do_set_up_args_error(input, expected, capsys):
@@ -76,13 +73,43 @@ def test_do_set_up_setup_error(mocker, capsys):
     assert out == "Could not set up iSparrow RuntimeError caused by:  None\n"
 
 
-# def test_do_start(mocker):
-#     mock_watcher = mocker.patch("iSparrow.sparrow_watcher.SparrowWatcher", autospec=True)
-#     mock_watcher_instance = mock_watcher.return_value
-#     mock_watcher_instance.is_running = False
-#     sparrow_cmd = SparrowCmd()
-#     sparrow_cmd.do_start("")
-#     mock_watcher_instance.start.assert_called_once()
+def test_do_start_custom():
+    sparrow_cmd = SparrowCmd()
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    assert sparrow_cmd.watcher.input_directory == str(
+        Path.home() / "iSparrow_tests_data"
+    )
+    assert sparrow_cmd.watcher.outdir == Path.home() / "iSparrow_tests_output"
+    assert sparrow_cmd.watcher.model_dir == Path.home() / "iSparrow_tests/models"
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
+    assert sparrow_cmd.watcher.is_sleeping is False
+    assert sparrow_cmd.watcher.delete_recordings == "always"
+    assert sparrow_cmd.watcher.pattern == ".mp3"
+    sparrow_cmd.watcher.stop()
+
+
+@pytest.mark.parametrize(
+    "input, expected",
+    [
+        (
+            "--cfg./tests/test_configs/watcher_custom.yml",
+            "Something in the setup command parsing went wrong. Check your passed commands. Caused by:  Invalid input. Expected options structure is --name=<arg>\n",
+        ),
+        (
+            "--cfg=./tests/test_configs/watcher_custom.yml --stuff=superfluous",
+            "Invalid input. Expected: start --cfg=<config_file>\n",
+        ),
+    ],
+)
+def test_do_start_wrong_args(input, expected, capsys, mocker):
+    mock_watcher = mocker.patch("iSparrow.repl.SparrowWatcher", autospec=True)
+    mock_watcher_instance = mock_watcher.return_value
+    mock_watcher_instance.is_running = False
+    sparrow_cmd = SparrowCmd()
+    sparrow_cmd.do_start(input)
+    out, _ = capsys.readouterr()
+    assert out == expected
 
 
 # def test_do_stop(mocker):
