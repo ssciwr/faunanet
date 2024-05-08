@@ -200,7 +200,7 @@ def download_example_data(example_dir: str = "examples", cache_dir: str = "iSpar
     if ise.exists() is False:
         raise FileNotFoundError(f"The folder {example_dir} does not exist")
 
-    # create registries to pull files from. haddcode names and hashes for now
+    # create registries to pull files from. hardcode names and hashes for now
     example_data_file_names = {
         "corrupted.wav": "sha256:68cbc7c63bed90c2ad4fb7d3b5cc608c82cebeaf5e91d5e8d6793d8645b30b95",
         "soundscape.wav": "sha256:df312b45bc82ce4c638c3e9e09d748702ea14a91ec29e4e8e0676d3e3e015fd7",
@@ -222,7 +222,6 @@ def download_example_data(example_dir: str = "examples", cache_dir: str = "iSpar
         )
 
 
-# add a fixture with session scope that emulates the result of a later to-be-implemented-install-routine
 def set_up_sparrow(custom_config: str = None):
     """
     set_up_sparrow _summary_
