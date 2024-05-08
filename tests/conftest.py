@@ -61,7 +61,7 @@ def load_files(make_folders):
     ise = directories["example"]
     ism = directories["models"]
 
-    if Path(directories["example"]) is False:
+    if Path(directories["example"]).exists() is False:
         raise FileNotFoundError(f"The folder {example_dir} does not exist")
 
     # create registries to pull files from. hardcode names and hashes for now

@@ -61,7 +61,7 @@ def make_directories(base_cfg_dirs: dict):
     return ish, ism, iso, ise, iscfg, iscache
 
 
-def download_model_files(model_dir: str = "models", cache_dir: str = "iSparrow"):
+def download_model_files(model_dir: str = "models"):
 
     print("... Downloading model files...")
 
