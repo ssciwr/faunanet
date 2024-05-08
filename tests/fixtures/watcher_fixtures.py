@@ -14,7 +14,7 @@ class WatchFixture:
     def __init__(self):
 
         self.home = Path(sps.SPARROW_HOME)
-        self.data = Path(sps.SPARROW_DATA)
+        self.data = Path.home() / "iSparrow_tests_data"
         self.output = Path(sps.SPARROW_OUTPUT)
         self.models = Path(sps.SPARROW_MODELS)
         self.data.mkdir(parents=True, exist_ok=True)

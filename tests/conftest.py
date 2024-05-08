@@ -32,19 +32,22 @@ def install(request):
 
     global HOME, DATA, OUTPUT, CONFIG, CACHE
     HOME = sps.SPARROW_HOME
-    DATA = sps.SPARROW_DATA
     OUTPUT = sps.SPARROW_OUTPUT
     CONFIG = sps.SPARROW_CONFIG
     CACHE = sps.SPARROW_CACHE
+
+    # make a dummy data directory
+    DATA = Path.home() / "iSparrow_tests_data"
+    DATA.mkdir(parents=True, exist_ok=True)
 
     print("cache: ", CACHE)
 
     # remove again after usage
     def teardown():
-        shutil.rmtree(str(DATA))
-        shutil.rmtree(str(OUTPUT))
-        shutil.rmtree(str(HOME))
-        shutil.rmtree(str(CONFIG))
+        shutil.rmtree(str(DATA), ignore_errors=True)
+        shutil.rmtree(str(OUTPUT), ignore_errors=True)
+        shutil.rmtree(str(HOME), ignore_errors=True)
+        shutil.rmtree(str(CONFIG), ignore_errors=True)
         # shutil.rmtree(str(CACHE))
 
     request.addfinalizer(teardown)

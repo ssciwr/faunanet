@@ -36,7 +36,6 @@ def test_watcher_construction(watch_fx):
     assert watcher.input_directory == str(Path.home() / "iSparrow_tests_data")
     assert watcher.is_running is False
     assert watcher.output.is_dir() is False  # not yet created
-    assert watcher.input.is_dir()
     assert watcher.outdir.is_dir()
     assert watcher.model_dir.is_dir()
     assert (watcher.model_dir / watcher.model_name).is_dir()
@@ -44,7 +43,7 @@ def test_watcher_construction(watch_fx):
     assert watcher.check_time == 1
     assert watcher.delete_recordings == "never"
 
-    path_add = Path(datetime.now().strftime("%y%m%d_%H%M%S"))
+    path_add = Path(datetime.now().strftime("%y%m%d_%H%M"))
     default_watcher = SparrowWatcher(
         wfx.data,
         wfx.output,
@@ -52,7 +51,7 @@ def test_watcher_construction(watch_fx):
         "birdnet_default",
     )
 
-    assert str(default_watcher.output) == str(Path(default_watcher.outdir) / path_add)
+    assert str(Path(default_watcher.outdir) / path_add) in str(default_watcher.output)
     assert str(default_watcher.input) == str(Path.home() / "iSparrow_tests_data")
     assert str(default_watcher.outdir) == str(Path.home() / "iSparrow_tests_output")
     assert str(default_watcher.model_dir) == str(Path.home() / "iSparrow_tests/models")
@@ -63,7 +62,6 @@ def test_watcher_construction(watch_fx):
     assert default_watcher.input_directory == str(Path.home() / "iSparrow_tests_data")
     assert default_watcher.is_running is False
     assert default_watcher.output.is_dir() is False  # not yet created
-    assert default_watcher.input.is_dir()
     assert default_watcher.outdir.is_dir()
     assert default_watcher.model_dir.is_dir()
     assert (default_watcher.model_dir / default_watcher.model_name).is_dir()

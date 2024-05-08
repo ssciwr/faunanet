@@ -9,7 +9,6 @@ from importlib.resources import files
 import iSparrow
 
 SPARROW_HOME = None
-SPARROW_DATA = None
 SPARROW_MODELS = None
 SPARROW_OUTPUT = None
 SPARROW_EXAMPLES = None
@@ -24,7 +23,7 @@ def make_directories(base_cfg_dirs: dict):
 
     Args:
         base_cfg_dirs (dict): Dictionary containing paths for the main install ("home"),
-        the directory where models are stored ("models"), the one where data may be stored ("data")
+        the directory where models are stored ("models"),
         and the "output" directory to store inference results and potentially other data in ("output")
     Raises:
         KeyError: A folder given in the config does not exist
@@ -40,9 +39,6 @@ def make_directories(base_cfg_dirs: dict):
             "The models folder for iSparrow must be given in the base config"
         )
 
-    if "data" not in base_cfg_dirs:
-        raise KeyError("The data folder for iSparrow must be given in the base config")
-
     if "output" not in base_cfg_dirs:
         raise KeyError(
             "The output folder for iSparrow must be given in the base config"
@@ -50,7 +46,6 @@ def make_directories(base_cfg_dirs: dict):
 
     ish = Path(base_cfg_dirs["home"]).expanduser().resolve()
     ism = Path(base_cfg_dirs["models"]).expanduser().resolve()
-    isd = Path(base_cfg_dirs["data"]).expanduser().resolve()
     iso = Path(base_cfg_dirs["output"]).expanduser().resolve()
     ise = (Path(base_cfg_dirs["home"]).expanduser() / Path("example")).resolve()
     iscfg = Path(user_config_dir()) / "iSparrow"
@@ -60,10 +55,10 @@ def make_directories(base_cfg_dirs: dict):
         iscfg = Path(user_config_dir()) / "iSparrow_test"
         iscache = Path(user_cache_dir()) / "iSparrow_test"
 
-    for p in [ish, ism, isd, iso, ise, iscfg, iscache]:
+    for p in [ish, ism, iso, ise, iscfg, iscache]:
         p.mkdir(parents=True, exist_ok=True)
 
-    return ish, ism, isd, iso, ise, iscfg, iscache
+    return ish, ism, iso, ise, iscfg, iscache
 
 
 def download_model_files(model_dir: str = "models", cache_dir: str = "iSparrow"):
@@ -246,7 +241,7 @@ def set_up_sparrow(custom_config: str = None):
         custom_install_config = utils.read_yaml(custom_config / "install.yml")
         utils.update_dict_leafs_recursive(install_cfg, custom_install_config)
 
-    home, models, data, output, examples, config, cache = make_directories(
+    home, models, output, examples, config, cache = make_directories(
         install_cfg["Directories"]
     )
 
@@ -259,10 +254,9 @@ def set_up_sparrow(custom_config: str = None):
 
     download_example_data(example_dir=examples.resolve(), cache_dir=cache.resolve())
 
-    global SPARROW_HOME, SPARROW_DATA, SPARROW_MODELS, SPARROW_OUTPUT, SPARROW_EXAMPLES, SPARROW_CACHE, SPARROW_CONFIG
+    global SPARROW_HOME, SPARROW_MODELS, SPARROW_OUTPUT, SPARROW_EXAMPLES, SPARROW_CACHE, SPARROW_CONFIG
 
     SPARROW_HOME = home
-    SPARROW_DATA = data
     SPARROW_MODELS = models
     SPARROW_OUTPUT = output
     SPARROW_EXAMPLES = examples

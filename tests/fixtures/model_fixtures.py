@@ -12,7 +12,6 @@ class ModelFixture:
         self.filepath = Path(__file__).resolve()
         self.testpath = self.filepath.parent.parent
         self.home = Path(sps.SPARROW_HOME)
-        self.data = Path(sps.SPARROW_DATA)
         self.output = Path(sps.SPARROW_OUTPUT)
         self.models_folder = self.home / "models"
 
