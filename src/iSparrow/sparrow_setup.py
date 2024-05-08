@@ -62,7 +62,15 @@ def make_directories(base_cfg_dirs: dict):
 
 
 def download_model_files(model_dir: str = "models"):
+    """
+    download_model_files Download default model files for iSparrow. This is required to run before anything else is done with iSparrow.
 
+    Args:
+        model_dir (str, optional): Path to put the model files at. Defaults to "models".
+
+    Raises:
+        FileNotFoundError: When the model directory does not exist.
+    """
     print("... Downloading model files...")
 
     ism = Path(model_dir)
@@ -184,13 +192,12 @@ def download_model_files(model_dir: str = "models"):
         )
 
 
-def download_example_data(example_dir: str = "examples", cache_dir: str = "iSparrow"):
+def download_example_data(example_dir: str = "examples"):
     """
     download_example_data Download the example audio files used by iSparrow for its tests and examples.
 
     Args:
         example_dir (str): Path to the iSparrow example directory. Defaults to 'examples'.
-        cache_dir (str): Path to the iSparrow cache directory. Defaults to 'iSparrow'.
     """
 
     print("... Downloading example files...")
@@ -260,7 +267,7 @@ def set_up_sparrow(custom_config: str = None):
         yaml.safe_dump(install_cfg, yfile)
     shutil.copy(packagebase / "default.yml", config)
 
-    download_model_files(model_dir=models.resolve(), cache_dir=cache.resolve())
+    download_model_files(model_dir=models.resolve())
 
     download_example_data(example_dir=examples.resolve(), cache_dir=cache.resolve())
 
