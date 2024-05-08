@@ -13,7 +13,7 @@ from datetime import datetime
 
 def test_watcher_construction(watch_fx):
     wfx = watch_fx
-    path_add = Path(datetime.now().strftime("%y%m%d_%H%M%S"))
+    path_add = Path(datetime.now().strftime("%y%m%d_%H%M"))
 
     watcher = SparrowWatcher(
         wfx.data,
@@ -27,12 +27,13 @@ def test_watcher_construction(watch_fx):
     )
 
     # check member variables
-    assert str(watcher.output) == str(Path(watcher.outdir) / path_add)
+    # datetime comparisons are exact only to the minute
+    assert str(Path(watcher.outdir) / path_add) in str(watcher.output)
     assert str(watcher.input) == str(Path.home() / "iSparrow_data" / "tests")
     assert str(watcher.outdir) == str(Path.home() / "iSparrow_output" / "tests")
     assert str(watcher.model_dir) == str(Path.home() / "iSparrow/models")
     assert str(watcher.model_name) == "birdnet_default"
-    assert watcher.output_directory == str(Path(watcher.outdir) / path_add)
+    assert str(Path(watcher.outdir) / path_add) in watcher.output_directory
     assert watcher.input_directory == str(Path.home() / "iSparrow_data" / "tests")
     assert watcher.is_running is False
     assert watcher.output.is_dir() is False  # not yet created
@@ -44,22 +45,23 @@ def test_watcher_construction(watch_fx):
     assert watcher.check_time == 1
     assert watcher.delete_recordings == "never"
 
-    path_add = Path(datetime.now().strftime("%y%m%d_%H%M%S"))
+    path_add = Path(datetime.now().strftime("%y%m%d_%H%M"))
     default_watcher = SparrowWatcher(
         wfx.data,
         wfx.output,
         wfx.home / "models",
         "birdnet_default",
     )
-
-    assert str(default_watcher.output) == str(Path(default_watcher.outdir) / path_add)
+    assert str(Path(default_watcher.outdir) / path_add) in str(default_watcher.output)
     assert str(default_watcher.input) == str(Path.home() / "iSparrow_data" / "tests")
     assert str(default_watcher.outdir) == str(Path.home() / "iSparrow_output" / "tests")
     assert str(default_watcher.model_dir) == str(Path.home() / "iSparrow/models")
     assert str(default_watcher.model_name) == "birdnet_default"
-    assert default_watcher.output_directory == str(
-        Path(default_watcher.outdir) / wfx.path_add
+    assert (
+        str(Path(default_watcher.outdir) / wfx.path_add)
+        in default_watcher.output_directory
     )
+
     assert default_watcher.input_directory == str(
         Path.home() / "iSparrow_data" / "tests"
     )
