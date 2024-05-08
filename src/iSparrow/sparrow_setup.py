@@ -269,7 +269,7 @@ def set_up_sparrow(custom_config: str = None):
 
     download_model_files(model_dir=models.resolve())
 
-    download_example_data(example_dir=examples.resolve(), cache_dir=cache.resolve())
+    download_example_data(example_dir=examples.resolve())
 
     global SPARROW_HOME, SPARROW_MODELS, SPARROW_OUTPUT, SPARROW_EXAMPLES, SPARROW_CACHE, SPARROW_CONFIG
 

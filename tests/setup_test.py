@@ -105,8 +105,7 @@ def test_make_directories_exceptions(cleanup_after_test):
 
 def test_download_example_data(temp_dir, make_folders, cleanup_after_test):
     example_dir = str(Path(temp_dir, "test_examples"))
-    cache_dir = str(Path(temp_dir, "test_cache"))
-    sps.download_example_data(example_dir, cache_dir)
+    sps.download_example_data(example_dir)
     assert Path(example_dir).exists()
     assert Path(cache_dir).exists()
     assert Path(example_dir, "soundscape.wav").is_file()
@@ -117,17 +116,15 @@ def test_download_example_data(temp_dir, make_folders, cleanup_after_test):
 
 def test_download_example_data_exceptions(make_folders, cleanup_after_test):
     example_dir = "test_examples_nonexistent"
-    cache_dir = "test_cache"
     with pytest.raises(
         FileNotFoundError, match="The folder test_examples_nonexistent does not exist"
     ):
-        sps.download_example_data(example_dir, cache_dir)
+        sps.download_example_data(example_dir)
 
 
 def test_download_model_files(temp_dir, make_folders):
     model_dir = str(Path(temp_dir, "test_models"))
-    cache_dir = str(Path(temp_dir, "test_cache"))
-    sps.download_model_files(model_dir, cache_dir)
+    sps.download_model_files(model_dir)
     assert Path(model_dir).exists()
     assert Path(cache_dir).exists()
     assert Path(model_dir, "birdnet_default", "model.tflite").is_file()
