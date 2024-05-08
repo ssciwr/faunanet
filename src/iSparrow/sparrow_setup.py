@@ -52,8 +52,8 @@ def make_directories(base_cfg_dirs: dict):
     iscache = Path(user_cache_dir()) / "iSparrow"
 
     if os.getenv("SPARROW_TEST_MODE") == "True":
-        iscfg = Path(user_config_dir()) / "iSparrow_test"
-        iscache = Path(user_cache_dir()) / "iSparrow_test"
+        iscfg = Path(user_config_dir()) / "iSparrow_tests"
+        iscache = Path(user_cache_dir()) / "iSparrow_tests"
 
     for p in [ish, ism, iso, ise, iscfg, iscache]:
         p.mkdir(parents=True, exist_ok=True)
@@ -104,7 +104,7 @@ def download_model_files(model_dir: str = "models", cache_dir: str = "iSparrow")
     }
 
     models_data = pooch.create(
-        path=cache_dir,
+        path=pooch.os_cache("iSparrow_downloads"),
         base_url="https://huggingface.co/MaHaWo/iSparrow_test_models/resolve/main",
         registry=(model_file_names | label_file_names | model_code | preprocessor_code),
     )
@@ -209,7 +209,7 @@ def download_example_data(example_dir: str = "examples", cache_dir: str = "iSpar
     }
 
     example_data = pooch.create(
-        path=cache_dir,
+        path=pooch.os_cache("iSparrow_downloads"),
         base_url="https://huggingface.co/datasets/MaHaWo/iSparrow_test_data/resolve/main",
         registry=example_data_file_names,
     )
@@ -224,12 +224,13 @@ def download_example_data(example_dir: str = "examples", cache_dir: str = "iSpar
 
 def set_up_sparrow(custom_config: str = None):
     """
-    set_up_sparrow _summary_
-
-    _extended_summary_
+    set_up_sparrow Set up the iSparrow directories and download the necessary data. This is required to run before anything else is done with iSparrow.
 
     Args:
-        custom_config (str, optional): _description_. Defaults to None.
+        custom_config (str, optional): Path to a custom installation file. See the 'install.yml' file provided with this package for possible customization options. Defaults to None.
+
+    Raises:
+        FileExistsError: When there is an existing iSparrow installation.
     """
     print("Creating iSparrow folders and downloading data... ")
 
@@ -237,16 +238,26 @@ def set_up_sparrow(custom_config: str = None):
     install_cfg = utils.read_yaml(packagebase / "install.yml")
 
     if custom_config is not None:
-        custom_install_config = utils.read_yaml(custom_config / "install.yml")
+        custom_install_config = utils.read_yaml(custom_config)
         utils.update_dict_leafs_recursive(install_cfg, custom_install_config)
+
+    for key in ["home", "models", "output"]:
+        if Path(install_cfg["Directories"][key]).expanduser().resolve().exists():
+            raise FileExistsError(
+                f"{key} directory already exists. Please remove it before running the installation."
+            )
 
     home, models, output, examples, config, cache = make_directories(
         install_cfg["Directories"]
     )
 
+    if Path(config, "install.yml").exists():
+        raise FileExistsError(
+            "An iSparrow installation already exists. Please remove it before running the installation."
+        )
+
     with open(Path(config) / "install.yml", "w") as yfile:
         yaml.safe_dump(install_cfg, yfile)
-
     shutil.copy(packagebase / "default.yml", config)
 
     download_model_files(model_dir=models.resolve(), cache_dir=cache.resolve())

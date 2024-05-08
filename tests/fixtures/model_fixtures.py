@@ -3,17 +3,16 @@ from pathlib import Path
 import yaml
 import pytest
 import pandas as pd
-import iSparrow.sparrow_setup as sps
 
 
 class ModelFixture:
 
-    def __init__(self):
+    def __init__(self, home, output, models):
         self.filepath = Path(__file__).resolve()
         self.testpath = self.filepath.parent.parent
-        self.home = Path(sps.SPARROW_HOME)
-        self.output = Path(sps.SPARROW_OUTPUT)
-        self.models_folder = self.home / "models"
+        self.home = Path(home)
+        self.output = Path(output)
+        self.models_folder = Path(models)
 
         with open(self.testpath / Path("test_configs") / "cfg_custom.yml", "r") as file:
             self.custom_cfg = yaml.safe_load(file)
@@ -118,8 +117,3 @@ class ModelFixture:
             .reset_index(drop=False)
             .rename(columns={"SCI_NAME": "scientific_name", "label": "labels"})
         )
-
-
-@pytest.fixture
-def model_fx():
-    return ModelFixture()

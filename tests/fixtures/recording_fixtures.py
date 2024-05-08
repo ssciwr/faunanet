@@ -4,21 +4,20 @@ import yaml
 import pandas as pd
 
 from iSparrow import utils
-import iSparrow.sparrow_setup as sps
 
 
 class RecordingFixture:
     """Provides data to execute recording tests"""
 
-    def __init__(self):
+    def __init__(self, home, models, examples):
         filepath = Path(__file__).resolve()
         self.testpath = filepath.parent.parent
 
-        self.home = sps.SPARROW_HOME
+        self.home = home
 
-        self.models_folder = sps.SPARROW_MODELS
+        self.models_folder = models
 
-        self.example_folder = sps.SPARROW_EXAMPLES
+        self.example_folder = examples
 
         with open(self.testpath / Path("test_configs") / "cfg_custom.yml", "r") as file:
             self.custom_cfg = yaml.safe_load(file)
@@ -150,8 +149,3 @@ class RecordingFixture:
             .sort_values(by="confidence", ascending=False)
             .reset_index(drop=True)
         )
-
-
-@pytest.fixture
-def recording_fx():
-    return RecordingFixture()

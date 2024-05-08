@@ -3,14 +3,15 @@ from pathlib import Path
 import pytest
 import shutil
 import tempfile
+from platformdirs import user_cache_dir, user_config_dir
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def temp_dir():
     yield tempfile.mkdtemp()
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture()
 def cleanup_after_test(temp_dir):
     yield  # This is where the test runs
 
@@ -23,8 +24,28 @@ def cleanup_after_test(temp_dir):
         "test_cache",
         "test_config",
     ]:
+        print("deleting folder @", Path(temp_dir, path))
         if Path(temp_dir, path).exists():
             shutil.rmtree(Path(temp_dir, path))
+
+
+@pytest.fixture()
+def clean_up_test_installation():
+    yield  # This is where the test runs
+
+    # clean up stuff
+    for path in [
+        Path("~/iSparrow_tests").expanduser(),
+        Path("~/iSparrow_tests_data").expanduser(),
+        Path("~/iSparrow_tests/models").expanduser(),
+        Path("~/iSparrow_tests/example").expanduser(),
+        Path("~/iSparrow_tests_output").expanduser(),
+        Path(user_cache_dir()) / "iSparrow_tests",
+        Path(user_config_dir()) / "iSparrow_tests",
+    ]:
+        print("deleting folder @", path)
+        if path.exists():
+            shutil.rmtree(path)
 
 
 @pytest.fixture()
@@ -34,10 +55,11 @@ def make_folders(temp_dir):
         "test_examples",
         "test_cache",
     ]:
+        print("making folder @", Path(temp_dir, path))
         Path(temp_dir, path).mkdir(parents=True, exist_ok=True)
 
 
-def test_make_directories(temp_dir):
+def test_make_directories(temp_dir, cleanup_after_test):
     base_cfg_dirs = {
         "home": str(Path(temp_dir, "test_home")),
         "models": str(Path(temp_dir, "test_models")),
@@ -53,7 +75,7 @@ def test_make_directories(temp_dir):
     assert iscache.exists()
 
 
-def test_make_directories_exceptions():
+def test_make_directories_exceptions(cleanup_after_test):
     base_cfg_dirs = {"models": "test_models", "output": "test_output"}
 
     with pytest.raises(
@@ -81,7 +103,7 @@ def test_make_directories_exceptions():
         sps.make_directories(base_cfg_dirs)
 
 
-def test_download_example_data(temp_dir, make_folders):
+def test_download_example_data(temp_dir, make_folders, cleanup_after_test):
     example_dir = str(Path(temp_dir, "test_examples"))
     cache_dir = str(Path(temp_dir, "test_cache"))
     sps.download_example_data(example_dir, cache_dir)
@@ -93,7 +115,7 @@ def test_download_example_data(temp_dir, make_folders):
     assert Path(example_dir, "species_list.txt").is_file()
 
 
-def test_download_example_data_exceptions(make_folders):
+def test_download_example_data_exceptions(make_folders, cleanup_after_test):
     example_dir = "test_examples_nonexistent"
     cache_dir = "test_cache"
     with pytest.raises(
@@ -113,7 +135,7 @@ def test_download_model_files(temp_dir, make_folders):
     assert Path(model_dir, "google_perch", "saved_model.pb").is_file()
 
 
-def test_download_model_files_exceptions(make_folders):
+def test_download_model_files_exceptions(make_folders, cleanup_after_test):
     model_dir = "test_models_nonexistent"
     cache_dir = "test_cache"
     with pytest.raises(
@@ -122,8 +144,8 @@ def test_download_model_files_exceptions(make_folders):
         sps.download_model_files(model_dir, cache_dir)
 
 
-def test_setup_simple():
-    filepath = Path(__file__).parent / "test_configs"
+def test_setup(clean_up_test_installation):
+    filepath = Path(__file__).parent / "test_configs" / "install.yml"
 
     sps.set_up_sparrow(filepath)
 

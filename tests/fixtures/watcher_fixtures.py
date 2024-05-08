@@ -5,18 +5,17 @@ import time
 from datetime import datetime
 from iSparrow.utils import wait_for_file_completion
 from iSparrow import SparrowWatcher
-import iSparrow.sparrow_setup as sps
 from copy import deepcopy
 
 
 class WatchFixture:
 
-    def __init__(self):
+    def __init__(self, home: str, data: str, output: str, models: str):
 
-        self.home = Path(sps.SPARROW_HOME)
-        self.data = Path.home() / "iSparrow_tests_data"
-        self.output = Path(sps.SPARROW_OUTPUT)
-        self.models = Path(sps.SPARROW_MODELS)
+        self.home = home
+        self.data = data
+        self.output = output
+        self.models = models
         self.data.mkdir(parents=True, exist_ok=True)
         self.output.mkdir(parents=True, exist_ok=True)
 
@@ -90,6 +89,9 @@ class WatchFixture:
             }
         }
 
+    # below are helper functions for the watcher test that are mainly there
+    # to keep the test code clean and more readable and avoid repetition
+
     def mock_recorder(self, home: str, data: str, number=10, sleep_for=4):
 
         for i in range(0, number, 1):
@@ -104,6 +106,7 @@ class WatchFixture:
             wait_for_file_completion(Path(data) / Path(f"example_{i}.wav"))
 
     def make_watcher(self, **kwargs):
+        # README: the only reason this exists is because SonarCloud is complaining about code repetition
         return SparrowWatcher(
             self.data,
             self.output,
@@ -140,9 +143,3 @@ class WatchFixture:
         for f in files:
             if (watcher.input / f).exists():
                 (watcher.input / f).unlink()
-
-
-@pytest.fixture()
-def watch_fx():
-    w = WatchFixture()
-    return w

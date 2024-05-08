@@ -16,18 +16,10 @@ def test_default_model_construction(model_fx):
     )
 
     assert model.model_path == str(
-        Path.home()
-        / Path("iSparrow_tests")
-        / Path("models")
-        / Path("birdnet_default")
-        / "model.tflite"
+        mfx.models_folder / Path("birdnet_default") / "model.tflite"
     )
     assert model.labels_path == str(
-        Path.home()
-        / Path("iSparrow_tests")
-        / Path("models")
-        / Path("birdnet_default")
-        / "labels.txt"
+        mfx.models_folder / Path("birdnet_default") / "labels.txt"
     )
     assert model.sensitivity == pytest.approx(1.0)
     assert model.input_layer_index == 0
@@ -43,33 +35,17 @@ def test_custom_model_construction(model_fx):
     )
 
     assert model.default_model_path == str(
-        Path.home()
-        / Path("iSparrow_tests")
-        / Path("models")
-        / Path("birdnet_default")
-        / "model.tflite"
+        mfx.models_folder / Path("birdnet_default") / "model.tflite"
     )
     assert model.default_labels_path == str(
-        Path.home()
-        / Path("iSparrow_tests")
-        / Path("models")
-        / Path("birdnet_default")
-        / "labels.txt"
+        mfx.models_folder / Path("birdnet_default") / "labels.txt"
     )
 
     assert model.model_path == str(
-        Path.home()
-        / Path("iSparrow_tests")
-        / Path("models")
-        / Path("birdnet_custom")
-        / "model.tflite"
+        mfx.models_folder / Path("birdnet_custom") / "model.tflite"
     )
     assert model.labels_path == str(
-        Path.home()
-        / Path("iSparrow_tests")
-        / Path("models")
-        / Path("birdnet_custom")
-        / "labels.txt"
+        mfx.models_folder / Path("birdnet_custom") / "labels.txt"
     )
 
     assert model.sensitivity == pytest.approx(1.0)
@@ -86,19 +62,11 @@ def test_google_model_construction(model_fx):
     )
 
     assert model.model_path == str(
-        Path.home()
-        / Path("iSparrow_tests")
-        / Path("models")
-        / Path("google_perch")
-        / "saved_model.pb"
+        mfx.models_folder / Path("google_perch") / "saved_model.pb"
     )
 
     assert model.labels_path == str(
-        Path.home()
-        / Path("iSparrow_tests")
-        / Path("models")
-        / Path("google_perch")
-        / "labels.txt"
+        mfx.models_folder / Path("google_perch") / "labels.txt"
     )
 
     assert model.sensitivity == pytest.approx(1.0)
