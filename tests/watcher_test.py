@@ -345,12 +345,6 @@ def test_watcher_integrated_simple(watch_fx):
 
     recorder_process.join()
 
-    wfx.wait_for_event_then_do(
-        condition=lambda: recorder_process.is_alive() is False,
-        todo_event=lambda: recorder_process.terminate(),
-        todo_else=lambda: time.sleep(0.2),
-    )
-
     recorder_process.close()
 
     filename = watcher.output / f"results_example_{number_of_files-1}.csv"
@@ -418,7 +412,6 @@ def test_watcher_integrated_delete_always(watch_fx):
 
     # the following makes
     recorder_process.join()
-
     recorder_process.close()
 
     assert watcher.is_running is False
@@ -651,6 +644,8 @@ def test_change_analyzer_recovery(watch_fx, mocker):
     assert old_cfg["Analysis"]["Model"] == new_cfg["Analysis"]["Model"]
     assert old_cfg["Analysis"]["Preprocessor"] == new_cfg["Analysis"]["Preprocessor"]
     assert old_cfg["Analysis"]["Recording"] == new_cfg["Analysis"]["Recording"]
+    recorder_process.join()
+    recorder_process.close()
 
 
 def test_change_analyzer_exception(watch_fx, mocker):
@@ -718,3 +713,5 @@ def test_change_analyzer_exception(watch_fx, mocker):
     assert watcher.species_predictor_config == old_species_predictor_cfg
 
     watcher.stop()
+    recorder_process.join()
+    recorder_process.close()
