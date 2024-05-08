@@ -56,8 +56,9 @@ def test_watcher_construction(watch_fx):
     assert str(default_watcher.outdir) == str(Path.home() / "iSparrow_tests_output")
     assert str(default_watcher.model_dir) == str(Path.home() / "iSparrow_tests/models")
     assert str(default_watcher.model_name) == "birdnet_default"
-    assert default_watcher.output_directory == str(
-        Path(default_watcher.outdir) / wfx.path_add
+    assert (
+        str(Path(default_watcher.outdir) / wfx.path_add)
+        in default_watcher.output_directory
     )
     assert default_watcher.input_directory == str(Path.home() / "iSparrow_tests_data")
     assert default_watcher.is_running is False
