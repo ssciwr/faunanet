@@ -133,13 +133,3 @@ class WatchFixture:
                 break
             else:
                 todo_else()
-
-    def delete_in_output(self, watcher, files: list):
-        for f in files:
-            if (watcher.output / f).exists():
-                (watcher.output / f).unlink()
-
-    def delete_in_input(self, watcher, files: list):
-        for f in files:
-            if (watcher.input / f).exists():
-                (watcher.input / f).unlink()

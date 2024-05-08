@@ -473,7 +473,9 @@ def test_watcher_integrated_delete_never(watch_fx):
     assert watcher.is_running is False
     assert watcher.watcher_process is None
 
-    wfx.delete_in_output(watcher, ["results_example_6.csv", "results_example_5.csv"])
+    for f in ["results_example_6.csv", "results_example_5.csv"]:
+        if (watcher.output / f).exists():
+            (watcher.output / f).unlink()
 
     data = wfx.get_folder_content(watcher.input_directory, ".wav")
 
@@ -485,7 +487,7 @@ def test_watcher_integrated_delete_never(watch_fx):
 
 
 def test_change_analyzer(watch_fx):
-    _, wfx = watch_fx
+    directories, wfx = watch_fx
 
     watcher = wfx.make_watcher(
         delete_recordings="never",
@@ -539,7 +541,7 @@ def test_change_analyzer(watch_fx):
     assert watcher.recording_config == wfx.changed_custom_recording_cfg
     assert watcher.is_running is True
     assert watcher.watcher_process is not None
-    assert watcher.input_directory == str(Path.home() / "iSparrow_tests_data")
+    assert watcher.input_directory == str(directories["data"])
     assert watcher.output.is_dir() is True  # not yet created
     assert (watcher.model_dir / watcher.model_name).is_dir()
     assert watcher.pattern == ".wav"
