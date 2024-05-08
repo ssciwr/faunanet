@@ -40,14 +40,12 @@ def install(request):
     DATA = Path.home() / "iSparrow_tests_data"
     DATA.mkdir(parents=True, exist_ok=True)
 
-    print("cache: ", CACHE)
-
     # remove again after usage
     def teardown():
         shutil.rmtree(str(DATA), ignore_errors=True)
         shutil.rmtree(str(OUTPUT), ignore_errors=True)
         shutil.rmtree(str(HOME), ignore_errors=True)
         shutil.rmtree(str(CONFIG), ignore_errors=True)
-        # shutil.rmtree(str(CACHE))
+        shutil.rmtree(str(CACHE), ignore_errors=True)
 
     request.addfinalizer(teardown)
