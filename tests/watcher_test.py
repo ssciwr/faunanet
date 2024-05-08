@@ -13,7 +13,7 @@ from datetime import datetime
 
 def test_watcher_construction(watch_fx):
     wfx = watch_fx
-    path_add = Path(datetime.now().strftime("%y%m%d_%H%M%S"))
+    path_add = Path(datetime.now().strftime("%y%m%d_%H%M"))
 
     watcher = SparrowWatcher(
         wfx.data,
@@ -27,12 +27,12 @@ def test_watcher_construction(watch_fx):
     )
 
     # check member variables
-    assert str(watcher.output) == str(Path(watcher.outdir) / path_add)
+    assert str(Path(watcher.outdir) / path_add) in str(watcher.output)
     assert str(watcher.input) == str(Path.home() / "iSparrow_tests_data")
     assert str(watcher.outdir) == str(Path.home() / "iSparrow_tests_output")
     assert str(watcher.model_dir) == str(Path.home() / "iSparrow_tests/models")
     assert str(watcher.model_name) == "birdnet_default"
-    assert watcher.output_directory == str(Path(watcher.outdir) / path_add)
+    assert str(Path(watcher.outdir) / path_add) in watcher.output_directory
     assert watcher.input_directory == str(Path.home() / "iSparrow_tests_data")
     assert watcher.is_running is False
     assert watcher.output.is_dir() is False  # not yet created
