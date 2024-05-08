@@ -5,6 +5,8 @@ import shutil
 import tempfile
 from platformdirs import user_cache_dir, user_config_dir
 
+tflite_file = "model.tflite"
+
 
 @pytest.fixture()
 def temp_dir():
@@ -24,7 +26,6 @@ def cleanup_after_test(temp_dir):
         "test_cache",
         "test_config",
     ]:
-        print("deleting folder @", Path(temp_dir, path))
         if Path(temp_dir, path).exists():
             shutil.rmtree(Path(temp_dir, path))
 
@@ -55,8 +56,9 @@ def make_folders(temp_dir):
         "test_examples",
         "test_cache",
     ]:
-        print("making folder @", Path(temp_dir, path))
         Path(temp_dir, path).mkdir(parents=True, exist_ok=True)
+
+    yield
 
 
 def test_make_directories(temp_dir, cleanup_after_test):
@@ -105,9 +107,10 @@ def test_make_directories_exceptions(cleanup_after_test):
 
 def test_download_example_data(temp_dir, make_folders, cleanup_after_test):
     example_dir = str(Path(temp_dir, "test_examples"))
+
     sps.download_example_data(example_dir)
+
     assert Path(example_dir).exists()
-    assert Path(cache_dir).exists()
     assert Path(example_dir, "soundscape.wav").is_file()
     assert Path(example_dir, "corrupted.wav").is_file()
     assert Path(example_dir, "trimmed.wav").is_file()
@@ -126,19 +129,17 @@ def test_download_model_files(temp_dir, make_folders):
     model_dir = str(Path(temp_dir, "test_models"))
     sps.download_model_files(model_dir)
     assert Path(model_dir).exists()
-    assert Path(cache_dir).exists()
-    assert Path(model_dir, "birdnet_default", "model.tflite").is_file()
-    assert Path(model_dir, "birdnet_custom", "model.tflite").is_file()
+    assert Path(model_dir, "birdnet_default", tflite_file).is_file()
+    assert Path(model_dir, "birdnet_custom", tflite_file).is_file()
     assert Path(model_dir, "google_perch", "saved_model.pb").is_file()
 
 
 def test_download_model_files_exceptions(make_folders, cleanup_after_test):
     model_dir = "test_models_nonexistent"
-    cache_dir = "test_cache"
     with pytest.raises(
         FileNotFoundError, match="The folder test_models_nonexistent does not exist"
     ):
-        sps.download_model_files(model_dir, cache_dir)
+        sps.download_model_files(model_dir)
 
 
 def test_setup(clean_up_test_installation):
@@ -153,7 +154,7 @@ def test_setup(clean_up_test_installation):
     assert sps.SPARROW_CONFIG.exists()
     assert sps.SPARROW_CACHE.exists()
 
-    assert (sps.SPARROW_MODELS / "birdnet_default" / "model.tflite").is_file()
-    assert (sps.SPARROW_MODELS / "birdnet_custom" / "model.tflite").is_file()
+    assert (sps.SPARROW_MODELS / "birdnet_default" / tflite_file).is_file()
+    assert (sps.SPARROW_MODELS / "birdnet_custom" / tflite_file).is_file()
     assert (sps.SPARROW_MODELS / "google_perch" / "saved_model.pb").is_file()
     assert (sps.SPARROW_CONFIG / "install.yml").is_file()

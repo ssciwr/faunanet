@@ -259,6 +259,10 @@ def set_up_sparrow(custom_config: str = None):
     )
 
     if Path(config, "install.yml").exists():
+        for dir in [home, models, output, examples, config, cache]:
+            if Path(dir).exists():
+                shutil.rmtree(dir)
+
         raise FileExistsError(
             "An iSparrow installation already exists. Please remove it before running the installation."
         )
