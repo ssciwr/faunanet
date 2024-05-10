@@ -8,6 +8,8 @@ from math import isclose
 import multiprocessing
 import time
 from datetime import datetime
+import random
+import shutil
 
 
 def test_watcher_construction(watch_fx):
@@ -638,7 +640,7 @@ def test_change_analyzer_recovery(watch_fx, mocker):
         )
     except RuntimeError as e:
         e == RuntimeError(
-            "Error when restarting the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss."
+            "Error when while trying to change the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss."
         )
         watcher.start()
 
@@ -764,7 +766,7 @@ def test_change_analyzer_exception(watch_fx, mocker):
 
     with pytest.raises(
         RuntimeError,
-        match="Error when restarting the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss.",
+        match="Error when while trying to change the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss.",
     ):
         watcher.change_analyzer(
             "birdnet_custom",
@@ -777,7 +779,7 @@ def test_change_analyzer_exception(watch_fx, mocker):
     recorder_process.close()
 
 
-def test_cleanup(
+def test_cleanup_simple(
     watch_fx,
 ):
     wfx = watch_fx
@@ -840,7 +842,7 @@ def test_cleanup(
 
     assert set([f.name for f in old_output.iterdir() if f.suffix == ".yml"]) == set(
         [
-            'batch_info.yml',
+            "batch_info.yml",
             "config.yml",
         ]
     )
@@ -865,7 +867,7 @@ def test_cleanup(
     filename = watcher.input / f"example_{16}.wav"
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file(),
-        todo_event=lambda: watcher.stop(), 
+        todo_event=lambda: watcher.stop(),
         todo_else=lambda: time.sleep(0.2),
     )
 
@@ -881,7 +883,7 @@ def test_cleanup(
 
     assert set([f.name for f in watcher.output.iterdir() if f.suffix == ".yml"]) == set(
         [
-            "batch_info.yml", 
+            "batch_info.yml",
             "config.yml",
         ]
     )
@@ -906,10 +908,134 @@ def test_cleanup(
     assert set(old_files + post_cleanup_files) == set(all_files)
 
 
+def test_cleanup_many_folders(watch_fx):
+    # this tests the cleanup method across multiple input and output folders
+    number_of_files = 20
+    sleep_for = 3
+    stop_inds = [6, 12]
+    outputfolders = []
+
+    wfx = watch_fx
+    watcher = wfx.make_watcher(delete_recordings="always")
+
+    old_input = watcher.input
+
+    # function to create multiple folders of input data and puts the results into multiple output folders in which data is missing
+    def create_dummy_output(watcher: SparrowWatcher, input: Path):
+        recorder_process = multiprocessing.Process(
+            target=wfx.mock_recorder,
+            args=(wfx.home, input, number_of_files, sleep_for),
+        )
+
+        recorder_process.daemon = True
+        watcher.input = input
+        watcher.start()
+        outputfolders.append(watcher.output)
+
+        wfx.wait_for_event_then_do(
+            condition=lambda: watcher.is_running,
+            todo_event=lambda: recorder_process.start(),
+            todo_else=lambda: time.sleep(0.25),
+        )
+
+        for i in range(0, len(stop_inds)):
+            wfx.wait_for_event_then_do(
+                condition=lambda idx=i: (
+                    watcher.input / f"example_{stop_inds[idx]}.wav"
+                ).is_file()
+                and wait_for_file_completion(
+                    watcher.input / f"example_{stop_inds[idx]}.wav"
+                ),
+                todo_event=lambda: watcher.stop(),
+                todo_else=lambda: time.sleep(0.2),
+            )
+            time.sleep(6)
+            watcher.start()
+            outputfolders.append(watcher.output)
+
+        wfx.wait_for_event_then_do(
+            condition=lambda idx=i: (
+                watcher.input / f"example_{number_of_files - 3}.wav"
+            ).is_file()
+            and wait_for_file_completion(
+                watcher.input / f"example_{number_of_files - 3}.wav"
+            ),
+            todo_event=lambda: watcher.stop(),
+            todo_else=lambda: time.sleep(0.2),
+        )
+        recorder_process.join()
+        recorder_process.close()
+
+    create_dummy_output(watcher, old_input)
+
+    new_input = Path(watcher.input.parent, f"test_{2}")
+    new_input.mkdir(exist_ok=True, parents=True)
+
+    create_dummy_output(watcher, new_input)
+
+    num_wav_files = sum(
+        1
+        for inputdir in [old_input, new_input]
+        for f in inputdir.iterdir()
+        if f.is_file() and f.suffix == ".wav"
+    )
+    num_csv_files = sum(
+        1
+        for out in outputfolders
+        for f in out.iterdir()
+        if f.is_file() and f.suffix == ".csv"
+    )
+
+    expected_missings = num_wav_files
+
+    assert 0 < num_wav_files < 2 * number_of_files
+    assert 0 < num_csv_files < 2 * number_of_files
+
+    for out in outputfolders:
+        assert out / "batch_info.yml" in out.iterdir()
+        assert out / "config.yml" in out.iterdir()
+
+    watcher.clean_up()
+    num_wav_files = sum(
+        1
+        for inputdir in [old_input, new_input]
+        for f in inputdir.iterdir()
+        if f.is_file() and f.suffix == ".wav"
+    )
+    num_csv_files = sum(
+        1
+        for out in outputfolders
+        for f in out.iterdir()
+        if f.is_file() and f.suffix == ".csv"
+    )
+
+    assert num_wav_files == 0
+    assert num_csv_files == 2 * number_of_files
+
+    actual_missings = 0
+    for out in outputfolders:
+        assert out / "missings.txt" in list(out.iterdir())
+
+        with open(out / "missings.txt", "r") as f:
+            missings = f.readlines()
+        assert len(missings) > 0
+        actual_missings += len(missings)
+
+    assert expected_missings == actual_missings
+
+    shutil.rmtree(new_input)
+
+
 def test_cleanup_exceptions(watch_fx, mocker):
     wfx = watch_fx
 
     watcher = wfx.make_watcher()
+
+    with pytest.raises(
+        RuntimeError,
+        match="No output folders found to clean up",
+    ):
+        watcher.clean_up()
 
     number_of_files = 8
 
@@ -930,9 +1056,9 @@ def test_cleanup_exceptions(watch_fx, mocker):
         todo_else=lambda: time.sleep(0.25),
     )
 
-    with pytest.raises(
-        RuntimeError,
-        match="The watcher process is still running and there is no previous output directory to run clean_up on.",
+    with pytest.warns(
+        UserWarning,
+        match="Cannot clean up current output directory while watcher is running",
     ):
         watcher.clean_up()
 

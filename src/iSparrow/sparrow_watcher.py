@@ -211,6 +211,56 @@ class SparrowWatcher:
         # species predictor is applied here once and then used for all the analysis calls that may follow
         return SparrowRecording(preprocessor, model, "", **recording_config)
 
+    def _restore_old_state(self, old_state: dict):
+        """
+        _restore_old_state _summary_
+
+        Args:
+            old_state (dict): _description_
+        """
+        self.model_name = old_state["model_name"]
+        self.preprocessor_config = old_state["preprocessor_config"]
+        self.model_config = old_state["model_config"]
+        self.recording_config = old_state["recording_config"]
+        self.species_predictor_config = old_state["species_predictor_config"]
+        self.pattern = old_state["pattern"]
+        self.check_time = old_state["check_time"]
+        self.delete_recordings = old_state["delete_recordings"]
+
+    @contextmanager
+    def _backup_and_restore_state(self) -> dict:
+        """
+        _backup_and_restore_state Helper context manager that creates a backup of the current object state and restores it in case of an error.
+
+        Raises:
+            RuntimeError When an error occurs during the restart of the watcher process.
+
+        Yields:
+            dict: Dictionary containing the old state of the calling object
+        """
+        old_state = {
+            "model_name": deepcopy(self.model_name),
+            "preprocessor_config": deepcopy(self.preprocessor_config),
+            "model_config": deepcopy(self.model_config),
+            "recording_config": deepcopy(self.recording_config),
+            "species_predictor_config": deepcopy(self.species_predictor_config),
+            "pattern": deepcopy(self.pattern),
+            "check_time": self.check_time,
+            "delete_recordings": self.delete_recordings,
+        }
+
+        try:
+            yield old_state
+        except Exception as e:
+            self._restore_old_state(old_state)
+
+            if self.is_running:
+                self.stop()
+
+            raise RuntimeError(
+                "Error when while trying to change the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss."
+            ) from e
+
     def __init__(
         self,
         indir: str,
@@ -503,52 +553,6 @@ class SparrowWatcher:
         else:
             raise RuntimeError("Cannot stop watcher process, is not alive anymore.")
 
-    def _restore_old_state(self, old_state: dict):
-        self.model_name = old_state["model_name"]
-        self.preprocessor_config = old_state["preprocessor_config"]
-        self.model_config = old_state["model_config"]
-        self.recording_config = old_state["recording_config"]
-        self.species_predictor_config = old_state["species_predictor_config"]
-        self.pattern = old_state["pattern"]
-        self.check_time = old_state["check_time"]
-        self.delete_recordings = old_state["delete_recordings"]
-
-    @contextmanager
-    def _backup_and_restore_state(self):
-        """
-        _backup_and_restore_state _summary_
-
-        _extended_summary_
-
-        Raises:
-            RuntimeError: _description_
-
-        Yields:
-            _type_: _description_
-        """
-        old_state = {
-            "model_name": deepcopy(self.model_name),
-            "preprocessor_config": deepcopy(self.preprocessor_config),
-            "model_config": deepcopy(self.model_config),
-            "recording_config": deepcopy(self.recording_config),
-            "species_predictor_config": deepcopy(self.species_predictor_config),
-            "pattern": deepcopy(self.pattern),
-            "check_time": self.check_time,
-            "delete_recordings": self.delete_recordings,
-        }
-
-        try:
-            yield old_state
-        except Exception as e:
-            self._restore_old_state(old_state)
-
-            if self.is_running:
-                self.stop()
-
-            raise RuntimeError(
-                "Error when restarting the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss."
-            ) from e
-
     def change_analyzer(
         self,
         model_name: str,
@@ -643,21 +647,19 @@ class SparrowWatcher:
                     f"Error when cleaning up data after analyzer change, watcher is {status}. The cause was {cause}. This error may have lead to corrupt data in newly created analysis files."
                 ) from e
 
-    def _get_clean_up_limits(self, older_output: str, newer_output: str):
+    def _get_clean_up_limits(self, older_output: str, newer_output: str) -> tuple:
         """
-        _get_clean_up_limits _summary_
-
-        _extended_summary_
+        _get_clean_up_limits Determine the lower and upper time limit for the clean up of the older output directory.
 
         Args:
-            older_output (str): _description_
-            newer_output (str): _description_
+            older_output (str): Older output folder that is actually cleaned up.
+            newer_output (str): Newer output folder that is used to determine the upper time limit for the clean up.
 
         Raises:
-            RuntimeError: _description_
+            RuntimeError: When the newer output directory is not the currently worked on, but also has no batch info file.
 
         Returns:
-            _type_: _description_
+            tuple: (lower time limit, upper time limit) pair of timestamps to use for the clean up.
         """
         with open(older_output / self.batchfile_name, "r") as batch_info:
             lower_limit = yaml.safe_load(batch_info)["last"]
@@ -680,17 +682,19 @@ class SparrowWatcher:
 
     def _clean_up_between(self, older_output: str, newer_output: str):
         """
-        _clean_up_between _summary_
-
-        _extended_summary_
+        _clean_up_between Run clean up on the older output directory between the last analyzed file and the first analyzed file in the newer output directory.
+                          This function assumes that older_output and newer_output are consecutive output directories of the watcher process. Passing it
+                          non-consecutive directories is undefined and may lead to unexpected results.
+                          If newer_output is None, the current time is used as upper limit and all files in the older output directory are analyzed that have
+                          not been analyzed by the current process.
 
         Args:
-            older_output (str): _description_
-            newer_output (str): _description_
+            older_output (str): Older output directory. This is done one that gets cleaned up.
+            newer_output (str): Newer output directory. This is used to determine the upper limit time for the clean up.
         """
         if older_output == self.output and self.is_running:
             warnings.warn(
-                "cannot clean up current output directory while watcher is running"
+                "Cannot clean up current output directory while watcher is running"
             )
             return
 
@@ -735,18 +739,20 @@ class SparrowWatcher:
 
     def clean_up(self):
         """
-        clean_up Run cleanup on all output folders consecutively
+        clean_up Run cleanup on the all the output directories of the watcher process that reside in the current output base directory.
 
-        _extended_summary_
         """
         folders = sorted(
             filter(lambda f: f.is_file() is False, list(self.outdir.iterdir())),
             key=lambda x: x.stat().st_ctime,
         )
-        folders.append(None)  # add dummy pair to include the last folder
 
-        if len(folders) == 0:
-            return
+        folders.append(None)  # add dummy to include the last folder
+
+        if folders == [
+            None,
+        ]:
+            raise RuntimeError("No output folders found to clean up")
         else:
             for i in range(1, len(folders)):
                 self._clean_up_between(folders[i - 1], folders[i])
