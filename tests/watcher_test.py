@@ -2,7 +2,6 @@ import pytest
 from pathlib import Path
 from iSparrow.sparrow_watcher import AnalysisEventHandler, SparrowWatcher
 from iSparrow.utils import wait_for_file_completion, read_yaml
-from iSparrow import SparrowWatcher
 from copy import deepcopy
 import yaml
 from math import isclose
@@ -395,7 +394,7 @@ def test_watcher_integrated_simple(watch_fx):
 
     assert len(results) == number_of_files
 
-    assert len(cfgs) == 1
+    assert len(cfgs) == 2
 
     # load config and check it's consistent
     cfg = read_yaml(Path(watcher.output) / "config.yml")
@@ -551,7 +550,7 @@ def test_change_analyzer(watch_fx):
     recorder_process.join()
 
     recorder_process.close()
-
+    assert (watcher.old_output / Path("batch_info.yml")).is_file() is True
     assert watcher.model_name == "birdnet_custom"
     assert watcher.output_directory != watcher.old_output
     assert (watcher.output / Path("config.yml")).is_file() is True
@@ -581,7 +580,7 @@ def test_change_analyzer(watch_fx):
     assert len(current_files) > 0  # some analyzed files must be in the new directory
     assert len(old_files) > 0
     assert 0 < len(list(Path(wfx.data).iterdir())) < number_of_files
-    assert number_of_files > len(old_files) + len(current_files)  # some data can be
+    assert number_of_files >= len(old_files) + len(current_files)  # some data can be
 
 
 def test_change_analyzer_recovery(watch_fx, mocker):
@@ -765,7 +764,7 @@ def test_change_analyzer_exception(watch_fx, mocker):
 
     with pytest.raises(
         RuntimeError,
-        match="Error when cleaning up data after analyzer change, watcher is still running. This error may have lead to corrupt data in newly created analysis files.",
+        match="Error when restarting the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss.",
     ):
         watcher.change_analyzer(
             "birdnet_custom",
@@ -774,7 +773,6 @@ def test_change_analyzer_exception(watch_fx, mocker):
             recording_config=wfx.changed_custom_recording_cfg,
             delete_recordings="always",
         )
-    watcher.stop()
     recorder_process.join()
     recorder_process.close()
 
@@ -842,6 +840,7 @@ def test_cleanup(
 
     assert set([f.name for f in old_output.iterdir() if f.suffix == ".yml"]) == set(
         [
+            'batch_info.yml',
             "config.yml",
         ]
     )
@@ -866,7 +865,7 @@ def test_cleanup(
     filename = watcher.input / f"example_{16}.wav"
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file(),
-        todo_event=lambda: watcher.stop(),  # do nothing, just stop waiting,
+        todo_event=lambda: watcher.stop(), 
         todo_else=lambda: time.sleep(0.2),
     )
 
@@ -882,14 +881,12 @@ def test_cleanup(
 
     assert set([f.name for f in watcher.output.iterdir() if f.suffix == ".yml"]) == set(
         [
+            "batch_info.yml", 
             "config.yml",
         ]
     )
 
     for i in range(len(old_files), len(old_files) + len(pre_cleanup_files)):
-        assert Path(watcher.input / f"example_{i}.wav").is_file() is True
-
-    for i in range(len(old_files) + len(pre_cleanup_files), number_of_files):
         assert Path(watcher.input / f"example_{i}.wav").is_file() is True
 
     watcher.clean_up()

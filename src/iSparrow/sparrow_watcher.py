@@ -12,7 +12,7 @@ import yaml
 import multiprocessing
 import warnings
 import csv
-import time
+from contextlib import contextmanager
 
 
 class AnalysisEventHandler(FileSystemEventHandler):
@@ -290,6 +290,9 @@ class SparrowWatcher:
 
         self.delete_recordings = delete_recordings
 
+        self.first_analyzed = multiprocessing.Value("i", 0)
+        self.last_analyzed = multiprocessing.Value("i", 0)
+
         if preprocessor_config is None:
             preprocessor_config = {}
 
@@ -309,6 +312,8 @@ class SparrowWatcher:
         self.recording_config = deepcopy(recording_config)
 
         self.species_predictor_config = deepcopy(species_predictor_config)
+
+        self.batchfile_name = "batch_info.yml"
 
     @property
     def output_directory(self):
@@ -342,6 +347,11 @@ class SparrowWatcher:
         # make the main process wait on the finish signal to make sure no
         # corrupt files are produced
         self.is_done_analyzing.clear()
+
+        self.last_analyzed.value = int(Path(filename).stat().st_ctime)
+
+        if self.first_analyzed.value == 0:
+            self.first_analyzed.value = self.last_analyzed.value
 
         recording.analyze()
 
@@ -387,6 +397,8 @@ class SparrowWatcher:
         self.old_output = self.output
         self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
         self.output.mkdir(exist_ok=True, parents=True)
+        self.first_analyzed.value = 0
+        self.last_analyzed.value = 0
 
         if self.old_output is None:
             self.old_output = self.output
@@ -404,6 +416,7 @@ class SparrowWatcher:
             self.watcher_process.start()
             self.may_do_work.set()
             self.is_done_analyzing.clear()
+
         except Exception as e:
 
             if self.output.is_dir():
@@ -479,8 +492,62 @@ class SparrowWatcher:
                     "Something went wrong when trying to stop the watcher process"
                 ) from e
 
+            with open(self.output / self.batchfile_name, "w") as batch_info:
+                yaml.safe_dump(
+                    {
+                        "first": self.first_analyzed.value,
+                        "last": self.last_analyzed.value,
+                    },
+                    batch_info,
+                )
         else:
             raise RuntimeError("Cannot stop watcher process, is not alive anymore.")
+
+    def _restore_old_state(self, old_state: dict):
+        self.model_name = old_state["model_name"]
+        self.preprocessor_config = old_state["preprocessor_config"]
+        self.model_config = old_state["model_config"]
+        self.recording_config = old_state["recording_config"]
+        self.species_predictor_config = old_state["species_predictor_config"]
+        self.pattern = old_state["pattern"]
+        self.check_time = old_state["check_time"]
+        self.delete_recordings = old_state["delete_recordings"]
+
+    @contextmanager
+    def _backup_and_restore_state(self):
+        """
+        _backup_and_restore_state _summary_
+
+        _extended_summary_
+
+        Raises:
+            RuntimeError: _description_
+
+        Yields:
+            _type_: _description_
+        """
+        old_state = {
+            "model_name": deepcopy(self.model_name),
+            "preprocessor_config": deepcopy(self.preprocessor_config),
+            "model_config": deepcopy(self.model_config),
+            "recording_config": deepcopy(self.recording_config),
+            "species_predictor_config": deepcopy(self.species_predictor_config),
+            "pattern": deepcopy(self.pattern),
+            "check_time": self.check_time,
+            "delete_recordings": self.delete_recordings,
+        }
+
+        try:
+            yield old_state
+        except Exception as e:
+            self._restore_old_state(old_state)
+
+            if self.is_running:
+                self.stop()
+
+            raise RuntimeError(
+                "Error when restarting the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss."
+            ) from e
 
     def change_analyzer(
         self,
@@ -522,7 +589,6 @@ class SparrowWatcher:
         if self.watcher_process is None or self.is_running is False:
             raise RuntimeError("Watcher not running, cannot change analyzer")
 
-        print("changing analyzer to: ", model_name)
         # import and build new model, pause the analyzer process,
         # change the model, resume the analyzer
         if preprocessor_config is None:
@@ -540,110 +606,111 @@ class SparrowWatcher:
         if (self.model_dir / model_name).is_dir() is False:
             raise ValueError("Given model name does not exist in model dir.")
 
-        old_model_name = self.model_name
-        old_preprocessor_config = deepcopy(self.preprocessor_config)
-        old_model_config = deepcopy(self.model_config)
-        old_recording_config = deepcopy(self.recording_config)
-        old_species_predictor_config = deepcopy(self.species_predictor_config)
-        old_pattern = deepcopy(self.pattern)
-        old_check_time = self.check_time
-        old_delete = self.delete_recordings
-        self.model_name = model_name
-        self.preprocessor_config = preprocessor_config
-        self.model_config = model_config
-        self.recording_config = recording_config
-        self.species_predictor_config = species_predictor_config
-        self.pattern = pattern
-        self.check_time = check_time
-        self.delete_recordings = delete_recordings
+        with self._backup_and_restore_state() as old_state:
+            self.model_name = model_name
+            self.preprocessor_config = preprocessor_config
+            self.model_config = model_config
+            self.recording_config = recording_config
+            self.species_predictor_config = species_predictor_config
+            self.pattern = pattern
+            self.check_time = check_time
+            self.delete_recordings = delete_recordings
 
-        # restart process to make changes take effect
-        try:
             self.restart()
-        except Exception as e:
-            # restore state when something goes wrong
-            self.model_name = old_model_name
-            self.preprocessor_config = old_preprocessor_config
-            self.model_config = old_model_config
-            self.recording_config = old_recording_config
-            self.species_predictor_config = old_species_predictor_config
-            self.pattern = old_pattern
-            self.check_time = old_check_time
-            self.delete_recordings = old_delete
-            self.may_do_work.clear()
-            self.is_done_analyzing.set()
-            if self.is_running:
-                self.stop()
 
-            raise RuntimeError(
-                "Error when restarting the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss."
-            ) from e
+            try:
+                while self.last_analyzed.value <= self.first_analyzed.value:
+                    sleep(5)
+                self.clean_up()
 
-        # run clean up such that there is no gap in analyzed data
-        try:
-            self.clean_up()
-        except Exception as e:
-            status = (
-                "still running"
-                if self.is_running
-                else "not running, any changes have been undone."
-            )
-            if self.is_running is False:
-                self.model_name = old_model_name
-                self.preprocessor_config = old_preprocessor_config
-                self.model_config = old_model_config
-                self.recording_config = old_recording_config
-                self.species_predictor_config = old_species_predictor_config
-                self.pattern = old_pattern
-                self.check_time = old_check_time
-                self.delete_recordings = old_delete
-
-                self.may_do_work.clear()
-                self.is_done_analyzing.set()
-                self.output = Path(self.outdir) / Path(
-                    datetime.now().strftime("%y%m%d_%H%M%S")
+            except Exception as e:
+                status = (
+                    "still running"
+                    if self.is_running
+                    else "not running, any changes have been undone."
                 )
-            raise RuntimeError(
-                f"Error when cleaning up data after analyzer change, watcher is {status}. This error may have lead to corrupt data in newly created analysis files."
-            ) from e
 
-    def clean_up(self):
+                cause = e.__cause__ if e.__cause__ is not None else e
+
+                if self.is_running is False:
+                    self.restore_old_state(old_state)
+                    self.may_do_work.clear()
+                    self.is_done_analyzing.set()
+                    self.output = Path(self.outdir) / Path(
+                        datetime.now().strftime("%y%m%d_%H%M%S")
+                    )
+                raise RuntimeError(
+                    f"Error when cleaning up data after analyzer change, watcher is {status}. The cause was {cause}. This error may have lead to corrupt data in newly created analysis files."
+                ) from e
+
+    def _get_clean_up_limits(self, older_output: str, newer_output: str):
         """
-        clean_up Fix analysis inconsistencies by analysing files that have not been analyzed before in a given batch. If the watcher is running and there is a previous batch folder,
-                 this previous batch will be completed. If there is not and the watcher is not running, the current batch will be completed. No clean_up is performed when
-                 the watcher is running and there is no previous batch folder.
+        _get_clean_up_limits _summary_
+
+        _extended_summary_
+
+        Args:
+            older_output (str): _description_
+            newer_output (str): _description_
 
         Raises:
-            RuntimeError: When this method is called while the watcher is running and no previous batch folder exists
-        """
+            RuntimeError: _description_
 
-        if self.is_running and self.old_output == self.output:
+        Returns:
+            _type_: _description_
+        """
+        with open(older_output / self.batchfile_name, "r") as batch_info:
+            lower_limit = yaml.safe_load(batch_info)["last"]
+
+        if newer_output is None:
+            upper_limit = int(datetime.now().timestamp())
+
+        elif Path(newer_output / self.batchfile_name).is_file():
+            with open(newer_output / self.batchfile_name, "r") as batch_info:
+                upper_limit = yaml.safe_load(batch_info)["first"]
+
+        elif newer_output != self.output:
             raise RuntimeError(
-                "The watcher process is still running and there is no previous output directory to run clean_up on."
+                f"{newer_output} is not the current output directory {self.output} but has no batchinfo.yml file."
             )
 
-        if self.is_running:
-            outputfolder = self.old_output
         else:
-            outputfolder = self.output
+            upper_limit = self.first_analyzed.value
+        return lower_limit, upper_limit
 
-        print("folders: ", self.old_output, self.output)
+    def _clean_up_between(self, older_output: str, newer_output: str):
+        """
+        _clean_up_between _summary_
 
-        missings = []
+        _extended_summary_
 
-        cfg = utils.read_yaml(outputfolder / "config.yml")
+        Args:
+            older_output (str): _description_
+            newer_output (str): _description_
+        """
+        if older_output == self.output and self.is_running:
+            warnings.warn(
+                "cannot clean up current output directory while watcher is running"
+            )
+            return
+
+        with open(older_output / "config.yml", "r") as ymlfile:
+            cfg = yaml.safe_load(ymlfile)
+
+        lower_limit, upper_limit = self._get_clean_up_limits(older_output, newer_output)
 
         input_folder = Path(cfg["Analysis"]["input"])
+        outputfolder = cfg["Analysis"]["output"]
 
         audiofiles = [
             f
             for f in input_folder.iterdir()
             if f.suffix == cfg["Analysis"]["pattern"]
-            and not (outputfolder / Path(f"results_{f.stem}.csv")).is_file()
+            and not Path(outputfolder, f"results_{f.stem}.csv").is_file()
+            and lower_limit < f.stat().st_ctime < upper_limit
         ]
 
         if len(audiofiles) > 0:
-
             recording = self._set_up_recording(
                 cfg["Analysis"]["model_name"],
                 cfg["Analysis"]["Recording"],
@@ -654,15 +721,32 @@ class SparrowWatcher:
 
             for audiofile in audiofiles:
                 recording.path = audiofile
-                recording.analyzed = False  # reactivate
+                recording.analyzed = False
                 recording.analyze()
                 results = recording.detections
-                self.save_results(outputfolder, results, suffix=audiofile.stem)
-                missings.append(audiofile)
+                self.save_results(outputfolder, results, suffix=str(audiofile.stem))
 
                 if cfg["Analysis"]["delete_recordings"] == "always":
                     audiofile.unlink()
 
-            with open(outputfolder / "missings.txt", "w") as missingsfile:
-                for item in missings:
-                    missingsfile.write(str(item) + "\n")
+            with open(older_output / "missings.txt", "w") as missing:
+                for audiofile in audiofiles:
+                    missing.write(f"{audiofile}\n")
+
+    def clean_up(self):
+        """
+        clean_up Run cleanup on all output folders consecutively
+
+        _extended_summary_
+        """
+        folders = sorted(
+            filter(lambda f: f.is_file() is False, list(self.outdir.iterdir())),
+            key=lambda x: x.stat().st_ctime,
+        )
+        folders.append(None)  # add dummy pair to include the last folder
+
+        if len(folders) == 0:
+            return
+        else:
+            for i in range(1, len(folders)):
+                self._clean_up_between(folders[i - 1], folders[i])
