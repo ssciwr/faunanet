@@ -14,16 +14,17 @@ classifiers = [
 dependencies = [
     "numpy", 
     "librosa", 
-    "tensorflow", 
     "PyYAML", 
-    "birdnetlib==0.15.0", 
+    "birdnetlib==0.15.0",
     "pooch", 
     "resampy", # for audio loading
-    "tensorflow-hub",
-    "validators", # test url validity 
-    "appdirs", # get cache dirs without os dependence etc
+    "platformdirs", # get cache dirs without os dependence etc
     "ffmpeg-python"
 ]
+
+[project.optional-dependencies]
+tensorflow   = ["tensorflow", "tensorflow-hub"]
+tensorflow-lite =["tflite-runtime"]
 
 [project.urls]
 Repository = "https://github.com/ssciwr/iSparrow"
@@ -37,6 +38,12 @@ build-backend = "setuptools.build_meta"
 minversion = "6.0"
 addopts="-v -x"
 testpaths = ["tests"] 
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.coverage.run]
 branch = true

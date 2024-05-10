@@ -6,7 +6,10 @@ from numpy.testing import assert_array_almost_equal
 
 
 def test_preprocessor_constructions_birdnet(preprocessor_fx):
-    preprocessor, _, _, _, _ = preprocessor_fx
+    module, _, cfg, _, _, _, _ = preprocessor_fx
+
+    preprocessor = module.Preprocessor.from_cfg(cfg["Data"]["Preprocessor"])
+
     assert preprocessor.sample_rate == 48000
     assert preprocessor.overlap == pytest.approx(0.0)
     assert preprocessor.sample_secs == pytest.approx(3.0)
@@ -19,7 +22,9 @@ def test_preprocessor_constructions_birdnet(preprocessor_fx):
 
 
 def test_preprocessor_read_birdnet(preprocessor_fx):
-    preprocessor, cfg, _, filepath, _ = preprocessor_fx
+    module, _, cfg, _, _, filepath, _ = preprocessor_fx
+
+    preprocessor = module.Preprocessor.from_cfg(cfg["Data"]["Preprocessor"])
 
     audiodata = preprocessor.read_audio_data(filepath)
 
@@ -33,7 +38,9 @@ def test_preprocessor_read_birdnet(preprocessor_fx):
 def test_preprocessor_processing_birdnet(preprocessor_fx):
 
     # use trimmed audio file that's not a multiple of 3s in length
-    preprocessor, _, _, _, trimmedpath = preprocessor_fx
+    module, _, cfg, _, _, _, trimmedpath = preprocessor_fx
+
+    preprocessor = module.Preprocessor.from_cfg(cfg["Data"]["Preprocessor"])
 
     recording_fx = preprocessor.read_audio_data(trimmedpath)
 
@@ -48,8 +55,12 @@ def test_preprocessor_processing_birdnet(preprocessor_fx):
     assert_array_almost_equal(chunks[-1][72000::], np.zeros(72000))
 
 
-def test_preprocessor_constructions_google(preprocessor_fx_google):
-    preprocessor, _, _, _, _ = preprocessor_fx_google
+def test_preprocessor_constructions_google(preprocessor_fx):
+
+    _, module, _, cfg, _, _, _ = preprocessor_fx
+
+    preprocessor = module.Preprocessor.from_cfg(cfg["Data"]["Preprocessor"])
+
     assert preprocessor.sample_rate == 32000
     assert preprocessor.overlap == pytest.approx(0.0)
     assert preprocessor.sample_secs == pytest.approx(5.0)
@@ -61,8 +72,10 @@ def test_preprocessor_constructions_google(preprocessor_fx_google):
     assert preprocessor.name == "google_perch"
 
 
-def test_preprocessor_read_google(preprocessor_fx_google):
-    preprocessor, cfg, _, filepath, _ = preprocessor_fx_google
+def test_preprocessor_read_google(preprocessor_fx):
+    _, module, _, cfg, _, filepath, _ = preprocessor_fx
+
+    preprocessor = module.Preprocessor.from_cfg(cfg["Data"]["Preprocessor"])
 
     audiodata = preprocessor.read_audio_data(filepath)
 
@@ -73,10 +86,12 @@ def test_preprocessor_read_google(preprocessor_fx_google):
     assert preprocessor.duration == pytest.approx(120.0)
 
 
-def test_preprocessor_processing_google(preprocessor_fx_google):
+def test_preprocessor_processing_google(preprocessor_fx):
 
-    preprocessor, _, _, _, trimmedpath = preprocessor_fx_google
-    print(trimmedpath)
+    _, module, _, cfg, _, _, trimmedpath = preprocessor_fx
+
+    preprocessor = module.Preprocessor.from_cfg(cfg["Data"]["Preprocessor"])
+
     recording_fx = preprocessor.read_audio_data(trimmedpath)
 
     chunks = preprocessor.process_audio_data(recording_fx)
