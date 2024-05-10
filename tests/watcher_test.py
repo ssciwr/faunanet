@@ -708,7 +708,7 @@ def test_change_analyzer_exception(watch_fx, mocker):
     old_preprocessor_cfg = deepcopy(watcher.preprocessor_config)
     old_species_predictor_cfg = deepcopy(watcher.species_predictor_config)
 
-    number_of_files = 10
+    number_of_files = 14
 
     sleep_for = 3
 
@@ -775,6 +775,8 @@ def test_change_analyzer_exception(watch_fx, mocker):
             recording_config=wfx.changed_custom_recording_cfg,
             delete_recordings="always",
         )
+
+    assert watcher.is_running is False
     recorder_process.join()
     recorder_process.close()
 
