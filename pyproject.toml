@@ -11,7 +11,6 @@ classifiers = [
     "Operating System :: OS Independent",
     "License :: OSI Approved :: Apache License",
 ]
-
 dependencies = [
     "numpy", 
     "librosa", 
@@ -33,6 +32,30 @@ Repository = "https://github.com/ssciwr/iSparrow"
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
+# Tools 
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts="-v -x"
+testpaths = ["tests"] 
 
+[tool.coverage.run]
+branch = true
+source = ["./src/iSparrow"]
 
-# add additional stuff when needed, poetry support? 
+[tool.coverage.report]
+# Regexes for lines to exclude from consideration
+exclude_also = [
+    # Don't complain about missing debug-only code:
+    "def __repr__",
+    "if self\\.debug",
+
+    # Don't complain if non-runnable code isn't run:
+    "if __name__ == .__main__.:",
+
+    # Don't complain about abstract methods, they aren't run:
+    "@(abc\\.)?abstractmethod",
+    ]
+fail_under = 80
+
+[tool.coverage.html]
+directory = "coverage_html_report"
