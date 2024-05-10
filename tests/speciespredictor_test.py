@@ -11,12 +11,7 @@ import pandas as pd
 # Once a custom species predictor is supplied, these need to be added.
 
 
-@pytest.fixture(scope="module")
-def finalizer():
-    sp.SpeciesPredictorBase.clear_cache()
-
-
-def test_species_predictor_construction(recording_fx, finalizer):
+def test_species_predictor_construction(recording_fx):
     with open(
         recording_fx.testpath / Path("test_configs") / "cfg_default.yml", "r"
     ) as cfgfile:
@@ -76,8 +71,10 @@ def test_species_predictor_construction(recording_fx, finalizer):
 
     assert Path(predictor.cache_dir).exists()
 
+    predictor.clear_cache()
 
-def test_species_predictor_run(recording_fx, finalizer):
+
+def test_species_predictor_run(recording_fx):
 
     with open(
         recording_fx.testpath / Path("test_configs") / "cfg_default.yml", "r"
@@ -124,8 +121,10 @@ def test_species_predictor_run(recording_fx, finalizer):
 
     assert predictor.read_from_file is False
 
+    predictor.clear_cache()
 
-def test_cached_species_predictor_run(recording_fx, finalizer):
+
+def test_cached_species_predictor_run(recording_fx):
 
     # make a species list using the cache, then make sure it is present in the cache folder
 
@@ -168,3 +167,4 @@ def test_cached_species_predictor_run(recording_fx, finalizer):
     assert predictor.read_from_file
 
     assert detections == read_detections
+    predictor.clear_cache()

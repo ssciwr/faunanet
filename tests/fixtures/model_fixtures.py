@@ -7,21 +7,12 @@ import pandas as pd
 
 class ModelFixture:
 
-    def __init__(self):
+    def __init__(self, home, output, models):
         self.filepath = Path(__file__).resolve()
         self.testpath = self.filepath.parent.parent
-        cfgpath = (
-            self.filepath.parent.parent.parent
-            / Path("config")
-            / Path("install_cfg.yml")
-        )
-
-        with open(cfgpath, "r") as file:
-            cfg = yaml.safe_load(file)
-            cfg = cfg["Directories"]
-
-        self.sparrow_folder = Path(cfg["home"]).expanduser()
-        self.models_folder = self.sparrow_folder / "models"
+        self.home = Path(home)
+        self.output = Path(output)
+        self.models_folder = Path(models)
 
         with open(self.testpath / Path("test_configs") / "cfg_custom.yml", "r") as file:
             self.custom_cfg = yaml.safe_load(file)
@@ -86,17 +77,13 @@ class ModelFixture:
 
         ppd = self.default_pp.Preprocessor()
 
-        data_default = ppd.read_audio_data(
-            self.sparrow_folder / "example" / "soundscape.wav"
-        )
+        data_default = ppd.read_audio_data(self.home / "example" / "soundscape.wav")
 
         self.data_default = ppd.process_audio_data(data_default)
 
         ppg = self.google_pp.Preprocessor()
 
-        data_google = ppg.read_audio_data(
-            self.sparrow_folder / "example" / "soundscape.wav"
-        )
+        data_google = ppg.read_audio_data(self.home / "example" / "soundscape.wav")
 
         self.data_google = ppg.process_audio_data(data_google)
 
@@ -130,8 +117,3 @@ class ModelFixture:
             .reset_index(drop=False)
             .rename(columns={"SCI_NAME": "scientific_name", "label": "labels"})
         )
-
-
-@pytest.fixture
-def model_fx():
-    return ModelFixture()

@@ -1,0 +1,5 @@
+Directories: 
+  home: ~/iSparrow_custom
+  data: ~/iSparrow_data_custom/tests_custom
+  models: ~/iSparrow_custom/models_custom
+  output: ~/iSparrow_output_custom/tests_custom

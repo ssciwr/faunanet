@@ -5,19 +5,18 @@ import time
 from datetime import datetime
 from iSparrow.utils import wait_for_file_completion
 from iSparrow import SparrowWatcher
-from .. import set_up_sparrow_env
 from copy import deepcopy
 import csv
 
 
 class WatchFixture:
 
-    def __init__(self):
+    def __init__(self, home: str, data: str, output: str, models: str):
 
-        self.home = Path(set_up_sparrow_env.HOME)
-        self.data = Path(set_up_sparrow_env.DATA)
-        self.output = Path(set_up_sparrow_env.OUTPUT)
-
+        self.home = home
+        self.data = data
+        self.output = output
+        self.models = models
         self.data.mkdir(parents=True, exist_ok=True)
         self.output.mkdir(parents=True, exist_ok=True)
 
@@ -58,13 +57,13 @@ class WatchFixture:
         self.custom_model_cfg = {
             "num_threads": 1,
             "sigmoid_sensitivity": 1.0,
-            "default_model_path": str(Path.home() / "iSparrow/models/birdnet_default"),
+            "default_model_path": str(self.models / "birdnet_default"),
         }
 
         self.changed_custom_model_cfg = {
             "num_threads": 1,
             "sigmoid_sensitivity": 0.8,  # change for testing
-            "default_model_path": str(self.home / "models/birdnet_default"),
+            "default_model_path": str(self.models / "birdnet_default"),
         }
 
         self.changed_custom_recording_cfg = {
@@ -85,13 +84,16 @@ class WatchFixture:
                 "delete_recordings": "never",
                 "pattern": ".wav",
                 "model_name": "birdnet_default",
-                "model_dir": str(self.home / "models"),
+                "model_dir": str(self.models),
                 "Preprocessor": deepcopy(self.preprocessor_cfg),
                 "Model": model_cfg2,
                 "Recording": deepcopy(self.recording_cfg),
                 "SpeciesPredictor": deepcopy(self.species_predictor_cfg),
             }
         }
+
+    # below are helper functions for the watcher test that are mainly there
+    # to keep the test code clean and more readable and avoid repetition
 
     def mock_recorder(self, home: str, data: str, number=10, sleep_for=4):
 
@@ -107,10 +109,7 @@ class WatchFixture:
             wait_for_file_completion(Path(data) / Path(f"example_{i}.wav"))
 
     def make_watcher(self, **kwargs):
-
-        self.path_add = Path(datetime.now().strftime("%y%m%d_%H%M%S"))
-        self.config_should["Analysis"]["output"] = str(self.output / self.path_add)
-
+        # README: the only reason this exists is because SonarCloud is complaining about code repetition
         return SparrowWatcher(
             self.data,
             self.output,
@@ -147,7 +146,7 @@ class WatchFixture:
         for f in files:
             if (watcher.input / f).exists():
                 (watcher.input / f).unlink()
-
+                
     def read_csv(self, filepath):
         rows = []
 
