@@ -1,9 +1,7 @@
 import pytest
-import iSparrow.repl
+
 from iSparrow.repl import SparrowCmd, process_line_into_kwargs
-from iSparrow import SparrowWatcher
 from iSparrow.utils import read_yaml
-from unittest.mock import Mock
 from pathlib import Path
 from platformdirs import user_cache_dir, user_config_dir
 
@@ -30,12 +28,13 @@ def test_process_line_into_kwargs():
 
 
 def test_do_set_up():
+
     sparrow_cmd = SparrowCmd()
-    sparrow_cmd.do_set_up("--cfg=./tests/test_configs")
+    sparrow_cmd.do_set_up("--cfg=./tests/test_configs/install.yml")
 
     cfg = read_yaml("./tests/test_configs/install.yml")["Directories"]
+
     assert Path(cfg["home"]).expanduser().exists()
-    assert Path(cfg["data"]).expanduser().exists()
     assert Path(cfg["models"]).expanduser().exists()
     assert Path(cfg["output"]).expanduser().exists()
     assert (Path(user_cache_dir()) / "iSparrow").exists()
@@ -112,62 +111,62 @@ def test_do_start_wrong_args(input, expected, capsys, mocker):
     assert out == expected
 
 
-# def test_do_stop(mocker):
-#     mock_watcher = mocker.patch("repl.SparrowWatcher", autospec=True)
-#     mock_watcher_instance = mock_watcher.return_value
-#     mock_watcher_instance.is_running = True
-#     sparrow_cmd = SparrowCmd()
-#     sparrow_cmd.do_stop("")
-#     mock_watcher_instance.stop.assert_called_once()
+def test_do_stop(mocker):
+    mock_watcher = mocker.patch("repl.SparrowWatcher", autospec=True)
+    mock_watcher_instance = mock_watcher.return_value
+    mock_watcher_instance.is_running = True
+    sparrow_cmd = SparrowCmd()
+    sparrow_cmd.do_stop("")
+    mock_watcher_instance.stop.assert_called_once()
 
 
-# def test_do_pause(mocker):
-#     mock_watcher = mocker.patch("repl.SparrowWatcher", autospec=True)
-#     mock_watcher_instance = mock_watcher.return_value
-#     mock_watcher_instance.is_running = True
-#     mock_watcher_instance.is_sleeping = False
-#     sparrow_cmd = SparrowCmd()
-#     sparrow_cmd.do_pause("")
-#     mock_watcher_instance.pause.assert_called_once()
+def test_do_pause(mocker):
+    mock_watcher = mocker.patch("repl.SparrowWatcher", autospec=True)
+    mock_watcher_instance = mock_watcher.return_value
+    mock_watcher_instance.is_running = True
+    mock_watcher_instance.is_sleeping = False
+    sparrow_cmd = SparrowCmd()
+    sparrow_cmd.do_pause("")
+    mock_watcher_instance.pause.assert_called_once()
 
 
-# def test_do_continue(mocker):
-#     mock_watcher = mocker.patch("repl.SparrowWatcher", autospec=True)
-#     mock_watcher_instance = mock_watcher.return_value
-#     mock_watcher_instance.is_running = True
-#     mock_watcher_instance.is_sleeping = True
-#     sparrow_cmd = SparrowCmd()
-#     sparrow_cmd.do_continue("")
-#     mock_watcher_instance.go_on.assert_called_once()
+def test_do_continue(mocker):
+    mock_watcher = mocker.patch("repl.SparrowWatcher", autospec=True)
+    mock_watcher_instance = mock_watcher.return_value
+    mock_watcher_instance.is_running = True
+    mock_watcher_instance.is_sleeping = True
+    sparrow_cmd = SparrowCmd()
+    sparrow_cmd.do_continue("")
+    mock_watcher_instance.go_on.assert_called_once()
 
 
-# def test_do_restart(mocker):
-#     mock_watcher = mocker.patch("repl.SparrowWatcher", autospec=True)
-#     mock_watcher_instance = mock_watcher.return_value
-#     mock_watcher_instance.is_running = True
-#     mock_watcher_instance.is_sleeping = False
-#     sparrow_cmd = SparrowCmd()
-#     sparrow_cmd.do_restart("")
-#     mock_watcher_instance.restart.assert_called_once()
+def test_do_restart(mocker):
+    mock_watcher = mocker.patch("repl.SparrowWatcher", autospec=True)
+    mock_watcher_instance = mock_watcher.return_value
+    mock_watcher_instance.is_running = True
+    mock_watcher_instance.is_sleeping = False
+    sparrow_cmd = SparrowCmd()
+    sparrow_cmd.do_restart("")
+    mock_watcher_instance.restart.assert_called_once()
 
 
-# def test_do_exit(mocker):
-#     sparrow_cmd = SparrowCmd()
-#     assert sparrow_cmd.do_exit("") == True
+def test_do_exit(mocker):
+    sparrow_cmd = SparrowCmd()
+    assert sparrow_cmd.do_exit("") == True
 
 
-# def test_change_analyzer(mocker):
-#     mock_watcher = mocker.patch("repl.SparrowWatcher", autospec=True)
-#     mock_watcher_instance = mock_watcher.return_value
-#     mock_watcher_instance.is_running = True
-#     mock_watcher_instance.is_sleeping = False
-#     sparrow_cmd = SparrowCmd()
-#     sparrow_cmd.change_analyzer("--cfg=test")
-#     mock_watcher_instance.change_analyzer.assert_called_once()
+def test_change_analyzer(mocker):
+    mock_watcher = mocker.patch("repl.SparrowWatcher", autospec=True)
+    mock_watcher_instance = mock_watcher.return_value
+    mock_watcher_instance.is_running = True
+    mock_watcher_instance.is_sleeping = False
+    sparrow_cmd = SparrowCmd()
+    sparrow_cmd.change_analyzer("--cfg=test")
+    mock_watcher_instance.change_analyzer.assert_called_once()
 
 
-# def test_process_line():
-#     assert process_line("--cfg=test") == ["test"]
-#     assert process_line("--cfg=test --cfg2=test2") == ["test", "test2"]
-#     assert process_line("") == []
-#     assert process_line("--cfg") == None
+def test_process_line():
+    assert process_line_into_kwargs("--cfg=test") == ["test"]
+    assert process_line_into_kwargs("--cfg=test --cfg2=test2") == ["test", "test2"]
+    assert process_line_into_kwargs("") == []
+    assert process_line_into_kwargs("--cfg") is None

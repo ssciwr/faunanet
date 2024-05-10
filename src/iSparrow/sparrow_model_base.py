@@ -26,9 +26,8 @@ class ModelBase(ABC):
     ):
         self.num_threads = num_threads
 
-        if utils.is_url(model_path) is False:
-            if Path(model_path).exists() is False:
-                raise FileNotFoundError(f"No model file at {model_path}")
+        if Path(model_path).exists() is False:
+            raise FileNotFoundError(f"No model file at {model_path}")
 
         if Path(labels_path).exists() is False:
             raise FileNotFoundError(f"No labels file at {labels_path}")
@@ -82,28 +81,17 @@ class ModelBase(ABC):
         model_loaders = {
             "model.tflite": utils.load_model_from_file_tflite,
             "saved_model.pb": utils.load_model_from_file_pb,
-            "model.pt": utils.load_model_from_file_torch,
         }
 
         # get the model file
         model_filename = str(Path(self.model_path).name)
 
         # load model locally
-        if utils.is_url(self.model_path) is False:
 
-            if model_filename not in model_loaders:
-                raise ValueError(f"Model filename unknown: {model_filename}")
+        if model_filename not in model_loaders:
+            raise ValueError(f"Model filename unknown: {model_filename}")
 
-            self.model = model_loaders[model_filename](
-                self.model_path, self.num_threads
-            )
-        else:
-            if "huggingface" in self.model_path:
-                self.model = utils.load_model_from_huggingfacehub(self.model_path)
-            else:
-                raise ValueError(
-                    "Error, url to load model cannot be handled - does it use hugginface? "
-                )
+        self.model = model_loaders[model_filename](self.model_path, self.num_threads)
 
     @abstractmethod
     def predict(self, data: np.array) -> list:

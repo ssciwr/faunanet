@@ -8,7 +8,6 @@ from .sparrow_setup import (
     set_up_sparrow,
     SPARROW_HOME,
     SPARROW_MODELS,
-    SPARROW_DATA,
     SPARROW_OUTPUT,
     SPARROW_EXAMPLES,
     SPARROW_CACHE,

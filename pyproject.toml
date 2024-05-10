@@ -11,21 +11,20 @@ classifiers = [
     "Operating System :: OS Independent",
     "License :: OSI Approved :: Apache License",
 ]
-
 dependencies = [
     "numpy", 
     "librosa", 
-    "tensorflow", 
     "PyYAML", 
-    "birdnetlib==0.15.0", 
+    "birdnetlib==0.15.0",
     "pooch", 
     "resampy", # for audio loading
-    "tensorflow-hub",
-    "validators", # test url validity 
-    "appdirs", # get cache dirs without os dependence etc
-    "ffmpeg-python", 
-    "click"
+    "platformdirs", # get cache dirs without os dependence etc
+    "ffmpeg-python"
 ]
+
+[project.optional-dependencies]
+tensorflow   = ["tensorflow", "tensorflow-hub"]
+tensorflow-lite =["tflite-runtime", "tensorflow-hub"]
 
 [project.urls]
 Repository = "https://github.com/ssciwr/iSparrow"
@@ -34,6 +33,36 @@ Repository = "https://github.com/ssciwr/iSparrow"
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
+# Tools 
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts="-v -x"
+testpaths = ["tests"] 
 
+[tool.setuptools]
+include-package-data = true
 
-# add additional stuff when needed, poetry support? 
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.coverage.run]
+branch = true
+source = ["./src/iSparrow"]
+
+[tool.coverage.report]
+# Regexes for lines to exclude from consideration
+exclude_also = [
+    # Don't complain about missing debug-only code:
+    "def __repr__",
+    "if self\\.debug",
+
+    # Don't complain if non-runnable code isn't run:
+    "if __name__ == .__main__.:",
+
+    # Don't complain about abstract methods, they aren't run:
+    "@(abc\\.)?abstractmethod",
+    ]
+fail_under = 80
+
+[tool.coverage.html]
+directory = "coverage_html_report"

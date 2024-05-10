@@ -1,5 +1,4 @@
 import tensorflow as tf
-import tensorflow_hub as tfhub
 
 try:
     import tflite_runtime.interpreter as tflite
@@ -7,7 +6,6 @@ except Exception:
     from tensorflow import lite as tflite
 
 from pathlib import Path
-import validators as valid
 import importlib.util
 import os
 import time
@@ -19,9 +17,9 @@ class TFModelException(Exception):
     pass
 
 
-def update_dict_recursive(base, update):
+def update_dict_leafs_recursive(base, update):
     """
-    update_dict_recursive Merge recursively two arbitrarily nested dictionaries such that only those leaves of 'base' are upated with the content of 'update' for which the given path in 'update' fully exists in 'base'.
+    update_dict_leafs_recursive Merge recursively two arbitrarily nested dictionaries such that only those leaves of 'base' are upated with the content of 'update' for which the given path in 'update' fully exists in 'base'.
 
     This function assumes that nodes in 'base' are only replaced, and 'update' does not add new nodes.
 
@@ -37,12 +35,12 @@ def update_dict_recursive(base, update):
                 # overlapping element branch found
                 if isinstance(vb, dict) and isinstance(update[kb], dict):
                     # follow branch if possible
-                    update_dict_recursive(vb, update[kb])
+                    update_dict_leafs_recursive(vb, update[kb])
                 else:
                     # assign if not
                     base[kb] = update[kb]
             else:
-                update_dict_recursive(vb, update)  # find entrypoint
+                update_dict_leafs_recursive(vb, update)  # find entrypoint
     else:
         pass  # not found and no dictionaries - pass
 
@@ -69,20 +67,6 @@ def read_yaml(path: str):
     return base_cfg
 
 
-def is_url(potential_url: str) -> bool:
-    """
-    is_url Check whether the argument string represents a url
-
-
-    Args:
-        potential_url (str): String to check
-
-    Returns:
-        bool: Whether the argument represents a url (True) or not (False)
-    """
-    return True if valid.url(potential_url) else False
-
-
 def load_model_from_file_tflite(path: str, num_threads: int = 1):
     """
     load_model_from_file_tflite Load model from a .tflite file.
@@ -99,7 +83,7 @@ def load_model_from_file_tflite(path: str, num_threads: int = 1):
         TensorflowLite interpreter: The loaded model
     """
     if Path(path).exists() is False:
-        raise FileNotFoundError("The desired model file does not exist")
+        raise FileNotFoundError(f"The desired model file does not exist: {path}")
 
     try:
         interpreter = tflite.Interpreter(model_path=path, num_threads=num_threads)
@@ -160,28 +144,6 @@ def load_model_from_tensorflowhub(url: str, _):
         return model
     except Exception as e:
         raise TFModelException(e)
-
-
-def load_model_from_huggingfacehub(url: str, _):
-    # TODO
-    raise NotImplementedError("Huggingface hub is not yet supported")
-
-
-def load_model_from_file_torch(path: str, _):
-    """
-    load_torch_model_from_file Load a torch model from file.
-
-    Args:
-        path (str): Path to a floder containing the model to be loaded.
-
-    Raises:
-        FileNotFoundError: When the given path does not lead to an existing file
-        TFModelException: When something goes wrong inside torch when loading the model.
-
-    Returns:
-        torch model: The loaded model
-    """
-    raise NotImplementedError("torch models are not yet supported")
 
 
 def load_module(module_name: str, file_path: str):

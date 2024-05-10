@@ -1,6 +1,6 @@
 from iSparrow import SparrowWatcher
 import iSparrow.sparrow_setup as sps
-from iSparrow.utils import read_yaml, update_dict_recursive
+from iSparrow.utils import read_yaml, update_dict_leafs_recursive
 from pathlib import Path
 from platformdirs import user_config_dir
 import cmd
@@ -120,9 +120,14 @@ class SparrowCmd(cmd.Cmd):
 
             if cfgpath is not None:
                 custom_cfg = read_yaml(cfgpath)
-                update_dict_recursive(cfg, custom_cfg)
+
+                print("basic: ", cfg)
+                print("custom: ", custom_cfg)
+
+                update_dict_leafs_recursive(cfg, custom_cfg)
 
             try:
+
                 self.watcher = SparrowWatcher(
                     indir=Path(cfg["Data"]["input"]).expanduser().resolve(),
                     outdir=Path(cfg["Data"]["output"]).expanduser().resolve(),
@@ -270,7 +275,7 @@ class SparrowCmd(cmd.Cmd):
 
             if cfgpath is not None:
                 custom_cfg = read_yaml(cfgpath)
-                update_dict_recursive(cfg, custom_cfg)
+                update_dict_leafs_recursive(cfg, custom_cfg)
             try:
                 self.watcher.change_analyzer(
                     model_name=cfg["Analysis"]["modelname"],
