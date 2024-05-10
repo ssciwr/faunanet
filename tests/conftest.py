@@ -20,23 +20,24 @@ from .fixtures.watcher_fixtures import WatchFixture
 # set test mode
 os.environ["SPARROW_TEST_MODE"] = "True"
 
+
 # set up the test directories and download the example files
-
-
-@pytest.fixture()
-def make_folders():
+@pytest.fixture(scope="session")
+def make_sparrow_home():
     """
-    make_folders set up and dipose of a mock sparrow installation in a temporary directory
+    make_sparrow_home Make simulated sparrow setup in a temporary directory
+
+
+    Yields:
+        dictionary: dictionary with the paths to the created directories
     """
     tmpdir = tempfile.mkdtemp()
 
     # create directories
     directories = {
         "home": Path(tmpdir, "iSparrow_tests"),
-        "data": Path(tmpdir, "iSparrow_tests_data"),
         "models": Path(tmpdir, "iSparrow_tests", "models"),
         "example": Path(tmpdir, "iSparrow_tests", "example"),
-        "output": Path(tmpdir, "iSparrow_tests_output"),
         "cache": Path(user_cache_dir(), "iSparrow_tests"),
         "config": Path(user_config_dir(), "iSparrow_tests"),
     }
@@ -47,17 +48,38 @@ def make_folders():
     yield tmpdir, directories  # yield directories instead of nothing
 
     # remove again after usage
-    for name, path in directories.items():
-        shutil.rmtree(path, ignore_errors=True)
+    shutil.rmtree(tmpdir)
 
 
 @pytest.fixture()
-def load_files(make_folders):
+def make_folders(make_sparrow_home):
+    """
+    make_folders set up and dipose of a mock sparrow installation in a temporary directory
+    """
+    tmpdir, directories = make_sparrow_home
+
+    # create directories
+
+    directories["data"] = Path(tmpdir, "iSparrow_tests_data")
+    directories["output"] = Path(tmpdir, "iSparrow_tests_output")
+
+    for name, path in directories.items():
+        path.mkdir(parents=True, exist_ok=True)
+
+    yield tmpdir, directories  # yield directories instead of nothing
+
+    # remove again after usage
+    for name in ["data", "output"]:
+        shutil.rmtree(directories[name], ignore_errors=True)
+
+
+@pytest.fixture(scope="session")
+def load_files(make_sparrow_home):
     """
     load_files download all the data files needed for iSparrow to run, but without going via the setup routine.
     """
 
-    tmpdir, directories = make_folders
+    tmpdir, directories = make_sparrow_home
     ise = directories["example"]
     ism = directories["models"]
 
@@ -71,7 +93,7 @@ def load_files(make_folders):
 
 # the install fixture provides a basic environment in the system's temporary directory
 @pytest.fixture()
-def install(load_files):
+def install(load_files, make_folders):
     """
     install Bundle mock install and data download into a fixture
     """

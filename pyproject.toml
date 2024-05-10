@@ -15,7 +15,7 @@ dependencies = [
     "numpy", 
     "librosa", 
     "PyYAML", 
-    "birdnetlib==0.15.0", 
+    "birdnetlib==0.15.0",
     "pooch", 
     "resampy", # for audio loading
     "platformdirs", # get cache dirs without os dependence etc
@@ -23,9 +23,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-tensorflow   = ["tensorflow"]
-tensorflow-lit =["tflite-runtime"]
-
+tensorflow   = ["tensorflow", "tensorflow-hub"]
+tensorflow-lite =["tflite-runtime"]
 
 [project.urls]
 Repository = "https://github.com/ssciwr/iSparrow"
