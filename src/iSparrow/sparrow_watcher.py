@@ -256,7 +256,7 @@ class SparrowWatcher:
         self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
 
         self.model_dir = Path(model_dir)
-
+        print("model directory: ", self.model_dir)
         if self.model_dir.is_dir() is False:
             raise ValueError("Model directory does not exist")
 
@@ -377,6 +377,7 @@ class SparrowWatcher:
         if self.is_running:
             raise RuntimeError("watcher process still running, stop first.")
 
+        # FIXME: make sure this makes a new directory every time. I added this in some branch but it must have been lost during merge
         self.output.mkdir(exist_ok=True, parents=True)
 
         self._write_config()

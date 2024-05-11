@@ -16,6 +16,17 @@ SPARROW_CONFIG = None
 SPARROW_CACHE = None
 
 
+def make_cache_config_dirs():
+    iscfg = Path(user_config_dir()) / "iSparrow"
+    iscache = Path(user_cache_dir()) / "iSparrow"
+
+    if os.getenv("SPARROW_TEST_MODE") == "True":
+        iscfg = Path(user_config_dir()) / "iSparrow_tests"
+        iscache = Path(user_cache_dir()) / "iSparrow_tests"
+
+    return iscfg, iscache
+
+
 def make_directories(base_cfg_dirs: dict):
     """
     make_directories Make all the directories for sparrow.
@@ -48,12 +59,7 @@ def make_directories(base_cfg_dirs: dict):
     ism = Path(base_cfg_dirs["models"]).expanduser().resolve()
     iso = Path(base_cfg_dirs["output"]).expanduser().resolve()
     ise = (Path(base_cfg_dirs["home"]).expanduser() / Path("example")).resolve()
-    iscfg = Path(user_config_dir()) / "iSparrow"
-    iscache = Path(user_cache_dir()) / "iSparrow"
-
-    if os.getenv("SPARROW_TEST_MODE") == "True":
-        iscfg = Path(user_config_dir()) / "iSparrow_tests"
-        iscache = Path(user_cache_dir()) / "iSparrow_tests"
+    iscfg, iscache = make_cache_config_dirs()
 
     for p in [ish, ism, iso, ise, iscfg, iscache]:
         p.mkdir(parents=True, exist_ok=True)
@@ -244,6 +250,12 @@ def set_up_sparrow(custom_config: str = None):
     packagebase = files(iSparrow)
     install_cfg = utils.read_yaml(packagebase / "install.yml")
 
+    config, _ = make_cache_config_dirs()
+    if Path(config, "install.yml").exists():
+        raise FileExistsError(
+            "An iSparrow installation already exists. Please remove it before running the installation."
+        )
+
     if custom_config is not None:
         custom_install_config = utils.read_yaml(custom_config)
         utils.update_dict_leafs_recursive(install_cfg, custom_install_config)
@@ -254,18 +266,16 @@ def set_up_sparrow(custom_config: str = None):
                 f"{key} directory already exists. Please remove it before running the installation."
             )
 
-    home, models, output, examples, config, cache = make_directories(
-        install_cfg["Directories"]
-    )
-
-    if Path(config, "install.yml").exists():
-        for dir in [home, models, output, examples, config, cache]:
-            if Path(dir).exists():
+    try:
+        home, models, output, examples, config, cache = make_directories(
+            install_cfg["Directories"]
+        )
+    except Exception as e:
+        for key, path in install_cfg["Directories"].items():
+            if Path(path).expanduser().exists():
                 shutil.rmtree(dir)
 
-        raise FileExistsError(
-            "An iSparrow installation already exists. Please remove it before running the installation."
-        )
+        raise RuntimeError(f"Error during setup: {e}") from e
 
     with open(Path(config) / "install.yml", "w") as yfile:
         yaml.safe_dump(install_cfg, yfile)

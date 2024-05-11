@@ -87,15 +87,13 @@ class SparrowCmd(cmd.Cmd):
     def do_start(self, line):
 
         if os.getenv("SPARROW_TEST_MODE") == "True":
+            if Path(user_config_dir(), "iSparrow_tests").exists() is False:
+                print("No test installation found - please run the setup command first")
             cfg = read_yaml(user_config_dir() / Path("iSparrow_tests") / "default.yml")
-            install_cfg = read_yaml(
-                Path(user_config_dir()) / Path("iSparrow_tests") / "install.yml"
-            )
         else:
+            if Path(user_config_dir(), "iSparrow").exists() is False:
+                print("No installation found - please run the setup command first")
             cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
-            install_cfg = read_yaml(
-                Path(user_config_dir()) / Path("iSparrow") / "install.yml"
-            )
 
         try:
             inputs = process_line_into_kwargs(
@@ -134,9 +132,7 @@ class SparrowCmd(cmd.Cmd):
                 self.watcher = SparrowWatcher(
                     indir=Path(cfg["Data"]["input"]).expanduser().resolve(),
                     outdir=Path(cfg["Data"]["output"]).expanduser().resolve(),
-                    model_dir=Path(install_cfg["Directories"]["models"])
-                    .expanduser()
-                    .resolve(),
+                    model_dir=Path(cfg["Analysis"]["model_dir"]).expanduser().resolve(),
                     model_name=cfg["Analysis"]["modelname"],
                     model_config=cfg["Analysis"]["Model"],
                     preprocessor_config=cfg["Data"]["Preprocessor"],
@@ -149,12 +145,10 @@ class SparrowCmd(cmd.Cmd):
                     delete_recordings=cfg["Analysis"]["delete_recordings"],
                 )
             except Exception as e:
-                print(e)
                 print(
                     f"An error occured while trying to build the watcher: {e} caused by {e.__cause__}"
                 )
-                self.watcher = None
-                return 
+                return
 
             try:
                 self.watcher.start()
@@ -238,7 +232,7 @@ class SparrowCmd(cmd.Cmd):
 
         elif self.watcher.is_running is False:
             print("Cannot restart watcher, is not running")
-        elif self.watcher.is_sleeping is False:
+        elif self.watcher.is_sleeping is True:
             print("Cannot restart watcher, is sleeping and must be continued first")
         else:
             try:

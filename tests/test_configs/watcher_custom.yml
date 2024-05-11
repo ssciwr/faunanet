@@ -5,7 +5,7 @@ Analysis:
 
   pattern: ".mp3"
   delete_recordings: "always"
-  model_dir: ~/iSparrow_tests/models 
+  model_dir: ~/iSparrow_test_install/models 
 
 Data: 
   input: ~/iSparrow_test_install_data

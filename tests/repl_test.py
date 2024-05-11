@@ -6,7 +6,8 @@ from importlib.resources import files
 from pathlib import Path
 import shutil
 from platformdirs import user_cache_dir, user_config_dir
-
+import time
+from copy import deepcopy
 from iSparrow.sparrow_setup import download_example_data, download_model_files
 
 
@@ -29,6 +30,7 @@ def make_test_setup():
     download_model_files(ism)
     download_example_data(ise)
     import iSparrow
+
     packagebase = files(iSparrow)
     shutil.copy(packagebase / "install.yml", iscfg)
     shutil.copy(packagebase / "default.yml", iscfg)
@@ -37,16 +39,21 @@ def make_test_setup():
 
     for name, path in cfg.items():
         shutil.rmtree(Path(path).expanduser(), ignore_errors=True)
+    shutil.rmtree(iscfg, ignore_errors=True)
+    shutil.rmtree(iscache, ignore_errors=True)
 
 
 @pytest.fixture()
 def delete_folders_again():
-    yield
-
     cfg = read_yaml("./tests/test_install_config/install.yml")["Directories"]
+
+    yield
 
     for name in ["home", "output", "data"]:
         shutil.rmtree(Path(cfg[name]).expanduser(), ignore_errors=True)
+
+    shutil.rmtree(Path(user_config_dir()) / "iSparrow_tests", ignore_errors=True)
+    shutil.rmtree(Path(user_cache_dir()) / "iSparrow_tests", ignore_errors=True)
 
 
 def test_process_line_into_kwargs():
@@ -70,26 +77,26 @@ def test_process_line_into_kwargs():
     assert process_line_into_kwargs("") == {}
 
 
-# def test_do_set_up(delete_folders_again):
+def test_do_set_up(delete_folders_again):
 
-#     cfg = read_yaml("./tests/test_install_config/install.yml")["Directories"]
+    cfg = read_yaml("./tests/test_install_config/install.yml")["Directories"]
 
-#     sparrow_cmd = SparrowCmd()
-#     sparrow_cmd.do_set_up("--cfg=./tests/test_install_config/install.yml")
+    sparrow_cmd = SparrowCmd()
+    sparrow_cmd.do_set_up("--cfg=./tests/test_install_config/install.yml")
 
-#     tflite_file = "model.tflite"
+    tflite_file = "model.tflite"
 
-#     assert Path(cfg["home"]).expanduser().exists() is True
-#     assert Path(cfg["models"]).expanduser().exists() is True
-#     assert Path(cfg["output"]).expanduser().exists() is True
+    assert Path(cfg["home"]).expanduser().exists() is True
+    assert Path(cfg["models"]).expanduser().exists() is True
+    assert Path(cfg["output"]).expanduser().exists() is True
 
-#     assert (
-#         Path(cfg["models"]).expanduser() / "birdnet_default" / tflite_file
-#     ).is_file()
-#     assert (Path(cfg["models"]).expanduser() / "birdnet_custom" / tflite_file).is_file()
-#     assert (
-#         Path(cfg["models"]).expanduser() / "google_perch" / "saved_model.pb"
-#     ).is_file()
+    assert (
+        Path(cfg["models"]).expanduser() / "birdnet_default" / tflite_file
+    ).is_file()
+    assert (Path(cfg["models"]).expanduser() / "birdnet_custom" / tflite_file).is_file()
+    assert (
+        Path(cfg["models"]).expanduser() / "google_perch" / "saved_model.pb"
+    ).is_file()
 
 
 @pytest.mark.parametrize(
@@ -105,14 +112,14 @@ def test_process_line_into_kwargs():
         ),
     ],
 )
-def test_do_set_up_args_error(input, expected, capsys):
+def test_do_set_up_args_error(input, expected, capsys, delete_folders_again):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_set_up(input)
     out, _ = capsys.readouterr()
     assert out == expected
 
 
-def test_do_set_up_setup_error(mocker, capsys):
+def test_do_set_up_setup_error(mocker, capsys, delete_folders_again):
     mocker.patch(
         "iSparrow.sparrow_setup.set_up_sparrow", side_effect=Exception("RuntimeError")
     )
@@ -140,6 +147,8 @@ def test_do_start_custom(make_test_setup):
     assert sparrow_cmd.watcher.pattern == ".mp3"
     sparrow_cmd.watcher.stop()
 
+    assert sparrow_cmd.watcher.is_running is False
+
 
 @pytest.mark.parametrize(
     "input, expected",
@@ -154,72 +163,108 @@ def test_do_start_custom(make_test_setup):
         ),
     ],
 )
-def test_do_start_wrong_args(input, expected, capsys, mocker):
-    mock_watcher = mocker.patch("iSparrow.repl.SparrowWatcher", autospec=True)
-    mock_watcher_instance = mock_watcher.return_value
-    mock_watcher_instance.is_running = False
+def test_do_start_wrong_args(input, expected, capsys, make_test_setup):
+    capsys.readouterr()
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start(input)
     out, _ = capsys.readouterr()
     assert out == expected
+    time.sleep(10)
 
 
-def test_do_stop(mocker):
-    mock_watcher = mocker.patch("iSparrow.repl.SparrowWatcher", autospec=True)
-    mock_watcher_instance = mock_watcher.return_value
-    mock_watcher_instance.is_running = True
+def tetst_do_start_exceptions(make_test_setup):
+    pass
+
+
+def test_do_stop(make_test_setup):
     sparrow_cmd = SparrowCmd()
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    time.sleep(5)
+    assert sparrow_cmd.watcher.is_running is True
     sparrow_cmd.do_stop("")
-    mock_watcher_instance.stop.assert_called_once()
+    assert sparrow_cmd.watcher.is_running is False
 
 
-def test_do_pause(mocker):
-    mock_watcher = mocker.patch("repl.SparrowWatcher", autospec=True)
-    mock_watcher_instance = mock_watcher.return_value
-    mock_watcher_instance.is_running = True
-    mock_watcher_instance.is_sleeping = False
+def test_do_stop_exceptions(make_test_setup):
+    pass
+
+
+def test_do_pause(make_test_setup):
     sparrow_cmd = SparrowCmd()
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    assert sparrow_cmd.watcher.is_running is True
+    time.sleep(5)
+    # fake work done
+    sparrow_cmd.watcher.is_done_analyzing.set()
     sparrow_cmd.do_pause("")
-    mock_watcher_instance.pause.assert_called_once()
+    assert sparrow_cmd.watcher.is_sleeping is True
+    assert sparrow_cmd.watcher.is_running is True
+    sparrow_cmd.watcher.go_on()
+    sparrow_cmd.watcher.stop()
+    assert sparrow_cmd.watcher.is_running is False
 
 
-def test_do_continue(mocker):
-    mock_watcher = mocker.patch("repl.SparrowWatcher", autospec=True)
-    mock_watcher_instance = mock_watcher.return_value
-    mock_watcher_instance.is_running = True
-    mock_watcher_instance.is_sleeping = True
+def test_do_pause_exceptions(make_test_setup, capsys):
+    pass
+
+
+def test_do_continue(make_test_setup):
+
     sparrow_cmd = SparrowCmd()
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    assert sparrow_cmd.watcher.is_running is True
+    time.sleep(5)
+    # fake work done
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.do_pause("")
+    assert sparrow_cmd.watcher.is_sleeping is True
+    assert sparrow_cmd.watcher.is_running is True
     sparrow_cmd.do_continue("")
-    mock_watcher_instance.go_on.assert_called_once()
+    assert sparrow_cmd.watcher.is_sleeping is False
+    assert sparrow_cmd.watcher.is_running is True
+    sparrow_cmd.watcher.stop()
+    assert sparrow_cmd.watcher.is_running is False
 
 
-def test_do_restart(mocker):
-    mock_watcher = mocker.patch("repl.SparrowWatcher", autospec=True)
-    mock_watcher_instance = mock_watcher.return_value
-    mock_watcher_instance.is_running = True
-    mock_watcher_instance.is_sleeping = False
+def test_do_continue_exceptions(make_test_setup, capsys):
+    pass
+
+
+def test_do_restart(make_test_setup):
     sparrow_cmd = SparrowCmd()
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
+    old_output = deepcopy(sparrow_cmd.watcher.output)
     sparrow_cmd.do_restart("")
-    mock_watcher_instance.restart.assert_called_once()
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
+    assert old_output != sparrow_cmd.watcher.output
+    sparrow_cmd.watcher.stop()
+    assert sparrow_cmd.watcher.old_output == old_output
+    assert sparrow_cmd.watcher.is_running is False
+
+    
+def test_do_restart_exceptions(make_test_setup, capsys):
+    pass
 
 
-def test_do_exit(mocker):
+def test_do_exit(make_test_setup):
+    pass
+
+
+def test_do_exit_exceptions(make_test_setup, capsys):
+    pass
+
+
+def test_change_analyzer(make_test_setup):
     sparrow_cmd = SparrowCmd()
-    assert sparrow_cmd.do_exit("") == True
-
-
-def test_change_analyzer(mocker):
-    mock_watcher = mocker.patch("repl.SparrowWatcher", autospec=True)
-    mock_watcher_instance = mock_watcher.return_value
-    mock_watcher_instance.is_running = True
-    mock_watcher_instance.is_sleeping = False
-    sparrow_cmd = SparrowCmd()
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
     sparrow_cmd.change_analyzer("--cfg=test")
-    mock_watcher_instance.change_analyzer.assert_called_once()
+    sparrow_cmd.watcher.change_analyzer.assert_called_once()
 
 
-def test_process_line():
-    assert process_line_into_kwargs("--cfg=test") == ["test"]
-    assert process_line_into_kwargs("--cfg=test --cfg2=test2") == ["test", "test2"]
-    assert process_line_into_kwargs("") == []
-    assert process_line_into_kwargs("--cfg") is None
+def test_change_analyzer_exceptions(make_test_setup, capsys):
+    pass

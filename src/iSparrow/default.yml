@@ -16,6 +16,7 @@ Analysis:
     num_threads: 1
     use_cache: true
 
+  model_dir: ~/iSparrow/models 
   modelname: birdnet_default
   pattern: ".wav"
   check_time: 1
