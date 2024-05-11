@@ -257,15 +257,17 @@ class SparrowCmd(cmd.Cmd):
                 ["--cfg"],
             )
 
-            cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
+            if os.getenv("SPARROW_TEST_MODE") == "True":
+                cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow_tests") / "default.yml")
+            else:
+                cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
 
             cfgpath = None
-
             if len(inputs) > 1:
                 print("Invalid input. Expected: change_analyzer --cfg=<config_file>")
                 return
             elif len(inputs) == 1:
-                cfgpath = Path(inputs[0]).expanduser().resolve()
+                cfgpath = Path(inputs["cfg"]).expanduser().resolve()
             elif len(inputs) == 0:
                 cfgpath = None
             else:

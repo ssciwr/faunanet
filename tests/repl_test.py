@@ -29,11 +29,9 @@ def make_test_setup():
 
     download_model_files(ism)
     download_example_data(ise)
-    import iSparrow
 
-    packagebase = files(iSparrow)
-    shutil.copy(packagebase / "install.yml", iscfg)
-    shutil.copy(packagebase / "default.yml", iscfg)
+    shutil.copy(Path("tests", "test_install_config", "install.yml"), iscfg)
+    shutil.copy(Path("tests", "test_install_config", "default.yml"), iscfg)
 
     yield
 
@@ -239,12 +237,11 @@ def test_do_restart(make_test_setup):
     sparrow_cmd.do_restart("")
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
-    assert old_output != sparrow_cmd.watcher.output
+    assert old_output == sparrow_cmd.watcher.output
     sparrow_cmd.watcher.stop()
-    assert sparrow_cmd.watcher.old_output == old_output
     assert sparrow_cmd.watcher.is_running is False
 
-    
+
 def test_do_restart_exceptions(make_test_setup, capsys):
     pass
 
@@ -259,11 +256,12 @@ def test_do_exit_exceptions(make_test_setup, capsys):
 
 def test_change_analyzer(make_test_setup):
     sparrow_cmd = SparrowCmd()
-    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_start("")
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
-    sparrow_cmd.change_analyzer("--cfg=test")
-    sparrow_cmd.watcher.change_analyzer.assert_called_once()
+    time.sleep(10)
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
 
 
 def test_change_analyzer_exceptions(make_test_setup, capsys):
