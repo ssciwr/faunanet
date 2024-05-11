@@ -5,6 +5,7 @@ from pathlib import Path
 from platformdirs import user_config_dir
 import cmd
 import multiprocessing
+import os
 
 
 def process_line_into_kwargs(line: str, keywords: list = None):
@@ -85,10 +86,16 @@ class SparrowCmd(cmd.Cmd):
 
     def do_start(self, line):
 
-        cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
-        install_cfg = read_yaml(
-            Path(user_config_dir()) / Path("iSparrow") / "install.yml"
-        )
+        if os.getenv("SPARROW_TEST_MODE") == "True":
+            cfg = read_yaml(user_config_dir() / Path("iSparrow_tests") / "default.yml")
+            install_cfg = read_yaml(
+                Path(user_config_dir()) / Path("iSparrow_tests") / "install.yml"
+            )
+        else:
+            cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
+            install_cfg = read_yaml(
+                Path(user_config_dir()) / Path("iSparrow") / "install.yml"
+            )
 
         try:
             inputs = process_line_into_kwargs(
@@ -120,10 +127,6 @@ class SparrowCmd(cmd.Cmd):
 
             if cfgpath is not None:
                 custom_cfg = read_yaml(cfgpath)
-
-                print("basic: ", cfg)
-                print("custom: ", custom_cfg)
-
                 update_dict_leafs_recursive(cfg, custom_cfg)
 
             try:
@@ -146,10 +149,12 @@ class SparrowCmd(cmd.Cmd):
                     delete_recordings=cfg["Analysis"]["delete_recordings"],
                 )
             except Exception as e:
+                print(e)
                 print(
                     f"An error occured while trying to build the watcher: {e} caused by {e.__cause__}"
                 )
                 self.watcher = None
+                return 
 
             try:
                 self.watcher.start()

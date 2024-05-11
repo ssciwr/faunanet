@@ -8,5 +8,5 @@ Analysis:
   model_dir: ~/iSparrow_tests/models 
 
 Data: 
-  input: ~/iSparrow_tests_data
-  output: ~/iSparrow_tests_output
+  input: ~/iSparrow_test_install_data
+  output: ~/iSparrow_test_install_output

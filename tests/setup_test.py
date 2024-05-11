@@ -143,7 +143,7 @@ def test_download_model_files_exceptions(make_folders, cleanup_after_test):
 
 
 def test_setup(clean_up_test_installation):
-    filepath = Path(__file__).parent / "test_configs" / "install.yml"
+    filepath = Path(__file__).parent / "test_install_config" / "install.yml"
 
     sps.set_up_sparrow(filepath)
 
@@ -158,3 +158,11 @@ def test_setup(clean_up_test_installation):
     assert (sps.SPARROW_MODELS / "birdnet_custom" / tflite_file).is_file()
     assert (sps.SPARROW_MODELS / "google_perch" / "saved_model.pb").is_file()
     assert (sps.SPARROW_CONFIG / "install.yml").is_file()
+
+    for name in [
+        sps.SPARROW_CACHE,
+        sps.SPARROW_CONFIG,
+        sps.SPARROW_HOME,
+        sps.SPARROW_OUTPUT,
+    ]:
+        shutil.rmtree(name, ignore_errors=True)
