@@ -5,6 +5,7 @@ from iSparrow.utils import read_yaml
 from iSparrow.sparrow_setup import download_example_data, download_model_files
 import iSparrow
 
+import pathlib
 from pathlib import Path
 import shutil
 from platformdirs import user_cache_dir, user_config_dir
@@ -13,7 +14,18 @@ from copy import deepcopy
 
 
 @pytest.fixture()
-def make_test_setup():
+def redirect_folders(tmp_path, mocker):
+    mocker.patch("platformdirs.user_cache_dir", return_value=Path(tmp_path, "cache"))
+    mocker.patch("platformdirs.user_config_dir", return_value=Path(tmp_path, "config"))
+    mocker.patch.object(
+        pathlib.Path,
+        "expanduser",
+        new=lambda x: Path(str(x).replace("~", str(tmp_path))),
+    )
+
+
+@pytest.fixture()
+def make_test_setup(redirect_folders):
     cfg = read_yaml("./tests/test_install_config/install.yml")["Directories"]
     for name, path in cfg.items():
         Path(path).expanduser().mkdir(parents=True, exist_ok=True)
@@ -43,7 +55,7 @@ def make_test_setup():
 
 
 @pytest.fixture()
-def delete_folders_again():
+def delete_folders_again(redirect_folders):
     cfg = read_yaml("./tests/test_install_config/install.yml")["Directories"]
 
     yield
@@ -141,7 +153,7 @@ def test_do_set_up(delete_folders_again):
         ),
         (
             "--cfg=./tests/test_configs --stuff=superfluous",
-            "Invalid input. Expected: set_up --cfg=<config_file>\n",
+            "Expected 1 blocks of the form --name=<arg>\n",
         ),
         ("", "No config file provided, falling back to default"),
     ],

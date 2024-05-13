@@ -53,38 +53,71 @@ class SparrowCmd(cmd.Cmd):
             "Commands can have optional arguments. Use 'help <command>' to get more information on a specific command."
         )
 
-    def do_set_up(self, line):
+    def process_arguments(
+        self,
+        line: str,
+        keywords: list,
+        do_no_inputs: callable = lambda s: None,
+        do_with_inputs: callable = lambda s: None,
+        do_with_failure: callable = lambda s, e: None,
+    ) -> dict:
         inputs = None
         try:
-            inputs = process_line_into_kwargs(
-                line,
-                [
-                    "--cfg=",
-                ],
-            )
+            inputs = process_line_into_kwargs(line, keywords)
         except Exception as e:
             print(
                 "Something in the setup command parsing went wrong. Check your passed commands. Caused by: ",
                 e,
             )
-            return
+            do_with_failure(self, inputs, e)
+            return {}
 
-        cfg = None
-
-        if len(inputs) > 1:
-            print("Invalid input. Expected: set_up --cfg=<config_file>")
-            return
-        elif len(inputs) == 1:
-            cfg = Path(inputs["cfg"]).expanduser().resolve()
+        if len(inputs) > len(keywords):
+            print(
+                f"Invalid input. Expected {len(keywords)} blocks of the form --name=<arg>"
+            )
+            return {}
         elif len(inputs) == 0:
-            cfg = None
             print("No config file provided, falling back to default")
+            try:
+                do_no_inputs(self, inputs)
+            except Exception as e:
+                do_with_failure(self, inputs, e)
+        else:
+            try:
+                do_with_inputs(self, inputs)
+            except Exception as e:
+                do_with_failure(self, inputs, e)
 
-        try:
-            sps.set_up_sparrow(cfg)
+    def check_watcher(
+        self,
+        do_is_none: callable = lambda s: None,
+        do_is_sleeping: callable = lambda s: None,
+        do_is_running: callable = lambda s: None,
+        do_idle: callable = lambda s: None,
+    ):
+        if self.watcher is None:
+            do_is_none(self)
+        elif self.watcher.is_sleeping:
+            do_is_sleeping(self)
+        elif self.watcher.is_running:
+            do_is_running(self)
+        else:
+            do_idle(self)
 
-        except Exception as e:
-            print("Could not set up iSparrow", e, "caused by: ", e.__cause__)
+    def do_set_up(self, line):
+
+        self.process_arguments(
+            line,
+            ["--cfg"],
+            do_no_inputs=lambda self, inputs: sps.set_up_sparrow(None),
+            do_with_inputs=lambda self, inputs: sps.set_up_sparrow(
+                Path(inputs["cfg"]).expanduser().resolve()
+            ),
+            do_with_failure=lambda self, inputs, e: print(
+                "Could not set up iSparrow", e, "caused by: ", e.__cause__
+            ),
+        )
 
     def do_start(self, line):
 
