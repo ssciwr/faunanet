@@ -7,6 +7,8 @@ import cmd
 import multiprocessing
 import os
 
+# FIXME: use context manager for the line checking shit
+
 
 def process_line_into_kwargs(line: str, keywords: list = None):
 
@@ -188,7 +190,8 @@ class SparrowCmd(cmd.Cmd):
                 print(
                     f"Could not stop watcher: {e} caused by {e.__cause__}. Watcher process will be killed now and all resources released. This may have left data in a corrupt state. A new watcher must be started if this session is to be continued."
                 )
-                self.watcher.watcher_process.kill()
+                if self.watcher.is_running:
+                    self.watcher.watcher_process.kill()
                 self.watcher = None
 
     def do_pause(self, line):
@@ -197,7 +200,6 @@ class SparrowCmd(cmd.Cmd):
 
         if self.watcher is None:
             print("Cannot pause watcher, no watcher present")
-
         elif self.watcher.is_running is False:
             print("Cannot pause watcher, is not running")
         elif self.watcher.is_sleeping:
@@ -241,8 +243,20 @@ class SparrowCmd(cmd.Cmd):
                 print(f"Could not restart watcher: {e} caused by {e.__cause__}")
 
     def do_exit(self, line):
+        if len(line) > 0:
+            print("Invalid input. Expected no arguments.")
         print("Exiting sparrow shell")
         return True
+
+    def do_check(self, line):
+        if len(line) > 0:
+            print("Invalid input. Expected no arguments.")
+        elif self.watcher is None:
+            print("No watcher present, cannot check status")
+        else:
+            print("is running: ", self.watcher.is_running)
+            print("is sleeping: ", self.watcher.is_sleeping)
+            print("may do work: ", self.watcher.may_do_work.is_set())
 
     def change_analyzer(self, line):
         if self.watcher is None:
@@ -258,9 +272,13 @@ class SparrowCmd(cmd.Cmd):
             )
 
             if os.getenv("SPARROW_TEST_MODE") == "True":
-                cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow_tests") / "default.yml")
+                cfg = read_yaml(
+                    Path(user_config_dir()) / Path("iSparrow_tests") / "default.yml"
+                )
             else:
-                cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
+                cfg = read_yaml(
+                    Path(user_config_dir()) / Path("iSparrow") / "default.yml"
+                )
 
             cfgpath = None
             if len(inputs) > 1:
