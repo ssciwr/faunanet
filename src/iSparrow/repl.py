@@ -65,10 +65,6 @@ class SparrowCmd(cmd.Cmd):
         try:
             inputs = process_line_into_kwargs(line, keywords)
         except Exception as e:
-            print(
-                "Something in the setup command parsing went wrong. Check your passed commands. Caused by: ",
-                e,
-            )
             do_with_failure(self, inputs, e)
             return {}
 
@@ -89,21 +85,34 @@ class SparrowCmd(cmd.Cmd):
             except Exception as e:
                 do_with_failure(self, inputs, e)
 
-    def check_watcher(
+    def dispatch_on_watcher(
         self,
         do_is_none: callable = lambda s: None,
         do_is_sleeping: callable = lambda s: None,
         do_is_running: callable = lambda s: None,
-        do_idle: callable = lambda s: None,
+        do_else: callable = lambda s: None,
+        do_failure: callable = lambda s, e: None,
     ):
         if self.watcher is None:
-            do_is_none(self)
+            try:
+                do_is_none(self)
+            except Exception as e:
+                do_failure(self, e)
         elif self.watcher.is_sleeping:
-            do_is_sleeping(self)
+            try:
+                do_is_sleeping(self)
+            except Exception as e:
+                do_failure(self, e)
         elif self.watcher.is_running:
-            do_is_running(self)
+            try:
+                do_is_running(self)
+            except Exception as e:
+                do_failure(self, e)
         else:
-            do_idle(self)
+            try:
+                do_else(self)
+            except Exception as e:
+                do_failure(self, e)
 
     def do_set_up(self, line):
 
@@ -121,39 +130,33 @@ class SparrowCmd(cmd.Cmd):
 
     def do_start(self, line):
 
-        if os.getenv("SPARROW_TEST_MODE") == "True":
-            if Path(user_config_dir(), "iSparrow_tests").exists() is False:
-                print("No test installation found - please run the setup command first")
-            cfg = read_yaml(user_config_dir() / Path("iSparrow_tests") / "default.yml")
-        else:
-            if Path(user_config_dir(), "iSparrow").exists() is False:
-                print("No installation found - please run the setup command first")
-            cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
-
-        try:
-            inputs = process_line_into_kwargs(
-                line,
-                [
-                    "--cfg=",
-                ],
-            )
-        except Exception as e:
-            print(
-                "Something in the start command parsing went wrong. Check your passed commands. Caused by: ",
-                e,
-            )
+        if Path(user_config_dir(), "iSparrow").exists() is False:
+            print("No installation found - please run the setup command first")
             return
+
+        cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
 
         cfgpath = None
 
-        if len(inputs) > 1:
-            print("Invalid input. Expected: start --cfg=<config_file>")
-            return
-        elif len(inputs) == 1:
+        def assign_cfgpath(s, inputs):
+            nonlocal cfgpath
             cfgpath = Path(inputs["cfg"]).expanduser().resolve()
-        else:
-            print("No config file provided, falling back to default")
-            cfgpath = None
+
+        ret = self.process_arguments(
+            line,
+            ["--cfg"],
+            do_no_inputs=lambda _, __: print(
+                "No config file provided, falling back to default"
+            ),
+            do_with_inputs=assign_cfgpath,
+            do_with_failure=lambda _, __, e: print(
+                "Something in the start command parsing went wrong. Check your passed commands. Caused by: ",
+                e,
+            ),
+        )
+
+        if ret == {}:
+            return
 
         if self.watcher is None:
 
@@ -162,7 +165,6 @@ class SparrowCmd(cmd.Cmd):
                 update_dict_leafs_recursive(cfg, custom_cfg)
 
             try:
-
                 self.watcher = SparrowWatcher(
                     indir=Path(cfg["Data"]["input"]).expanduser().resolve(),
                     outdir=Path(cfg["Data"]["output"]).expanduser().resolve(),
@@ -207,72 +209,73 @@ class SparrowCmd(cmd.Cmd):
                 )
 
     def do_stop(self, line):
+
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
+            return
 
-        if self.watcher is None:
-            print("Cannot stop watcher, no watcher present")
+        def handle_failure(s, e):
+            print(
+                f"Could not stop watcher: {e} caused by {e.__cause__}. Watcher process will be killed now and all resources released. This may have left data in a corrupt state. A new watcher must be started if this session is to be continued."
+            )
+            if s.watcher.is_running:
+                s.watcher.watcher_process.kill()
+            s.watcher = None
 
-        elif self.watcher.is_running is False:
-            print("Cannot stop watcher, is not running")
-        else:
-            try:
-                self.watcher.stop()
-            except Exception as e:
-                print(
-                    f"Could not stop watcher: {e} caused by {e.__cause__}. Watcher process will be killed now and all resources released. This may have left data in a corrupt state. A new watcher must be started if this session is to be continued."
-                )
-                if self.watcher.is_running:
-                    self.watcher.watcher_process.kill()
-                self.watcher = None
+        self.dispatch_on_watcher(
+            do_is_none=lambda _: print("Cannot stop watcher, no watcher present"),
+            do_is_sleeping=lambda self: self.watcher.stop(),
+            do_is_running=lambda self: self.watcher.stop(),
+            do_else=lambda _: print("Cannot stop watcher, is not running"),
+            do_failure=handle_failure,
+        )
 
     def do_pause(self, line):
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
+            return
 
-        if self.watcher is None:
-            print("Cannot pause watcher, no watcher present")
-        elif self.watcher.is_running is False:
-            print("Cannot pause watcher, is not running")
-        elif self.watcher.is_sleeping:
-            print("Cannot pause watcher, is already sleeping")
-        else:
-            try:
-                self.watcher.pause()
-            except Exception as e:
-                print(f"Could not pause watcher: {e} caused by {e.__cause__}")
+        self.dispatch_on_watcher(
+            do_is_none=lambda _: print("Cannot pause watcher, no watcher present"),
+            do_is_running=lambda _: self.watcher.pause(),
+            do_is_sleeping=lambda _: print("Cannot pause watcher, is already sleeping"),
+            do_else=lambda self: print("Cannot pause watcher, is not running"),
+            do_failure=lambda _, e: print(
+                f"Could not pause watcher: {e} caused by {e.__cause__}"
+            ),
+        )
 
     def do_continue(self, line):
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
-        if self.watcher is None:
-            print("Cannot continue watcher, no watcher present")
-        elif self.watcher.is_running is False:
-            print("Cannot continue watcher, is not running")
-        elif self.watcher.is_sleeping is False:
-            print("Cannot continue watcher, is not sleeping")
-        else:
-            try:
-                self.watcher.go_on()
-            except Exception as e:
-                print(f"Could not continue watcher: {e} caused by {e.__cause__}")
+            return
+
+        self.dispatch_on_watcher(
+            do_is_none=lambda _: print("Cannot continue watcher, no watcher present"),
+            do_is_running=lambda _: print("Cannot continue watcher, is not sleeping"),
+            do_is_sleeping=lambda self: self.watcher.go_on(),
+            do_else=lambda _: print("Cannot continue watcher, is not running"),
+            do_failure=lambda _, e: print(
+                f"Could not continue watcher: {e} caused by {e.__cause__}"
+            ),
+        )
 
     def do_restart(self, line):
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
-        if self.watcher is None:
-            print("Cannot restart watcher, no watcher present")
 
-        elif self.watcher.is_running is False:
-            print("Cannot restart watcher, is not running")
-        elif self.watcher.is_sleeping is True:
-            print("Cannot restart watcher, is sleeping and must be continued first")
-        else:
-            try:
-                self.watcher.restart()
-            except Exception as e:
-                print(f"Could not restart watcher: {e} caused by {e.__cause__}")
+        self.dispatch_on_watcher(
+            do_is_none=lambda _: print("Cannot restart watcher, no watcher present"),
+            do_is_sleeping=lambda _: print(
+                "Cannot restart watcher, is sleeping and must be continued first"
+            ),
+            do_is_running=lambda self: self.watcher.restart(),
+            do_else=lambda _: print("Cannot restart watcher, is not running"),
+            do_failure=lambda _, e: print(
+                f"Could not restart watcher: {e} caused by {e.__cause__}"
+            ),
+        )
 
     def do_exit(self, line):
         if len(line) > 0:
@@ -304,9 +307,7 @@ class SparrowCmd(cmd.Cmd):
                 ["--cfg"],
             )
 
-            cfg = read_yaml(
-                Path(user_config_dir()) / Path("iSparrow_tests") / "default.yml"
-            )
+            cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
 
             cfgpath = None
 

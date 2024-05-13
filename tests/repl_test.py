@@ -22,6 +22,7 @@ def redirect_folders(tmp_path, mocker):
         "expanduser",
         new=lambda x: Path(str(x).replace("~", str(tmp_path))),
     )
+    mocker.patch.object(pathlib.Path, "home", new=lambda: tmp_path)
 
 
 @pytest.fixture()
@@ -30,8 +31,8 @@ def make_test_setup(redirect_folders):
     for name, path in cfg.items():
         Path(path).expanduser().mkdir(parents=True, exist_ok=True)
 
-    iscfg = Path(user_config_dir()) / "iSparrow_tests"
-    iscache = Path(user_cache_dir()) / "iSparrow_tests"
+    iscfg = Path(user_config_dir()) / "iSparrow"
+    iscache = Path(user_cache_dir()) / "iSparrow"
 
     iscfg.mkdir(parents=True, exist_ok=True)
     iscache.mkdir(parents=True, exist_ok=True)
@@ -63,8 +64,20 @@ def delete_folders_again(redirect_folders):
     for name in ["home", "output", "data"]:
         shutil.rmtree(Path(cfg[name]).expanduser(), ignore_errors=True)
 
-    shutil.rmtree(Path(user_config_dir()) / "iSparrow_tests", ignore_errors=True)
-    shutil.rmtree(Path(user_cache_dir()) / "iSparrow_tests", ignore_errors=True)
+    shutil.rmtree(Path(user_config_dir()) / "iSparrow", ignore_errors=True)
+    shutil.rmtree(Path(user_cache_dir()) / "iSparrow", ignore_errors=True)
+
+
+def wait_on_watcher_startup(sparrow_cmd):
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
 
 
 def test_process_line_into_kwargs():
@@ -189,11 +202,9 @@ def test_do_start_custom(make_test_setup, capsys):
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
 
     assert sparrow_cmd.watcher is not None
-    assert sparrow_cmd.watcher.outdir == Path.home() / "iSparrow_test_install_output"
-    assert sparrow_cmd.watcher.input_directory == str(
-        Path.home() / "iSparrow_test_install_data"
-    )
-    assert sparrow_cmd.watcher.model_dir == Path.home() / "iSparrow_test_install/models"
+    assert sparrow_cmd.watcher.outdir == Path.home() / "iSparrow_output"
+    assert sparrow_cmd.watcher.input_directory == str(Path.home() / "iSparrow_data")
+    assert sparrow_cmd.watcher.model_dir == Path.home() / "iSparrow/models"
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
     assert sparrow_cmd.watcher.is_sleeping is False
@@ -233,7 +244,7 @@ def test_do_start_custom(make_test_setup, capsys):
         ),
         (
             "--cfg=./tests/test_configs/watcher_custom.yml --stuff=superfluous",
-            "Invalid input. Expected: start --cfg=<config_file>\n",
+            "Invalid input. Expected 1 blocks of the form --name=<arg>\n",
         ),
         # ("", "No config file provided, falling back to default"),
     ],
@@ -295,30 +306,14 @@ def test_do_stop_failure(make_test_setup, capsys):
 
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
 
-    i = 0
-    while True:
-        if i > 10:
-            assert False
-        if sparrow_cmd.watcher.is_running:
-            break
-        else:
-            time.sleep(3)
-            i += 1
+    wait_on_watcher_startup(sparrow_cmd)
     capsys.readouterr()
     sparrow_cmd.do_stop("something_wrong")
     out, _ = capsys.readouterr()
     assert "Invalid input. Expected no arguments." in out
 
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
-    i = 0
-    while True:
-        if i > 10:
-            assert False
-        if sparrow_cmd.watcher.is_running:
-            break
-        else:
-            time.sleep(3)
-            i += 1
+    wait_on_watcher_startup(sparrow_cmd)
 
     assert sparrow_cmd.watcher.is_running is True
     sparrow_cmd.watcher.stop()
@@ -335,15 +330,7 @@ def test_do_stop_exceptions(make_test_setup, capsys, mocker):
 
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
 
-    i = 0
-    while True:
-        if i > 10:
-            assert False
-        if sparrow_cmd.watcher.is_running:
-            break
-        else:
-            time.sleep(3)
-            i += 1
+    wait_on_watcher_startup(sparrow_cmd)
 
     capsys.readouterr()
 
@@ -362,8 +349,10 @@ def test_do_stop_exceptions(make_test_setup, capsys, mocker):
 def test_do_pause(make_test_setup):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    i = 0
+    wait_on_watcher_startup(sparrow_cmd)
+
     assert sparrow_cmd.watcher.is_running is True
-    time.sleep(5)
     # fake work done
     sparrow_cmd.watcher.is_done_analyzing.set()
     sparrow_cmd.do_pause("")
@@ -385,12 +374,15 @@ def test_do_pause_failures(make_test_setup, capsys):
     assert "Invalid input. Expected no arguments.\n" in out
 
     sparrow_cmd.watcher.stop()
+    i = 0
     while True:
+        if i > 10:
+            assert False
         if sparrow_cmd.watcher.is_running is False:
             break
         else:
-            time.sleep(1)
-    assert sparrow_cmd.watcher.is_running is False
+            time.sleep(3)
+            i += 1
     capsys.readouterr()
     sparrow_cmd.watcher.is_done_analyzing.set()
     sparrow_cmd.do_pause("")
@@ -405,15 +397,7 @@ def test_do_pause_failures(make_test_setup, capsys):
 
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
 
-    i = 0
-    while True:
-        if i > 10:
-            assert False
-        if sparrow_cmd.watcher.is_running:
-            break
-        else:
-            time.sleep(3)
-            i += 1
+    wait_on_watcher_startup(sparrow_cmd)
 
     sparrow_cmd.watcher.is_done_analyzing.set()
     sparrow_cmd.watcher.pause()
@@ -428,15 +412,7 @@ def test_do_pause_exception(make_test_setup, capsys, mocker):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     assert sparrow_cmd.watcher.is_running is True
-    i = 0
-    while True:
-        if i > 10:
-            assert False
-        if sparrow_cmd.watcher.is_running:
-            break
-        else:
-            time.sleep(3)
-            i += 1
+    wait_on_watcher_startup(sparrow_cmd)
 
     mocker.patch("iSparrow.SparrowWatcher.pause", side_effect=Exception("RuntimeError"))
     sparrow_cmd.watcher.is_done_analyzing.set()
@@ -456,15 +432,8 @@ def test_do_continue(make_test_setup):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     assert sparrow_cmd.watcher.is_running is True
-    i = 0
-    while True:
-        if i > 10:
-            assert False
-        if sparrow_cmd.watcher.is_running:
-            break
-        else:
-            time.sleep(3)
-            i += 1
+    wait_on_watcher_startup(sparrow_cmd)
+
     # fake work done
     sparrow_cmd.watcher.is_done_analyzing.set()
     sparrow_cmd.do_pause("")
@@ -482,15 +451,8 @@ def test_do_continue_failure(make_test_setup, capsys):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     assert sparrow_cmd.watcher.is_running is True
-    i = 0
-    while True:
-        if i > 10:
-            assert False
-        if sparrow_cmd.watcher.is_running:
-            break
-        else:
-            time.sleep(3)
-            i += 1
+
+    wait_on_watcher_startup(sparrow_cmd)
 
     sparrow_cmd.watcher.is_done_analyzing.set()
     sparrow_cmd.do_pause("")
@@ -515,15 +477,7 @@ def test_do_continue_failure(make_test_setup, capsys):
 
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
 
-    i = 0
-    while True:
-        if i > 10:
-            assert False
-        if sparrow_cmd.watcher.is_running:
-            break
-        else:
-            time.sleep(3)
-            i += 1
+    wait_on_watcher_startup(sparrow_cmd)
 
     capsys.readouterr()
     sparrow_cmd.do_continue("")
@@ -546,16 +500,9 @@ def test_do_continue_exception(make_test_setup, capsys, mocker):
 
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    wait_on_watcher_startup(sparrow_cmd)
+
     assert sparrow_cmd.watcher.is_running is True
-    i = 0
-    while True:
-        if i > 10:
-            assert False
-        if sparrow_cmd.watcher.is_running:
-            break
-        else:
-            time.sleep(3)
-            i += 1
 
     sparrow_cmd.watcher.is_done_analyzing.set()
     sparrow_cmd.do_pause("")
@@ -571,15 +518,8 @@ def test_do_continue_exception(make_test_setup, capsys, mocker):
 def test_do_restart(make_test_setup):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
-    i = 0
-    while True:
-        if i > 10:
-            assert False
-        if sparrow_cmd.watcher.is_running:
-            break
-        else:
-            time.sleep(3)
-            i += 1
+    wait_on_watcher_startup(sparrow_cmd)
+
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
     old_output = deepcopy(sparrow_cmd.watcher.output)
@@ -596,15 +536,8 @@ def test_do_restart_failure(make_test_setup, capsys):
 
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
 
-    i = 0
-    while True:
-        if i > 10:
-            assert False
-        if sparrow_cmd.watcher.is_running:
-            break
-        else:
-            time.sleep(3)
-            i += 1
+    wait_on_watcher_startup(sparrow_cmd)
+
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
 
@@ -637,15 +570,8 @@ def test_do_restart_exceptions(make_test_setup, capsys, mocker):
 
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
 
-    i = 0
-    while True:
-        if i > 10:
-            assert False
-        if sparrow_cmd.watcher.is_running:
-            break
-        else:
-            time.sleep(3)
-            i += 1
+    wait_on_watcher_startup(sparrow_cmd)
+
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
 
@@ -680,15 +606,9 @@ def test_do_exit(capsys):
 def test_change_analyzer(make_test_setup):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("")
-    i = 0
-    while True:
-        if i > 10:
-            assert False
-        if sparrow_cmd.watcher.is_running:
-            break
-        else:
-            time.sleep(3)
-            i += 1
+
+    wait_on_watcher_startup(sparrow_cmd)
+
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
     time.sleep(10)
@@ -711,15 +631,8 @@ def test_change_analyzer_exception(make_test_setup, capsys, mocker):
 
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
 
-    i = 0
-    while True:
-        if i > 10:
-            assert False
-        if sparrow_cmd.watcher.is_running:
-            break
-        else:
-            time.sleep(3)
-            i += 1
+    wait_on_watcher_startup(sparrow_cmd)
+
     sparrow_cmd.watcher.is_done_analyzing.set()
 
     capsys.readouterr()
@@ -745,15 +658,7 @@ def test_change_analyzer_failure(make_test_setup, capsys):
 
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
 
-    i = 0
-    while True:
-        if i > 10:
-            assert False
-        if sparrow_cmd.watcher.is_running:
-            break
-        else:
-            time.sleep(3)
-            i += 1
+    wait_on_watcher_startup(sparrow_cmd)
 
     sparrow_cmd.watcher.is_done_analyzing.set()
     sparrow_cmd.watcher.pause()
@@ -782,15 +687,7 @@ def test_do_check(make_test_setup, capsys):
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
 
-    i = 0
-    while True:
-        if i > 10:
-            assert False
-        if sparrow_cmd.watcher.is_running:
-            break
-        else:
-            time.sleep(3)
-            i += 1
+    wait_on_watcher_startup(sparrow_cmd)
 
     capsys.readouterr()
     sparrow_cmd.do_check("")

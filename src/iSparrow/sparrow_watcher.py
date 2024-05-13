@@ -316,7 +316,7 @@ class SparrowWatcher:
 
     @property
     def is_sleeping(self):
-        return not self.may_do_work.is_set()
+        return not self.may_do_work.is_set() and self.is_running
 
     def analyze(self, filename: str, recording: SparrowRecording):
         """

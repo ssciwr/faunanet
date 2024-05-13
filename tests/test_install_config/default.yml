@@ -16,15 +16,15 @@ Analysis:
     num_threads: 1
     use_cache: true
 
-  model_dir: ~/iSparrow_test_install/models 
+  model_dir: ~/iSparrow/models 
   modelname: birdnet_default
   pattern: ".wav"
   check_time: 1
   delete_recordings: "never"
 
 Data: 
-  input: ~/iSparrow_test_install_data
-  output: ~/iSparrow_test_install_output
+  input: ~/iSparrow_data
+  output: ~/iSparrow_output
   Preprocessor:
     sample_rate: 48000
     overlap: 0.0
