@@ -2,12 +2,14 @@ import pytest
 
 from iSparrow.repl import SparrowCmd, process_line_into_kwargs
 from iSparrow.utils import read_yaml
+from iSparrow.sparrow_setup import download_example_data, download_model_files
+import iSparrow
+
 from pathlib import Path
 import shutil
 from platformdirs import user_cache_dir, user_config_dir
 import time
 from copy import deepcopy
-from iSparrow.sparrow_setup import download_example_data, download_model_files
 
 
 @pytest.fixture()
@@ -74,8 +76,38 @@ def test_process_line_into_kwargs():
     assert process_line_into_kwargs("") == {}
 
 
-def test_process_line_into_kwargs_failures(make_test_setup):
-    pass
+@pytest.mark.parametrize(
+    "input, keywords, message",
+    [
+        (
+            "-no equality sign",
+            [
+                "cfg",
+            ],
+            "Invalid input. Expected options structure is --name=<arg>",
+        ),
+        (
+            "--cfg=./tests/test_configs",
+            [],
+            "Keywords must be provided with passed line",
+        ),
+        (
+            "--cfg=./tests/test_configs",
+            None,
+            "Keywords must be provided with passed line",
+        ),
+        (
+            "--cfg=./tests/test_configs",
+            [
+                "rkg",
+            ],
+            "Keyword rkg not found in passed line",
+        ),
+    ],
+)
+def test_process_line_into_kwargs_failures(input, keywords, message, make_test_setup):
+    with pytest.raises(ValueError, match=message):
+        process_line_into_kwargs(input, keywords=keywords)
 
 
 def test_do_set_up(delete_folders_again):
@@ -111,15 +143,21 @@ def test_do_set_up(delete_folders_again):
             "--cfg=./tests/test_configs --stuff=superfluous",
             "Invalid input. Expected: set_up --cfg=<config_file>\n",
         ),
+        ("", "No config file provided, falling back to default"),
     ],
 )
-def test_do_set_up_failure(input, expected, capsys, delete_folders_again):
+def test_do_set_up_failure(input, expected, mocker, tmp_path, capsys):
+    capsys.readouterr()
+    mocker.patch.object(Path, "expanduser", new=lambda x: Path(tmp_path, x))
+    mocker.patch("platformdirs.user_cache_dir", return_value=Path(tmp_path, "cache"))
+    mocker.patch("platformdirs.user_config_dir", return_value=Path(tmp_path, "config"))
+
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_set_up(input)
     out, _ = capsys.readouterr()
-    assert out == expected
-
-    # FIXME: add the other failure cases
+    assert expected in out
+    shutil.rmtree(tmp_path, ignore_errors=True)
+    capsys.readouterr()
 
 
 def test_do_set_up_setup_exception(mocker, capsys, delete_folders_again):
@@ -130,9 +168,10 @@ def test_do_set_up_setup_exception(mocker, capsys, delete_folders_again):
     sparrow_cmd.do_set_up("--cfg=./tests/test_configs")
     out, _ = capsys.readouterr()
     assert out == "Could not set up iSparrow RuntimeError caused by:  None\n"
+    capsys.readouterr()
 
 
-def test_do_start_custom(make_test_setup):
+def test_do_start_custom(make_test_setup, capsys):
 
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
@@ -149,7 +188,27 @@ def test_do_start_custom(make_test_setup):
     assert sparrow_cmd.watcher.delete_recordings == "always"
     assert sparrow_cmd.watcher.pattern == ".mp3"
     sparrow_cmd.watcher.stop()
+    assert sparrow_cmd.watcher.is_running is False
 
+    capsys.readouterr()
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+
+    out, _ = capsys.readouterr()
+    assert sparrow_cmd.watcher.is_running is True
+    assert (
+        out
+        == "It appears that there is a watcher process that is not running. Trying to start with current parameters. Use  the 'change_analyzer' command to change the parameters.\nstart the watcher process\n"
+    )
+
+    capsys.readouterr()
+    sparrow_cmd.do_start("")
+    out, _ = capsys.readouterr()
+    assert (
+        "The watcher is running. Cannot be started again with different parameters. Try 'change_analyzer' to use different parameters.\n"
+        in out
+    )
+
+    sparrow_cmd.watcher.stop()
     assert sparrow_cmd.watcher.is_running is False
 
 
@@ -158,12 +217,13 @@ def test_do_start_custom(make_test_setup):
     [
         (
             "--cfg./tests/test_configs/watcher_custom.yml",
-            "Something in the setup command parsing went wrong. Check your passed commands. Caused by:  Invalid input. Expected options structure is --name=<arg>\n",
+            "Something in the start command parsing went wrong. Check your passed commands. Caused by:  Invalid input. Expected options structure is --name=<arg>\n",
         ),
         (
             "--cfg=./tests/test_configs/watcher_custom.yml --stuff=superfluous",
             "Invalid input. Expected: start --cfg=<config_file>\n",
         ),
+        # ("", "No config file provided, falling back to default"),
     ],
 )
 def test_do_start_failure(input, expected, capsys, make_test_setup):
@@ -172,13 +232,41 @@ def test_do_start_failure(input, expected, capsys, make_test_setup):
     sparrow_cmd.do_start(input)
     out, _ = capsys.readouterr()
     assert out == expected
-    time.sleep(10)
 
-    # TODO: add the other failure cases
+    if sparrow_cmd.watcher is not None and sparrow_cmd.watcher.is_running is True:
+        sparrow_cmd.watcher.stop()
 
 
-def tetst_do_start_exceptions(make_test_setup):
-    pass
+def tetst_do_start_exception_in_watcher_start(mocker):
+    mocker.object.patch(
+        "iSparrow.SparrowWatcher.start", side_effect=Exception("RuntimeError")
+    )
+    sparrow_cmd = SparrowCmd()
+
+    with pytest.raises(
+        RuntimeError,
+        match="Something went wrong while trying to start the watcher process: RuntimeError caused by  None. A new start attempt can be made when the error has been addressed.",
+    ):
+        sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+
+    if sparrow_cmd.watcher is not None and sparrow_cmd.watcher.is_running is True:
+        sparrow_cmd.watcher.stop()
+
+
+def tetst_do_start_exception_in_watcher_build(mocker):
+    mocker.object.patch(
+        "iSparrow.SparrowWatcher.__init__", side_effect=Exception("RuntimeError")
+    )
+    sparrow_cmd = SparrowCmd()
+
+    with pytest.raises(
+        RuntimeError,
+        match="An error occured while trying to build the watcher: RuntimeError caused by None",
+    ):
+        sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+
+    if sparrow_cmd.watcher is not None and sparrow_cmd.watcher.is_running is True:
+        sparrow_cmd.watcher.stop()
 
 
 def test_do_stop(make_test_setup):
@@ -190,12 +278,73 @@ def test_do_stop(make_test_setup):
     assert sparrow_cmd.watcher.is_running is False
 
 
-def test_do_stop_failure(make_test_setup):
-    pass
+def test_do_stop_failure(make_test_setup, capsys):
+    sparrow_cmd = SparrowCmd()
+
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
+    capsys.readouterr()
+    sparrow_cmd.do_stop("something_wrong")
+    out, _ = capsys.readouterr()
+    assert "Invalid input. Expected no arguments." in out
+
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
+
+    assert sparrow_cmd.watcher.is_running is True
+    sparrow_cmd.watcher.stop()
+    capsys.readouterr()
+    sparrow_cmd.do_stop("")
+    out, _ = capsys.readouterr()
+    assert out == "Cannot stop watcher, is not running\n"
 
 
-def test_do_stop_exceptions(make_test_setup):
-    pass
+def test_do_stop_exceptions(make_test_setup, capsys, mocker):
+    mocker.patch("iSparrow.SparrowWatcher.stop", side_effect=Exception("RuntimeError"))
+
+    sparrow_cmd = SparrowCmd()
+
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
+
+    capsys.readouterr()
+
+    sparrow_cmd.do_stop("")
+
+    out, _ = capsys.readouterr()
+    assert (
+        out
+        == "Could not stop watcher: RuntimeError caused by None. Watcher process will be killed now and all resources released. This may have left data in a corrupt state. A new watcher must be started if this session is to be continued.\n"
+    )
+
+    if sparrow_cmd.watcher is not None and sparrow_cmd.watcher.is_running is True:
+        sparrow_cmd.watcher.stop()
 
 
 def test_do_pause(make_test_setup):
@@ -214,7 +363,6 @@ def test_do_pause(make_test_setup):
 
 
 def test_do_pause_failures(make_test_setup, capsys):
-    # FIXME: add a fixture to start a watcher
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     assert sparrow_cmd.watcher.is_running is True
@@ -224,7 +372,6 @@ def test_do_pause_failures(make_test_setup, capsys):
     out, _ = capsys.readouterr()
     assert "Invalid input. Expected no arguments.\n" in out
 
-    # FIXME: make use of a function to wait for stuff
     sparrow_cmd.watcher.stop()
     while True:
         if sparrow_cmd.watcher.is_running is False:
@@ -233,6 +380,7 @@ def test_do_pause_failures(make_test_setup, capsys):
             time.sleep(1)
     assert sparrow_cmd.watcher.is_running is False
     capsys.readouterr()
+    sparrow_cmd.watcher.is_done_analyzing.set()
     sparrow_cmd.do_pause("")
     out, _ = capsys.readouterr()
     assert out == "Cannot pause watcher, is not running\n"
@@ -243,15 +391,41 @@ def test_do_pause_failures(make_test_setup, capsys):
     out, _ = capsys.readouterr()
     assert out == "Cannot pause watcher, no watcher present\n"
 
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
+
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.watcher.pause()
+
+    capsys.readouterr()
+    sparrow_cmd.do_pause("")
+    out, _ = capsys.readouterr()
+    assert out == "Cannot pause watcher, is already sleeping\n"
+
 
 def test_do_pause_exception(make_test_setup, capsys, mocker):
-    # FIXME: add a fixture to start a watcher
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     assert sparrow_cmd.watcher.is_running is True
-    time.sleep(5)
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
 
-    # patch watcher.pause()
     mocker.patch("iSparrow.SparrowWatcher.pause", side_effect=Exception("RuntimeError"))
     sparrow_cmd.watcher.is_done_analyzing.set()
     capsys.readouterr()
@@ -270,7 +444,15 @@ def test_do_continue(make_test_setup):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     assert sparrow_cmd.watcher.is_running is True
-    time.sleep(5)
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
     # fake work done
     sparrow_cmd.watcher.is_done_analyzing.set()
     sparrow_cmd.do_pause("")
@@ -284,16 +466,108 @@ def test_do_continue(make_test_setup):
 
 
 def test_do_continue_failure(make_test_setup, capsys):
-    pass
+
+    sparrow_cmd = SparrowCmd()
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    assert sparrow_cmd.watcher.is_running is True
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
+
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.do_pause("")
+    assert sparrow_cmd.watcher.is_sleeping is True
+    assert sparrow_cmd.watcher.is_running is True
+
+    capsys.readouterr()
+    sparrow_cmd.do_continue("cfg=wrong_argument")
+    out, _ = capsys.readouterr()
+    assert "Invalid input. Expected no arguments.\n" in out
+
+    sparrow_cmd.do_stop("")
+    sparrow_cmd.watcher = None
+
+    capsys.readouterr()
+    assert sparrow_cmd.watcher is None
+
+    sparrow_cmd.do_continue("")
+
+    out, _ = capsys.readouterr()
+    assert out == "Cannot continue watcher, no watcher present\n"
+
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
+
+    capsys.readouterr()
+    sparrow_cmd.do_continue("")
+    out, _ = capsys.readouterr()
+
+    assert out == "Cannot continue watcher, is not sleeping\n"
+
+    sparrow_cmd.watcher.stop()
+
+    capsys.readouterr()
+    sparrow_cmd.do_continue("")
+    out, _ = capsys.readouterr()
+
+    assert out == "Cannot continue watcher, is not running\n"
 
 
-def test_do_continue_exception(make_test_setup, capsys):
-    pass
+def test_do_continue_exception(make_test_setup, capsys, mocker):
+
+    mocker.patch("iSparrow.SparrowWatcher.go_on", side_effect=Exception("RuntimeError"))
+
+    sparrow_cmd = SparrowCmd()
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    assert sparrow_cmd.watcher.is_running is True
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
+
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.do_pause("")
+    assert sparrow_cmd.watcher.is_sleeping is True
+    assert sparrow_cmd.watcher.is_running is True
+
+    capsys.readouterr()
+    sparrow_cmd.do_continue("")
+    out, _ = capsys.readouterr()
+    assert out == "Could not continue watcher: RuntimeError caused by None\n"
 
 
 def test_do_restart(make_test_setup):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
     old_output = deepcopy(sparrow_cmd.watcher.output)
@@ -305,35 +579,224 @@ def test_do_restart(make_test_setup):
     assert sparrow_cmd.watcher.is_running is False
 
 
-def test_do_restart_exception(make_test_setup, capsys):
-    pass
-
-
 def test_do_restart_failure(make_test_setup, capsys):
-    pass
+    sparrow_cmd = SparrowCmd()
+
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
+
+    capsys.readouterr()
+    sparrow_cmd.do_restart("wrong input")
+    out, _ = capsys.readouterr()
+    assert "Invalid input. Expected no arguments.\n" in out
+
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.watcher.pause()
+
+    capsys.readouterr()
+    sparrow_cmd.do_restart("")
+    out, _ = capsys.readouterr()
+    assert "Cannot restart watcher, is sleeping and must be continued first\n" in out
+
+    sparrow_cmd.watcher.stop()
+
+    capsys.readouterr()
+    sparrow_cmd.do_restart("")
+    out, _ = capsys.readouterr()
+    assert out == "Cannot restart watcher, is not running\n"
 
 
-def test_do_exit(make_test_setup):
-    pass
+def test_do_restart_exceptions(make_test_setup, capsys, mocker):
+    mocker.patch.object(
+        iSparrow.SparrowWatcher, "stop", side_effect=Exception("RuntimeError")
+    )
+    sparrow_cmd = SparrowCmd()
+
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
+
+    capsys.readouterr()
+    sparrow_cmd.do_restart("")
+    out, _ = capsys.readouterr()
+    assert (
+        out
+        == "trying to restart the watcher process\nCould not restart watcher: RuntimeError caused by None\n"
+    )
 
 
-def test_do_exit_failure(make_test_setup, capsys):
-    pass
+def test_do_exit(capsys):
+    sparrow_cmd = SparrowCmd()
+
+    capsys.readouterr()
+    sparrow_cmd.do_exit("wrong args")
+    out, _ = capsys.readouterr()
+    assert out == "Invalid input. Expected no arguments.\n"
+
+    capsys.readouterr()
+
+    value = sparrow_cmd.do_exit("")
+
+    assert value is True
+
+    out, _ = capsys.readouterr()
+
+    assert out == "Exiting sparrow shell\n"
 
 
 def test_change_analyzer(make_test_setup):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("")
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
     time.sleep(10)
     sparrow_cmd.watcher.is_done_analyzing.set()
-    sparrow_cmd.change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
 
 
-def test_change_analyzer_exception(make_test_setup, capsys):
-    pass
+def test_change_analyzer_exception(make_test_setup, capsys, mocker):
+    mocker.patch.object(
+        iSparrow.SparrowWatcher,
+        "change_analyzer",
+        side_effect=Exception("RuntimeError"),
+    )
+
+    sparrow_cmd = SparrowCmd()
+    capsys.readouterr()
+    sparrow_cmd.do_change_analyzer("")
+    out, _ = capsys.readouterr()
+    assert out == "No watcher present, cannot change analyzer\n"
+
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
+    sparrow_cmd.watcher.is_done_analyzing.set()
+
+    capsys.readouterr()
+    sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
+
+    out, _ = capsys.readouterr()
+
+    assert (
+        out
+        == "An error occured while trying to change the analyzer: RuntimeError caused by None\n"
+    )
+
+    if sparrow_cmd.watcher is not None and sparrow_cmd.watcher.is_running is True:
+        sparrow_cmd.watcher.stop()
 
 
 def test_change_analyzer_failure(make_test_setup, capsys):
-    pass
+    sparrow_cmd = SparrowCmd()
+    capsys.readouterr()
+    sparrow_cmd.do_change_analyzer("")
+    out, _ = capsys.readouterr()
+    assert out == "No watcher present, cannot change analyzer\n"
+
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
+
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.watcher.pause()
+
+    capsys.readouterr()
+    sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
+    out, _ = capsys.readouterr()
+    assert out == "Cannot change analyzer, watcher is sleeping\n"
+
+    sparrow_cmd.watcher.stop()
+    capsys.readouterr()
+    sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
+    out, _ = capsys.readouterr()
+    assert out == "Cannot change analyzer, watcher is not running\n"
+
+    sparrow_cmd.watcher = None
+    capsys.readouterr()
+    sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
+    out, _ = capsys.readouterr()
+    assert out == "No watcher present, cannot change analyzer\n"
+
+
+def test_do_check(make_test_setup, capsys):
+    sparrow_cmd = SparrowCmd()
+    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
+
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running:
+            break
+        else:
+            time.sleep(3)
+            i += 1
+
+    capsys.readouterr()
+    sparrow_cmd.do_check("")
+    out, _ = capsys.readouterr()
+    assert out == "is running: True\nis sleeping: False\nmay do work: True\n"
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
+    sparrow_cmd.watcher.stop()
+    assert sparrow_cmd.watcher.is_running is False
+
+    capsys.readouterr()
+    sparrow_cmd.do_check("wrong input")
+    out, _ = capsys.readouterr()
+    assert out == "Invalid input. Expected no arguments.\n"
+
+    sparrow_cmd.watcher = None
+
+    capsys.readouterr()
+    sparrow_cmd.do_check("")
+    out, _ = capsys.readouterr()
+    assert out == "No watcher present, cannot check status\n"

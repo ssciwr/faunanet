@@ -101,14 +101,7 @@ def install(load_files, make_folders):
     """
     tmpdir, directories = load_files
 
-    # make a dummy data directory
-    data = Path.home() / "iSparrow_tests_data"
-    data.mkdir(parents=True, exist_ok=True)
-
     yield tmpdir, directories
-
-    # remove the dummy data directory
-    shutil.rmtree(data)
 
 
 # the model fixture is just a thin wrapper around the ModelFixture class

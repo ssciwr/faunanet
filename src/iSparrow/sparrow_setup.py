@@ -261,9 +261,10 @@ def set_up_sparrow(custom_config: str = None):
         utils.update_dict_leafs_recursive(install_cfg, custom_install_config)
 
     for key in ["home", "models", "output"]:
-        if Path(install_cfg["Directories"][key]).expanduser().resolve().exists():
+        p = Path(install_cfg["Directories"][key]).expanduser().resolve()
+        if p.exists():
             raise FileExistsError(
-                f"{key} directory already exists. Please remove it before running the installation."
+                f"{key} directory already exists at {p}. Please remove it before running the installation."
             )
 
     try:

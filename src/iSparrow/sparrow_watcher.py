@@ -12,7 +12,6 @@ import yaml
 import multiprocessing
 import warnings
 import csv
-from copy import deepcopy
 
 
 class AnalysisEventHandler(FileSystemEventHandler):

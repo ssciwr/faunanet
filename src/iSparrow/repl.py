@@ -1,13 +1,13 @@
 from iSparrow import SparrowWatcher
 import iSparrow.sparrow_setup as sps
 from iSparrow.utils import read_yaml, update_dict_leafs_recursive
+
 from pathlib import Path
 from platformdirs import user_config_dir
 import cmd
 import multiprocessing
 import os
-
-# FIXME: use context manager for the line checking shit
+from contextlib import contextmanager
 
 
 def process_line_into_kwargs(line: str, keywords: list = None):
@@ -18,7 +18,7 @@ def process_line_into_kwargs(line: str, keywords: list = None):
     if "=" not in line:
         raise ValueError("Invalid input. Expected options structure is --name=<arg>")
 
-    if keywords is None:
+    if keywords is None or len(keywords) == 0:
         raise ValueError("Keywords must be provided with passed line")
 
     for k in keywords:
@@ -106,7 +106,7 @@ class SparrowCmd(cmd.Cmd):
             )
         except Exception as e:
             print(
-                "Something in the setup command parsing went wrong. Check your passed commands. Caused by: ",
+                "Something in the start command parsing went wrong. Check your passed commands. Caused by: ",
                 e,
             )
             return
@@ -118,10 +118,9 @@ class SparrowCmd(cmd.Cmd):
             return
         elif len(inputs) == 1:
             cfgpath = Path(inputs["cfg"]).expanduser().resolve()
-        elif len(inputs) == 0:
-            cfgpath = None
         else:
             print("No config file provided, falling back to default")
+            cfgpath = None
 
         if self.watcher is None:
 
@@ -165,7 +164,7 @@ class SparrowCmd(cmd.Cmd):
             )
         else:
             print(
-                "It appears that there is a watcher process that is not running. Trying to start"
+                "It appears that there is a watcher process that is not running. Trying to start with current parameters. Use  the 'change_analyzer' command to change the parameters."
             )
             try:
                 self.watcher.start()
@@ -228,7 +227,7 @@ class SparrowCmd(cmd.Cmd):
     def do_restart(self, line):
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
-
+            return
         if self.watcher is None:
             print("Cannot restart watcher, no watcher present")
 
@@ -245,6 +244,7 @@ class SparrowCmd(cmd.Cmd):
     def do_exit(self, line):
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
+            return
         print("Exiting sparrow shell")
         return True
 
@@ -254,11 +254,11 @@ class SparrowCmd(cmd.Cmd):
         elif self.watcher is None:
             print("No watcher present, cannot check status")
         else:
-            print("is running: ", self.watcher.is_running)
-            print("is sleeping: ", self.watcher.is_sleeping)
-            print("may do work: ", self.watcher.may_do_work.is_set())
+            print("is running:", self.watcher.is_running)
+            print("is sleeping:", self.watcher.is_sleeping)
+            print("may do work:", self.watcher.may_do_work.is_set())
 
-    def change_analyzer(self, line):
+    def do_change_analyzer(self, line):
         if self.watcher is None:
             print("No watcher present, cannot change analyzer")
         elif self.watcher.is_running is False:
@@ -271,16 +271,12 @@ class SparrowCmd(cmd.Cmd):
                 ["--cfg"],
             )
 
-            if os.getenv("SPARROW_TEST_MODE") == "True":
-                cfg = read_yaml(
-                    Path(user_config_dir()) / Path("iSparrow_tests") / "default.yml"
-                )
-            else:
-                cfg = read_yaml(
-                    Path(user_config_dir()) / Path("iSparrow") / "default.yml"
-                )
+            cfg = read_yaml(
+                Path(user_config_dir()) / Path("iSparrow_tests") / "default.yml"
+            )
 
             cfgpath = None
+
             if len(inputs) > 1:
                 print("Invalid input. Expected: change_analyzer --cfg=<config_file>")
                 return
