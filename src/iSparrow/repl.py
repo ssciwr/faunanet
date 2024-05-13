@@ -43,7 +43,7 @@ class SparrowCmd(cmd.Cmd):
         super().__init__()
         self.watcher = None
 
-    def do_help(self, line):
+    def do_help(self, line: str):
         print("Commands: ")
         print("set_up")
         print("start")
@@ -77,11 +77,13 @@ class SparrowCmd(cmd.Cmd):
             print("No config file provided, falling back to default")
             try:
                 do_no_inputs(self, inputs)
+                return inputs
             except Exception as e:
                 do_with_failure(self, inputs, e)
         else:
             try:
                 do_with_inputs(self, inputs)
+                return inputs
             except Exception as e:
                 do_with_failure(self, inputs, e)
 
@@ -114,7 +116,7 @@ class SparrowCmd(cmd.Cmd):
             except Exception as e:
                 do_failure(self, e)
 
-    def do_set_up(self, line):
+    def do_set_up(self, line: str):
 
         self.process_arguments(
             line,
@@ -128,7 +130,7 @@ class SparrowCmd(cmd.Cmd):
             ),
         )
 
-    def do_start(self, line):
+    def do_start(self, line: str):
 
         if Path(user_config_dir(), "iSparrow").exists() is False:
             print("No installation found - please run the setup command first")
@@ -208,13 +210,13 @@ class SparrowCmd(cmd.Cmd):
                     f"Something went wrong while trying to start the watcher process: {e} caused by  {e.__cause__}. A new start attempt can be made when the error has been addressed."
                 )
 
-    def do_stop(self, line):
+    def do_stop(self, line: str):
 
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
 
-        def handle_failure(s, e):
+        def handle_failure(s: cmd, e: Exception):
             print(
                 f"Could not stop watcher: {e} caused by {e.__cause__}. Watcher process will be killed now and all resources released. This may have left data in a corrupt state. A new watcher must be started if this session is to be continued."
             )
@@ -230,7 +232,7 @@ class SparrowCmd(cmd.Cmd):
             do_failure=handle_failure,
         )
 
-    def do_pause(self, line):
+    def do_pause(self, line: str):
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
@@ -245,7 +247,7 @@ class SparrowCmd(cmd.Cmd):
             ),
         )
 
-    def do_continue(self, line):
+    def do_continue(self, line: str):
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
@@ -260,7 +262,7 @@ class SparrowCmd(cmd.Cmd):
             ),
         )
 
-    def do_restart(self, line):
+    def do_restart(self, line: str):
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
@@ -277,14 +279,14 @@ class SparrowCmd(cmd.Cmd):
             ),
         )
 
-    def do_exit(self, line):
+    def do_exit(self, line: str):
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
         print("Exiting sparrow shell")
         return True
 
-    def do_check(self, line):
+    def do_check(self, line: str):
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
         elif self.watcher is None:
@@ -294,7 +296,7 @@ class SparrowCmd(cmd.Cmd):
             print("is sleeping:", self.watcher.is_sleeping)
             print("may do work:", self.watcher.may_do_work.is_set())
 
-    def do_change_analyzer(self, line):
+    def do_change_analyzer(self, line: str):
         if self.watcher is None:
             print("No watcher present, cannot change analyzer")
         elif self.watcher.is_running is False:

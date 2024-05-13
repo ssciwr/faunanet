@@ -246,7 +246,7 @@ def test_do_start_custom(make_test_setup, capsys):
             "--cfg=./tests/test_configs/watcher_custom.yml --stuff=superfluous",
             "Invalid input. Expected 1 blocks of the form --name=<arg>\n",
         ),
-        # ("", "No config file provided, falling back to default"),
+        ("", "No config file provided, falling back to default"),
     ],
 )
 def test_do_start_failure(input, expected, capsys, make_test_setup):
