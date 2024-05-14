@@ -1,8 +1,6 @@
 import pytest
 
 from iSparrow.repl import SparrowCmd, process_line_into_kwargs
-from iSparrow.utils import read_yaml
-from iSparrow.sparrow_setup import download_example_data, download_model_files
 import iSparrow
 
 import pathlib
@@ -10,11 +8,13 @@ import shutil
 import platformdirs
 import time
 from copy import deepcopy
+from importlib.resources import files
 
 
 @pytest.fixture()
 def delete_setup(redirect_folders):
-    cfg = read_yaml("./tests/test_install_config/install.yml")["Directories"]
+    packagebase = files(iSparrow)
+    cfg = iSparrow.utils.read_yaml(packagebase / "install.yml")["Directories"]
 
     yield
 
@@ -30,8 +30,9 @@ def delete_setup(redirect_folders):
 
 
 @pytest.fixture()
-def make_test_setup(delete_setup):
-    cfg = read_yaml("./tests/test_install_config/install.yml")["Directories"]
+def make_sparrow_home(delete_setup):
+    packagebase = files(iSparrow)
+    cfg = iSparrow.utils.read_yaml(packagebase / "install.yml")["Directories"]
 
     for name, path in cfg.items():
         pathlib.Path(path).expanduser().mkdir(parents=True, exist_ok=True)
@@ -46,11 +47,11 @@ def make_test_setup(delete_setup):
     ise = pathlib.Path(cfg["home"]).expanduser() / "example"
     ise.mkdir(parents=True, exist_ok=True)
 
-    download_model_files(ism)
-    download_example_data(ise)
+    iSparrow.sparrow_setup.download_model_files(ism)
+    iSparrow.sparrow_setup.download_example_data(ise)
 
-    shutil.copy(pathlib.Path("tests", "test_install_config", "install.yml"), iscfg)
-    shutil.copy(pathlib.Path("tests", "test_install_config", "default.yml"), iscfg)
+    shutil.copy(pathlib.Path(packagebase, "install.yml"), iscfg)
+    shutil.copy(pathlib.Path(packagebase, "default.yml"), iscfg)
 
     yield
 
@@ -117,17 +118,18 @@ def test_process_line_into_kwargs():
         ),
     ],
 )
-def test_process_line_into_kwargs_failures(input, keywords, message, make_test_setup):
+def test_process_line_into_kwargs_failures(input, keywords, message, make_sparrow_home):
     with pytest.raises(ValueError, match=message):
         process_line_into_kwargs(input, keywords=keywords)
 
 
 def test_do_set_up(delete_setup):
 
-    cfg = read_yaml("./tests/test_install_config/install.yml")["Directories"]
+    packagebase = files(iSparrow)
+    cfg = iSparrow.utils.read_yaml(packagebase / "install.yml")["Directories"]
 
     sparrow_cmd = SparrowCmd()
-    sparrow_cmd.do_set_up("--cfg=./tests/test_install_config/install.yml")
+    sparrow_cmd.do_set_up(f"--cfg={packagebase}/install.yml")
 
     tflite_file = "model.tflite"
 
@@ -187,7 +189,7 @@ def test_do_set_up_setup_exception(mocker, capsys, delete_setup):
     capsys.readouterr()
 
 
-def test_do_start_custom(make_test_setup, capsys):
+def test_do_start_custom(make_sparrow_home, capsys):
 
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
@@ -244,7 +246,7 @@ def test_do_start_custom(make_test_setup, capsys):
         ("", "No config file provided, falling back to default", False),
     ],
 )
-def test_do_start_failure(input, expected, status, capsys, make_test_setup):
+def test_do_start_failure(input, expected, status, capsys, make_sparrow_home):
     capsys.readouterr()
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start(input)
@@ -256,7 +258,7 @@ def test_do_start_failure(input, expected, status, capsys, make_test_setup):
         sparrow_cmd.watcher.stop()
 
 
-def test_do_start_exception_in_watcher_start(make_test_setup, mocker, capsys):
+def test_do_start_exception_in_watcher_start(make_sparrow_home, mocker, capsys):
     mocker.patch.object(
         iSparrow.SparrowWatcher, "start", side_effect=Exception("RuntimeError")
     )
@@ -274,7 +276,7 @@ def test_do_start_exception_in_watcher_start(make_test_setup, mocker, capsys):
         sparrow_cmd.watcher.stop()
 
 
-def test_do_start_exception_in_watcher_build(make_test_setup, mocker, capsys):
+def test_do_start_exception_in_watcher_build(make_sparrow_home, mocker, capsys):
     mocker.patch.object(
         iSparrow.SparrowWatcher, "__init__", side_effect=Exception("RuntimeError")
     )
@@ -290,7 +292,7 @@ def test_do_start_exception_in_watcher_build(make_test_setup, mocker, capsys):
         sparrow_cmd.watcher.stop()
 
 
-def test_do_stop(make_test_setup):
+def test_do_stop(make_sparrow_home):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     time.sleep(5)
@@ -299,7 +301,7 @@ def test_do_stop(make_test_setup):
     assert sparrow_cmd.watcher.is_running is False
 
 
-def test_do_stop_failure(make_test_setup, capsys):
+def test_do_stop_failure(make_sparrow_home, capsys):
     sparrow_cmd = SparrowCmd()
 
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
@@ -321,7 +323,7 @@ def test_do_stop_failure(make_test_setup, capsys):
     assert out == "Cannot stop watcher, is not running\n"
 
 
-def test_do_stop_exceptions(make_test_setup, capsys, mocker):
+def test_do_stop_exceptions(make_sparrow_home, capsys, mocker):
     mocker.patch("iSparrow.SparrowWatcher.stop", side_effect=Exception("RuntimeError"))
 
     sparrow_cmd = SparrowCmd()
@@ -344,7 +346,7 @@ def test_do_stop_exceptions(make_test_setup, capsys, mocker):
         sparrow_cmd.watcher.stop()
 
 
-def test_do_pause(make_test_setup):
+def test_do_pause(make_sparrow_home):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     wait_on_watcher_startup(sparrow_cmd)
@@ -360,7 +362,7 @@ def test_do_pause(make_test_setup):
     assert sparrow_cmd.watcher.is_running is False
 
 
-def test_do_pause_failures(make_test_setup, capsys):
+def test_do_pause_failures(make_sparrow_home, capsys):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     assert sparrow_cmd.watcher.is_running is True
@@ -405,7 +407,7 @@ def test_do_pause_failures(make_test_setup, capsys):
     assert out == "Cannot pause watcher, is already sleeping\n"
 
 
-def test_do_pause_exception(make_test_setup, capsys, mocker):
+def test_do_pause_exception(make_sparrow_home, capsys, mocker):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     assert sparrow_cmd.watcher.is_running is True
@@ -424,7 +426,7 @@ def test_do_pause_exception(make_test_setup, capsys, mocker):
     assert sparrow_cmd.watcher.is_running is False
 
 
-def test_do_continue(make_test_setup):
+def test_do_continue(make_sparrow_home):
 
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
@@ -443,7 +445,7 @@ def test_do_continue(make_test_setup):
     assert sparrow_cmd.watcher.is_running is False
 
 
-def test_do_continue_failure(make_test_setup, capsys):
+def test_do_continue_failure(make_sparrow_home, capsys):
 
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
@@ -491,7 +493,7 @@ def test_do_continue_failure(make_test_setup, capsys):
     assert out == "Cannot continue watcher, is not running\n"
 
 
-def test_do_continue_exception(make_test_setup, capsys, mocker):
+def test_do_continue_exception(make_sparrow_home, capsys, mocker):
 
     mocker.patch("iSparrow.SparrowWatcher.go_on", side_effect=Exception("RuntimeError"))
 
@@ -512,7 +514,7 @@ def test_do_continue_exception(make_test_setup, capsys, mocker):
     assert out == "Could not continue watcher: RuntimeError caused by None\n"
 
 
-def test_do_restart(make_test_setup):
+def test_do_restart(make_sparrow_home):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     wait_on_watcher_startup(sparrow_cmd)
@@ -528,7 +530,7 @@ def test_do_restart(make_test_setup):
     assert sparrow_cmd.watcher.is_running is False
 
 
-def test_do_restart_failure(make_test_setup, capsys):
+def test_do_restart_failure(make_sparrow_home, capsys):
     sparrow_cmd = SparrowCmd()
 
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
@@ -559,7 +561,7 @@ def test_do_restart_failure(make_test_setup, capsys):
     assert out == "Cannot restart watcher, is not running\n"
 
 
-def test_do_restart_exceptions(make_test_setup, capsys, mocker):
+def test_do_restart_exceptions(make_sparrow_home, capsys, mocker):
     mocker.patch.object(
         iSparrow.SparrowWatcher, "stop", side_effect=Exception("RuntimeError")
     )
@@ -600,7 +602,7 @@ def test_do_exit(capsys):
     assert out == "Exiting sparrow shell\n"
 
 
-def test_change_analyzer(make_test_setup):
+def test_change_analyzer(make_sparrow_home):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("")
 
@@ -613,7 +615,7 @@ def test_change_analyzer(make_test_setup):
     sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
 
 
-def test_change_analyzer_exception(make_test_setup, capsys, mocker):
+def test_change_analyzer_exception(make_sparrow_home, capsys, mocker):
     mocker.patch.object(
         iSparrow.SparrowWatcher,
         "change_analyzer",
@@ -646,7 +648,7 @@ def test_change_analyzer_exception(make_test_setup, capsys, mocker):
         sparrow_cmd.watcher.stop()
 
 
-def test_change_analyzer_failure(make_test_setup, capsys):
+def test_change_analyzer_failure(make_sparrow_home, capsys):
     sparrow_cmd = SparrowCmd()
     capsys.readouterr()
     sparrow_cmd.do_change_analyzer("")
@@ -678,7 +680,7 @@ def test_change_analyzer_failure(make_test_setup, capsys):
     assert out == "No watcher present, cannot change analyzer\n"
 
 
-def test_do_check(make_test_setup, capsys):
+def test_do_check(make_sparrow_home, capsys):
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     assert sparrow_cmd.watcher.is_running is True

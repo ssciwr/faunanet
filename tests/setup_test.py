@@ -1,9 +1,10 @@
-import iSparrow.sparrow_setup as sps
+import iSparrow
 from pathlib import Path
 import pytest
 import shutil
 import tempfile
 from platformdirs import user_cache_dir, user_config_dir
+from importlib.resources import files
 
 tflite_file = "model.tflite"
 
@@ -67,8 +68,10 @@ def test_make_directories(temp_dir, cleanup_after_test):
         "models": str(Path(temp_dir, "test_models")),
         "output": str(Path(temp_dir, "test_output")),
     }
-    ish, ism, iso, ise, iscfg, iscache = sps.make_directories(base_cfg_dirs)
-    print(ish, ism, iso, ise, iscfg, iscache)
+    ish, ism, iso, ise, iscfg, iscache = iSparrow.sparrow_setup.make_directories(
+        base_cfg_dirs
+    )
+
     assert ish.exists()
     assert ism.exists()
     assert iso.exists()
@@ -83,7 +86,7 @@ def test_make_directories_exceptions(cleanup_after_test):
     with pytest.raises(
         KeyError, match="The home folder for iSparrow must be given in the base config"
     ):
-        sps.make_directories(base_cfg_dirs)
+        iSparrow.sparrow_setup.make_directories(base_cfg_dirs)
 
     base_cfg_dirs = {"home": "test_home", "output": "test_output"}
 
@@ -91,7 +94,7 @@ def test_make_directories_exceptions(cleanup_after_test):
         KeyError,
         match="The models folder for iSparrow must be given in the base config",
     ):
-        sps.make_directories(base_cfg_dirs)
+        iSparrow.sparrow_setup.make_directories(base_cfg_dirs)
 
     base_cfg_dirs = {
         "home": "test_home",
@@ -102,13 +105,13 @@ def test_make_directories_exceptions(cleanup_after_test):
         KeyError,
         match="The output folder for iSparrow must be given in the base config",
     ):
-        sps.make_directories(base_cfg_dirs)
+        iSparrow.sparrow_setup.make_directories(base_cfg_dirs)
 
 
 def test_download_example_data(temp_dir, make_folders, cleanup_after_test):
     example_dir = str(Path(temp_dir, "test_examples"))
 
-    sps.download_example_data(example_dir)
+    iSparrow.sparrow_setup.download_example_data(example_dir)
 
     assert Path(example_dir).exists()
     assert Path(example_dir, "soundscape.wav").is_file()
@@ -122,12 +125,12 @@ def test_download_example_data_exceptions(make_folders, cleanup_after_test):
     with pytest.raises(
         FileNotFoundError, match="The folder test_examples_nonexistent does not exist"
     ):
-        sps.download_example_data(example_dir)
+        iSparrow.sparrow_setup.download_example_data(example_dir)
 
 
 def test_download_model_files(temp_dir, make_folders):
     model_dir = str(Path(temp_dir, "test_models"))
-    sps.download_model_files(model_dir)
+    iSparrow.sparrow_setup.download_model_files(model_dir)
     assert Path(model_dir).exists()
     assert Path(model_dir, "birdnet_default", tflite_file).is_file()
     assert Path(model_dir, "birdnet_custom", tflite_file).is_file()
@@ -139,30 +142,38 @@ def test_download_model_files_exceptions(make_folders, cleanup_after_test):
     with pytest.raises(
         FileNotFoundError, match="The folder test_models_nonexistent does not exist"
     ):
-        sps.download_model_files(model_dir)
+        iSparrow.sparrow_setup.download_model_files(model_dir)
 
 
 def test_setup(clean_up_test_installation):
-    filepath = Path(__file__).parent / "test_install_config" / "install.yml"
 
-    sps.set_up_sparrow(filepath)
+    packagebase = files(iSparrow)
+    filepath = packagebase / "install.yml"
 
-    assert sps.SPARROW_HOME.exists()
-    assert sps.SPARROW_EXAMPLES.exists()
-    assert sps.SPARROW_MODELS.exists()
-    assert sps.SPARROW_OUTPUT.exists()
-    assert sps.SPARROW_CONFIG.exists()
-    assert sps.SPARROW_CACHE.exists()
+    iSparrow.sparrow_setup.set_up_sparrow(filepath)
 
-    assert (sps.SPARROW_MODELS / "birdnet_default" / tflite_file).is_file()
-    assert (sps.SPARROW_MODELS / "birdnet_custom" / tflite_file).is_file()
-    assert (sps.SPARROW_MODELS / "google_perch" / "saved_model.pb").is_file()
-    assert (sps.SPARROW_CONFIG / "install.yml").is_file()
+    assert iSparrow.sparrow_setup.SPARROW_HOME.exists()
+    assert iSparrow.sparrow_setup.SPARROW_EXAMPLES.exists()
+    assert iSparrow.sparrow_setup.SPARROW_MODELS.exists()
+    assert iSparrow.sparrow_setup.SPARROW_OUTPUT.exists()
+    assert iSparrow.sparrow_setup.SPARROW_CONFIG.exists()
+    assert iSparrow.sparrow_setup.SPARROW_CACHE.exists()
+
+    assert (
+        iSparrow.sparrow_setup.SPARROW_MODELS / "birdnet_default" / tflite_file
+    ).is_file()
+    assert (
+        iSparrow.sparrow_setup.SPARROW_MODELS / "birdnet_custom" / tflite_file
+    ).is_file()
+    assert (
+        iSparrow.sparrow_setup.SPARROW_MODELS / "google_perch" / "saved_model.pb"
+    ).is_file()
+    assert (iSparrow.sparrow_setup.SPARROW_CONFIG / "install.yml").is_file()
 
     for name in [
-        sps.SPARROW_CACHE,
-        sps.SPARROW_CONFIG,
-        sps.SPARROW_HOME,
-        sps.SPARROW_OUTPUT,
+        iSparrow.sparrow_setup.SPARROW_CACHE,
+        iSparrow.sparrow_setup.SPARROW_CONFIG,
+        iSparrow.sparrow_setup.SPARROW_HOME,
+        iSparrow.sparrow_setup.SPARROW_OUTPUT,
     ]:
         shutil.rmtree(name, ignore_errors=True)

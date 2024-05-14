@@ -2,3 +2,4 @@ Directories:
   home: ~/iSparrow 
   models: ~/iSparrow/models 
   output: ~/iSparrow_output
+  data: ~/iSparrow_data

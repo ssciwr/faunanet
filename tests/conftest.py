@@ -72,7 +72,6 @@ def make_sparrow_home(redirect_folders):
     """
     make_sparrow_home Make simulated sparrow setup in a temporary directory
 
-
     Yields:
         dictionary: dictionary with the paths to the created directories
     """
@@ -148,7 +147,7 @@ def install(load_files, make_folders):
 
 
 # the model fixture is just a thin wrapper around the ModelFixture class
-@pytest.fixture
+@pytest.fixture()
 def model_fx(install):
     _, directories = install
     yield ModelFixture(

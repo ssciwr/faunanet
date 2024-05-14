@@ -244,7 +244,6 @@ class SparrowWatcher:
         self.input = Path(indir)
 
         if self.input.is_dir() is False:
-            print("Input directory of watcher: ", self.input)
             raise ValueError("Input directory does not exist")
 
         self.outdir = outdir
