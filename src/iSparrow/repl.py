@@ -60,32 +60,34 @@ class SparrowCmd(cmd.Cmd):
         do_no_inputs: callable = lambda s: None,
         do_with_inputs: callable = lambda s: None,
         do_with_failure: callable = lambda s, e: None,
-    ) -> dict:
+    ) -> tuple:
         inputs = None
         try:
             inputs = process_line_into_kwargs(line, keywords)
         except Exception as e:
             do_with_failure(self, inputs, e)
-            return {}
+            return inputs, True
 
         if len(inputs) > len(keywords):
             print(
                 f"Invalid input. Expected {len(keywords)} blocks of the form --name=<arg>"
             )
-            return {}
+            return inputs, True
         elif len(inputs) == 0:
             print("No config file provided, falling back to default")
             try:
                 do_no_inputs(self, inputs)
-                return inputs
+                return inputs, False
             except Exception as e:
                 do_with_failure(self, inputs, e)
+                return inputs, True
         else:
             try:
                 do_with_inputs(self, inputs)
-                return inputs
+                return inputs, False
             except Exception as e:
                 do_with_failure(self, inputs, e)
+                return inputs, True
 
     def dispatch_on_watcher(
         self,
@@ -138,27 +140,23 @@ class SparrowCmd(cmd.Cmd):
 
         cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
 
-        cfgpath = None
-
-        def assign_cfgpath(s, inputs):
-            nonlocal cfgpath
-            cfgpath = Path(inputs["cfg"]).expanduser().resolve()
-
-        ret = self.process_arguments(
+        args, error = self.process_arguments(
             line,
             ["--cfg"],
             do_no_inputs=lambda _, __: print(
                 "No config file provided, falling back to default"
             ),
-            do_with_inputs=assign_cfgpath,
+            do_with_inputs=lambda _, __: None,
             do_with_failure=lambda _, __, e: print(
                 "Something in the start command parsing went wrong. Check your passed commands. Caused by: ",
                 e,
             ),
         )
 
-        if ret == {}:
+        if error == True:
             return
+
+        cfgpath = Path(args["cfg"]).expanduser().resolve() if "cfg" in args else None
 
         if self.watcher is None:
 
@@ -190,7 +188,7 @@ class SparrowCmd(cmd.Cmd):
 
             try:
                 self.watcher.start()
-            except RuntimeError as e:
+            except Exception as e:
                 print(
                     f"Something went wrong while trying to start the watcher: {e} caused by  {e.__cause__}. A new start attempt can be made when the error has been addressed.",
                 )
