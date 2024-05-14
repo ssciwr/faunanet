@@ -36,13 +36,13 @@ def clean_up_test_installation():
 
     # clean up stuff
     for path in [
-        Path("~/iSparrow_tests").expanduser(),
-        Path("~/iSparrow_tests_data").expanduser(),
-        Path("~/iSparrow_tests/models").expanduser(),
-        Path("~/iSparrow_tests/example").expanduser(),
-        Path("~/iSparrow_tests_output").expanduser(),
-        Path(user_cache_dir()) / "iSparrow_tests",
-        Path(user_config_dir()) / "iSparrow_tests",
+        Path("~/iSparrow").expanduser(),
+        Path("~/iSparrow_data").expanduser(),
+        Path("~/iSparrow/models").expanduser(),
+        Path("~/iSparrow/example").expanduser(),
+        Path("~/iSparrow_output").expanduser(),
+        Path(user_cache_dir()) / "iSparrow",
+        Path(user_config_dir()) / "iSparrow",
     ]:
         print("deleting folder @", path)
         if path.exists():

@@ -255,7 +255,7 @@ class SparrowWatcher:
         self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
 
         self.model_dir = Path(model_dir)
-        print("model directory: ", self.model_dir)
+
         if self.model_dir.is_dir() is False:
             raise ValueError("Model directory does not exist")
 

@@ -2,30 +2,73 @@ import multiprocessing
 
 multiprocessing.set_start_method("spawn", True)
 
-from pathlib import Path
 import pytest
 import shutil
-
-from pathlib import Path
 import os
 import tempfile
-from platformdirs import user_cache_dir, user_config_dir
+import pathlib
+import platformdirs
 import pooch
 import yaml
 
-from iSparrow.utils import read_yaml, load_module
-from iSparrow.sparrow_setup import download_example_data, download_model_files
+import iSparrow
 from .fixtures.recording_fixtures import RecordingFixture
 from .fixtures.model_fixtures import ModelFixture
 from .fixtures.watcher_fixtures import WatchFixture
 
-# set test mode
-os.environ["SPARROW_TEST_MODE"] = "True"
+
+@pytest.fixture(scope="session", autouse=True)
+def redirect_folders(session_mocker):
+    tmp_path = tempfile.mkdtemp()
+
+    session_mocker.patch(
+        "platformdirs.user_cache_dir", return_value=pathlib.Path(tmp_path, "cache")
+    )
+    session_mocker.patch(
+        "platformdirs.user_config_dir", return_value=pathlib.Path(tmp_path, "config")
+    )
+    session_mocker.patch(
+        "iSparrow.sparrow_setup.user_config_dir",
+        return_value=pathlib.Path(tmp_path, "config"),
+    )
+    session_mocker.patch(
+        "iSparrow.sparrow_setup.user_cache_dir",
+        return_value=pathlib.Path(tmp_path, "cache"),
+    )
+    session_mocker.patch(
+        "iSparrow.repl.user_config_dir", return_value=pathlib.Path(tmp_path, "config")
+    )
+    session_mocker.patch.object(
+        pathlib.Path,
+        "expanduser",
+        new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
+    )
+    session_mocker.patch.object(pathlib.Path, "home", new=lambda: tmp_path)
+
+    session_mocker.patch.object(
+        iSparrow.sparrow_setup.Path,
+        "expanduser",
+        new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
+    )
+    session_mocker.patch.object(
+        iSparrow.sparrow_setup.Path, "home", new=lambda: tmp_path
+    )
+
+    session_mocker.patch.object(
+        iSparrow.repl.Path,
+        "expanduser",
+        new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
+    )
+    session_mocker.patch.object(
+        iSparrow.repl.Path, "home", new=lambda: pathlib.Path(tmp_path)
+    )
+
+    yield tmp_path
 
 
 # set up the test directories and download the example files
 @pytest.fixture(scope="session")
-def make_sparrow_home():
+def make_sparrow_home(redirect_folders):
     """
     make_sparrow_home Make simulated sparrow setup in a temporary directory
 
@@ -33,15 +76,15 @@ def make_sparrow_home():
     Yields:
         dictionary: dictionary with the paths to the created directories
     """
-    tmpdir = tempfile.mkdtemp()
+    tmpdir = redirect_folders
 
     # create directories
     directories = {
-        "home": Path(tmpdir, "iSparrow_tests"),
-        "models": Path(tmpdir, "iSparrow_tests", "models"),
-        "example": Path(tmpdir, "iSparrow_tests", "example"),
-        "cache": Path(user_cache_dir(), "iSparrow_tests"),
-        "config": Path(user_config_dir(), "iSparrow_tests"),
+        "home": pathlib.Path(tmpdir, "iSparrow_tests"),
+        "models": pathlib.Path(tmpdir, "iSparrow_tests", "models"),
+        "example": pathlib.Path(tmpdir, "iSparrow_tests", "example"),
+        "cache": pathlib.Path(platformdirs.user_cache_dir(), "iSparrow_tests"),
+        "config": pathlib.Path(platformdirs.user_config_dir(), "iSparrow_tests"),
     }
 
     for name, path in directories.items():
@@ -62,8 +105,8 @@ def make_folders(make_sparrow_home):
 
     # create directories
 
-    directories["data"] = Path(tmpdir, "iSparrow_tests_data")
-    directories["output"] = Path(tmpdir, "iSparrow_tests_output")
+    directories["data"] = pathlib.Path(tmpdir, "iSparrow_tests_data")
+    directories["output"] = pathlib.Path(tmpdir, "iSparrow_tests_output")
 
     for name, path in directories.items():
         path.mkdir(parents=True, exist_ok=True)
@@ -85,8 +128,8 @@ def load_files(make_sparrow_home):
     ise = directories["example"]
     ism = directories["models"]
 
-    download_example_data(ise)
-    download_model_files(ism)
+    iSparrow.sparrow_setup.download_example_data(ise)
+    iSparrow.sparrow_setup.download_model_files(ism)
 
     yield tmpdir, directories
 
@@ -122,32 +165,29 @@ def preprocessor_fx(install):
 
     _, directories = install
 
-    filepath = Path(__file__).resolve()
+    filepath = pathlib.Path(__file__).resolve()
     testpath = filepath.parent
 
-    with open(testpath / Path("test_configs") / "cfg_default.yml", "r") as file:
+    with open(testpath / pathlib.Path("test_configs") / "cfg_default.yml", "r") as file:
         cfg_default = yaml.safe_load(file)
 
-    with open(testpath / Path("test_configs") / "cfg_google.yml", "r") as file:
+    with open(testpath / pathlib.Path("test_configs") / "cfg_google.yml", "r") as file:
         cfg_google = yaml.safe_load(file)
 
-    # README: in later versions when a 'exchange_model'function is present somewhere, this
-    # needs respective catches for wrong paths/nonexistant files etc
-    # README: I'm not entirely sure how robust this is...
-    module_default = load_module(
+    module_default = iSparrow.utils.load_module(
         "pp",
         str(
             directories["models"]
-            / Path(cfg_default["Analysis"]["Model"]["model_path"])
+            / pathlib.Path(cfg_default["Analysis"]["Model"]["model_path"])
             / "preprocessor.py"
         ),
     )
 
-    module_google = load_module(
+    module_google = iSparrow.utils.load_module(
         "ppg",
         str(
             directories["models"]
-            / Path(cfg_google["Analysis"]["Model"]["model_path"])
+            / pathlib.Path(cfg_google["Analysis"]["Model"]["model_path"])
             / "preprocessor.py"
         ),
     )

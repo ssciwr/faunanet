@@ -13,47 +13,6 @@ from copy import deepcopy
 
 
 @pytest.fixture()
-def redirect_folders(tmp_path, mocker):
-    mocker.patch(
-        "platformdirs.user_cache_dir", return_value=pathlib.Path(tmp_path, "cache")
-    )
-    mocker.patch(
-        "platformdirs.user_config_dir", return_value=pathlib.Path(tmp_path, "config")
-    )
-    mocker.patch(
-        "iSparrow.sparrow_setup.user_config_dir",
-        return_value=pathlib.Path(tmp_path, "config"),
-    )
-    mocker.patch(
-        "iSparrow.sparrow_setup.user_cache_dir",
-        return_value=pathlib.Path(tmp_path, "cache"),
-    )
-    mocker.patch(
-        "iSparrow.repl.user_config_dir", return_value=pathlib.Path(tmp_path, "config")
-    )
-    mocker.patch.object(
-        pathlib.Path,
-        "expanduser",
-        new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
-    )
-    mocker.patch.object(pathlib.Path, "home", new=lambda: tmp_path)
-
-    mocker.patch.object(
-        iSparrow.sparrow_setup.Path,
-        "expanduser",
-        new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
-    )
-    mocker.patch.object(iSparrow.sparrow_setup.Path, "home", new=lambda: tmp_path)
-
-    mocker.patch.object(
-        iSparrow.repl.Path,
-        "expanduser",
-        new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
-    )
-    mocker.patch.object(iSparrow.repl.Path, "home", new=lambda: tmp_path)
-
-
-@pytest.fixture()
 def delete_setup(redirect_folders):
     cfg = read_yaml("./tests/test_install_config/install.yml")["Directories"]
 
@@ -207,23 +166,13 @@ def test_do_set_up(delete_setup):
         ("", "No config file provided, falling back to default"),
     ],
 )
-def test_do_set_up_failure(input, expected, mocker, tmp_path, capsys):
+def test_do_set_up_failure(input, expected, mocker, capsys):
     capsys.readouterr()
-    mocker.patch.object(
-        pathlib.Path, "expanduser", new=lambda x: pathlib.Path(tmp_path, x)
-    )
-    mocker.patch(
-        "platformdirs.user_cache_dir", return_value=pathlib.Path(tmp_path, "cache")
-    )
-    mocker.patch(
-        "platformdirs.user_config_dir", return_value=pathlib.Path(tmp_path, "config")
-    )
 
     sparrow_cmd = SparrowCmd()
     sparrow_cmd.do_set_up(input)
     out, _ = capsys.readouterr()
     assert expected in out
-    shutil.rmtree(tmp_path, ignore_errors=True)
     capsys.readouterr()
 
 

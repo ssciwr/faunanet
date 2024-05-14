@@ -20,10 +20,6 @@ def make_cache_config_dirs():
     iscfg = Path(user_config_dir()) / "iSparrow"
     iscache = Path(user_cache_dir()) / "iSparrow"
 
-    if os.getenv("SPARROW_TEST_MODE") == "True":
-        iscfg = Path(user_config_dir()) / "iSparrow_tests"
-        iscache = Path(user_cache_dir()) / "iSparrow_tests"
-
     return iscfg, iscache
 
 
