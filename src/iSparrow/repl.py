@@ -264,42 +264,6 @@ class SparrowCmd(cmd.Cmd):
             do_failure=handle_failure,
         )
 
-    def do_pause(self, line: str):
-        """
-        do_pause Pause a running sparrow watcher process.
-        """
-        if len(line) > 0:
-            print("Invalid input. Expected no arguments.")
-            return
-
-        self.dispatch_on_watcher(
-            do_is_none=lambda _: print("Cannot pause watcher, no watcher present"),
-            do_is_running=lambda _: self.watcher.pause(),
-            do_is_sleeping=lambda _: print("Cannot pause watcher, is already sleeping"),
-            do_else=lambda self: print("Cannot pause watcher, is not running"),
-            do_failure=lambda _, e: print(
-                f"Could not pause watcher: {e} caused by {e.__cause__}"
-            ),
-        )
-
-    def do_continue(self, line: str):
-        """
-        do_continue Continue a paused sparrow watcher from where it was paused.
-        """
-        if len(line) > 0:
-            print("Invalid input. Expected no arguments.")
-            return
-
-        self.dispatch_on_watcher(
-            do_is_none=lambda _: print("Cannot continue watcher, no watcher present"),
-            do_is_running=lambda _: print("Cannot continue watcher, is not sleeping"),
-            do_is_sleeping=lambda self: self.watcher.go_on(),
-            do_else=lambda _: print("Cannot continue watcher, is not running"),
-            do_failure=lambda _, e: print(
-                f"Could not continue watcher: {e} caused by {e.__cause__}"
-            ),
-        )
-
     def do_restart(self, line: str):
         """
         do_restart Restart an existing sparrow watcher with the same parameters
