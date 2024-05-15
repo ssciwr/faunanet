@@ -16,7 +16,8 @@ multiprocessing.set_start_method("spawn", True)
 
 
 def path_redirects(tmp_path, mockerfunc):
-
+    # putting this into an extra function enables overriding fixtures using this 
+    # in individual modules, which is needed for setup tests
     mockerfunc.patch(
         "platformdirs.user_cache_dir",
         return_value=pathlib.Path(tmp_path, "cache"),
@@ -61,13 +62,6 @@ def path_redirects(tmp_path, mockerfunc):
     )
 
     return tmp_path
-
-
-@pytest.fixture()
-def redirect_folders_func(mocker):
-    tmp_path = tempfile.mkdtemp()
-    yield path_redirects(tmp_path, mocker)
-
 
 @pytest.fixture(scope="session", autouse=True)
 def redirect_folders(session_mocker):

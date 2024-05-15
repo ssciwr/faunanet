@@ -295,7 +295,8 @@ class SparrowCmd(cmd.Cmd):
         return True
 
 
-if __name__ == "__main__":
+def run():
     import multiprocessing
+
     multiprocessing.set_start_method("spawn", True)
     SparrowCmd().cmdloop()
