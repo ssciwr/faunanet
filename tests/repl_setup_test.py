@@ -1,5 +1,5 @@
 import pytest
-import pathlib
+from pathlib import Path
 import iSparrow
 from .conftest import path_redirects
 
@@ -10,28 +10,28 @@ def redirect_folders(tmp_path, mocker):
 
 
 def test_do_set_up(clean_up_test_installation, redirect_folders):
-    filepath = pathlib.Path(__file__).parent / "test_install_config" / "install.yml"
+    filepath = Path(__file__).parent / "test_install_config" / "install.yml"
     cfg = iSparrow.utils.read_yaml(filepath)["Directories"]
 
     sparrow_cmd = iSparrow.repl.SparrowCmd()
     sparrow_cmd.do_set_up(
-        f"--cfg={pathlib.Path(__file__).parent}/test_install_config/install.yml"
+        f"--cfg={Path(__file__).parent}/test_install_config/install.yml"
     )
 
     tflite_file = "model.tflite"
 
-    assert pathlib.Path(cfg["home"]).expanduser().exists() is True
-    assert pathlib.Path(cfg["models"]).expanduser().exists() is True
-    assert pathlib.Path(cfg["output"]).expanduser().exists() is True
+    assert Path(cfg["home"]).expanduser().exists() is True
+    assert Path(cfg["models"]).expanduser().exists() is True
+    assert Path(cfg["output"]).expanduser().exists() is True
 
     assert (
-        pathlib.Path(cfg["models"]).expanduser() / "birdnet_default" / tflite_file
+        Path(cfg["models"]).expanduser() / "birdnet_default" / tflite_file
     ).is_file()
     assert (
-        pathlib.Path(cfg["models"]).expanduser() / "birdnet_custom" / tflite_file
+        Path(cfg["models"]).expanduser() / "birdnet_custom" / tflite_file
     ).is_file()
     assert (
-        pathlib.Path(cfg["models"]).expanduser() / "google_perch" / "saved_model.pb"
+        Path(cfg["models"]).expanduser() / "google_perch" / "saved_model.pb"
     ).is_file()
 
 

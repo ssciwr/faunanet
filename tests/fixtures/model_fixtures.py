@@ -7,7 +7,7 @@ import pandas as pd
 class ModelFixture:
 
     def __init__(self, home, output, models):
-        self.filepath = Path(__file__).expanduser().resolve()
+        self.filepath = Path(__file__).resolve()
         self.testpath = self.filepath.parent.parent
         self.home = Path(home).expanduser()
         self.output = Path(output).expanduser()

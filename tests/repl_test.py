@@ -1,5 +1,5 @@
 import pytest
-import pathlib
+from pathlib import Path
 from copy import deepcopy
 import iSparrow
 import time
@@ -82,14 +82,14 @@ def test_do_start_custom(install, capsys):
 
     assert sparrow_cmd.watcher is not None
     assert (
-        sparrow_cmd.watcher.outdir == pathlib.Path.home().resolve() / "iSparrow_output"
+        sparrow_cmd.watcher.outdir == Path.home().resolve() / "iSparrow_output"
     )
     assert sparrow_cmd.watcher.input_directory == str(
-        pathlib.Path.home().resolve() / "iSparrow_data"
+        Path.home().resolve() / "iSparrow_data"
     )
     assert (
         sparrow_cmd.watcher.model_dir
-        == pathlib.Path.home().resolve() / "iSparrow/models"
+        == Path.home().resolve() / "iSparrow/models"
     )
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.delete_recordings == "always"
