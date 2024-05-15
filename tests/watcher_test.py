@@ -1,19 +1,20 @@
-import pytest
-from pathlib import Path
 from iSparrow.sparrow_watcher import AnalysisEventHandler, SparrowWatcher
 from iSparrow.utils import wait_for_file_completion, read_yaml
 
+import pytest
+import pathlib
 from copy import deepcopy
 import yaml
 from math import isclose
 import multiprocessing
 import time
 from datetime import datetime
-
+import shutil
 
 def test_watcher_construction(watch_fx):
     directories, wfx = watch_fx
-    path_add = Path(datetime.now().strftime("%y%m%d_%H%M"))
+
+    path_add = pathlib.Path(datetime.now().strftime("%y%m%d_%H%M"))
 
     watcher = SparrowWatcher(
         wfx.data,
@@ -27,12 +28,12 @@ def test_watcher_construction(watch_fx):
     )
 
     # check member variables
-    assert str(Path(watcher.outdir) / path_add) in str(watcher.output)
+    assert str(pathlib.Path(watcher.outdir) / path_add) in str(watcher.output)
     assert str(watcher.input) == str(directories["data"])
     assert str(watcher.outdir) == str(directories["output"])
     assert str(watcher.model_dir) == str(directories["models"])
     assert str(watcher.model_name) == "birdnet_default"
-    assert str(Path(watcher.outdir) / path_add) in watcher.output_directory
+    assert str(pathlib.Path(watcher.outdir) / path_add) in watcher.output_directory
     assert watcher.input_directory == str(directories["data"])
     assert watcher.is_running is False
     assert watcher.output.is_dir() is False  # not yet created
@@ -43,7 +44,7 @@ def test_watcher_construction(watch_fx):
     assert watcher.check_time == 1
     assert watcher.delete_recordings == "never"
 
-    path_add = Path(datetime.now().strftime("%y%m%d_%H%M"))
+    path_add = pathlib.Path(datetime.now().strftime("%y%m%d_%H%M"))
     default_watcher = SparrowWatcher(
         wfx.data,
         wfx.output,
@@ -51,13 +52,15 @@ def test_watcher_construction(watch_fx):
         "birdnet_default",
     )
 
-    assert str(Path(default_watcher.outdir) / path_add) in str(default_watcher.output)
+    assert str(pathlib.Path(default_watcher.outdir) / path_add) in str(
+        default_watcher.output
+    )
     assert str(default_watcher.input) == str(directories["data"])
     assert str(default_watcher.outdir) == str(directories["output"])
     assert str(default_watcher.model_dir) == str(directories["models"])
     assert str(default_watcher.model_name) == "birdnet_default"
     assert (
-        str(Path(default_watcher.outdir) / wfx.path_add)
+        str(pathlib.Path(default_watcher.outdir) / path_add)
         in default_watcher.output_directory
     )
     assert default_watcher.input_directory == str(directories["data"])
@@ -93,7 +96,7 @@ def test_watcher_construction(watch_fx):
     # give wrong paths and check that appropriate exceptions are raised
     with pytest.raises(ValueError, match="Input directory does not exist"):
         SparrowWatcher(
-            Path.home() / "iSparrow_data_not_there",
+            pathlib.Path.home() / "iSparrow_data_not_there",
             wfx.output,
             wfx.models,
             "birdnet_default",
@@ -102,7 +105,7 @@ def test_watcher_construction(watch_fx):
     with pytest.raises(ValueError, match="Output directory does not exist"):
         SparrowWatcher(
             wfx.data,
-            Path.home() / "iSparrow_output_not_there",
+            pathlib.Path.home() / "iSparrow_output_not_there",
             wfx.models,
             "birdnet_default",
         )
@@ -155,6 +158,8 @@ def test_watcher_construction(watch_fx):
             delete_recordings="some wrong value",
         )
 
+    shutil.rmtree(watcher.output)
+
 
 def test_event_handler_construction(watch_fx):
     _, wfx = watch_fx
@@ -189,13 +194,12 @@ def test_watcher_lowlevel_functionality(watch_fx):
     # ... now we can call the functions to be tested
 
     watcher.analyze(wfx.home / "example" / "soundscape.wav", recording)
-
     assert len(list(wfx.output.iterdir())) == 1
     datafolder = list(wfx.output.iterdir())[0]
 
     assert len(list(datafolder.iterdir())) == 1
     assert list(datafolder.iterdir()) == [
-        Path(datafolder / "results_soundscape.csv"),
+        pathlib.Path(datafolder / "results_soundscape.csv"),
     ]
 
     assert recording.analyzed is True
@@ -319,7 +323,7 @@ def test_watcher_exceptions(watch_fx, mocker):
     assert watcher.is_running is False
 
 
-def test_watcher_integrated_simple(watch_fx):
+def test_watcher_integrated_simple(watch_fx, ):
     _, wfx = watch_fx
 
     watcher = wfx.make_watcher()
@@ -351,14 +355,14 @@ def test_watcher_integrated_simple(watch_fx):
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file(),
         todo_event=lambda: watcher.stop(),
-        todo_else=lambda: 1,
+        todo_else=lambda: time.sleep(1),
     )
 
     assert watcher.is_running is False
 
     assert watcher.watcher_process is None
 
-    assert len(list(Path(wfx.data).iterdir())) == number_of_files
+    assert len(list(pathlib.Path(wfx.data).iterdir())) == number_of_files
 
     results = wfx.get_folder_content(watcher.output_directory, ".csv")
 
@@ -369,7 +373,7 @@ def test_watcher_integrated_simple(watch_fx):
     assert len(cfgs) == 1
 
     # load config and check it's consistent
-    cfg = read_yaml(Path(watcher.output) / "config.yml")
+    cfg = read_yaml(pathlib.Path(watcher.output) / "config.yml")
 
     assert cfg == wfx.config_should
 
@@ -380,7 +384,6 @@ def test_watcher_integrated_delete_always(watch_fx):
     watcher = wfx.make_watcher(
         delete_recordings="always",
     )
-
     # make a mock recorder process that runs in the background
     number_of_files = 7
 
@@ -390,8 +393,8 @@ def test_watcher_integrated_delete_always(watch_fx):
         target=wfx.mock_recorder,
         args=(wfx.home, wfx.data, number_of_files, sleep_for),
     )
-    watcher.start()
 
+    watcher.start()
     wfx.wait_for_event_then_do(
         condition=lambda: watcher.is_running,
         todo_event=lambda: 1,
@@ -407,7 +410,8 @@ def test_watcher_integrated_delete_always(watch_fx):
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file(),
         todo_event=lambda: watcher.stop(),
-        todo_else=lambda: time.sleep(0.2),
+        todo_else=lambda: time.sleep(1),
+        limit=200,
     )
 
     # the following makes
@@ -528,7 +532,7 @@ def test_change_analyzer(watch_fx):
 
     assert watcher.model_name == "birdnet_custom"
     assert watcher.output_directory != old_output
-    assert (watcher.output / Path("config.yml")).is_file() is True
+    assert (watcher.output / pathlib.Path("config.yml")).is_file() is True
     assert watcher.preprocessor_config == wfx.custom_preprocessor_cfg
     assert watcher.model_config == wfx.custom_model_cfg
     assert watcher.recording_config == wfx.changed_custom_recording_cfg
@@ -554,7 +558,7 @@ def test_change_analyzer(watch_fx):
 
     assert len(current_files) > 0  # some analyzed files must be in the new directory
     assert len(old_files) > 0
-    assert 0 < len(list(Path(wfx.data).iterdir())) < number_of_files
+    assert 0 < len(list(pathlib.Path(wfx.data).iterdir())) < number_of_files
     assert number_of_files >= len(old_files) + len(current_files)  # some data can be
 
 
