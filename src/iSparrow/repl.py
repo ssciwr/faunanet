@@ -275,6 +275,110 @@ class SparrowCmd(cmd.Cmd):
         print("Exiting sparrow shell")
         return True
 
+    def do_pause(self, line: str):
+        if len(line) > 0:
+            print("Invalid input. Expected no arguments.")
+            return
+
+        self.dispatch_on_watcher(
+            do_is_none=lambda _: print("Cannot pause watcher, no watcher present"),
+            do_is_running=lambda _: self.watcher.pause(),
+            do_is_sleeping=lambda _: print("Cannot pause watcher, is already sleeping"),
+            do_else=lambda self: print("Cannot pause watcher, is not running"),
+            do_failure=lambda _, e: print(
+                f"Could not pause watcher: {e} caused by {e.__cause__}"
+            ),
+        )
+
+    def do_continue(self, line: str):
+        if len(line) > 0:
+            print("Invalid input. Expected no arguments.")
+            return
+
+        self.dispatch_on_watcher(
+            do_is_none=lambda _: print("Cannot continue watcher, no watcher present"),
+            do_is_running=lambda _: print("Cannot continue watcher, is not sleeping"),
+            do_is_sleeping=lambda self: self.watcher.go_on(),
+            do_else=lambda _: print("Cannot continue watcher, is not running"),
+            do_failure=lambda _, e: print(
+                f"Could not continue watcher: {e} caused by {e.__cause__}"
+            ),
+        )
+
+    def do_restart(self, line: str):
+        if len(line) > 0:
+            print("Invalid input. Expected no arguments.")
+            return
+
+        self.dispatch_on_watcher(
+            do_is_none=lambda _: print("Cannot restart watcher, no watcher present"),
+            do_is_sleeping=lambda _: print(
+                "Cannot restart watcher, is sleeping and must be continued first"
+            ),
+            do_is_running=lambda self: self.watcher.restart(),
+            do_else=lambda _: print("Cannot restart watcher, is not running"),
+            do_failure=lambda _, e: print(
+                f"Could not restart watcher: {e} caused by {e.__cause__}"
+            ),
+
+    def do_check(self, line: str):
+        if len(line) > 0:
+            print("Invalid input. Expected no arguments.")
+        elif self.watcher is None:
+            print("No watcher present, cannot check status")
+        else:
+            print("is running:", self.watcher.is_running)
+            print("is sleeping:", self.watcher.is_sleeping)
+            print("may do work:", self.watcher.may_do_work.is_set())
+
+    def do_change_analyzer(self, line: str):
+        if self.watcher is None:
+            print("No watcher present, cannot change analyzer")
+        elif self.watcher.is_running is False:
+            print("Cannot change analyzer, watcher is not running")
+        elif self.watcher.is_sleeping:
+            print("Cannot change analyzer, watcher is sleeping")
+        else:
+            inputs = process_line_into_kwargs(
+                line,
+                ["--cfg"],
+            )
+
+            cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
+
+            cfgpath = None
+
+            if len(inputs) > 1:
+                print("Invalid input. Expected: change_analyzer --cfg=<config_file>")
+                return
+            elif len(inputs) == 1:
+                cfgpath = Path(inputs["cfg"]).expanduser().resolve()
+            elif len(inputs) == 0:
+                cfgpath = None
+            else:
+                print("No config file provided, cannot change analyzer")
+                return
+
+            if cfgpath is not None:
+                custom_cfg = read_yaml(cfgpath)
+                update_dict_leafs_recursive(cfg, custom_cfg)
+            try:
+                self.watcher.change_analyzer(
+                    model_name=cfg["Analysis"]["modelname"],
+                    preprocessor_config=cfg["Data"]["Preprocessor"],
+                    model_config=cfg["Analysis"]["Model"],
+                    recording_config=cfg["Analysis"]["Recording"],
+                    species_predictor_config=cfg["Analysis"].get(
+                        "SpeciesPredictor", None
+                    ),
+                    pattern=cfg["Analysis"]["pattern"],
+                    check_time=cfg["Analysis"]["check_time"],
+                    delete_recordings=cfg["Analysis"]["delete_recordings"],
+                )
+            except Exception as e:
+                print(
+                    f"An error occured while trying to change the analyzer: {e} caused by {e.__cause__}"
+                )
 
 def run():
     import multiprocessing
