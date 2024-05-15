@@ -265,26 +265,6 @@ class SparrowCmd(cmd.Cmd):
             do_failure=handle_failure,
         )
 
-    def do_restart(self, line: str):
-        """
-        do_restart Restart an existing sparrow watcher with the same parameters
-        """
-        if len(line) > 0:
-            print("Invalid input. Expected no arguments.")
-            return
-
-        self.dispatch_on_watcher(
-            do_is_none=lambda _: print("Cannot restart watcher, no watcher present"),
-            do_is_sleeping=lambda _: print(
-                "Cannot restart watcher, is sleeping and must be continued first"
-            ),
-            do_is_running=lambda self: self.watcher.restart(),
-            do_else=lambda _: print("Cannot restart watcher, is not running"),
-            do_failure=lambda _, e: print(
-                f"Could not restart watcher: {e} caused by {e.__cause__}"
-            ),
-        )
-
     def do_exit(self, line: str):
         """
         do_exit Leave the sparrow shell
