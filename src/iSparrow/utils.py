@@ -124,11 +124,14 @@ def load_model_from_file_pb(path: str, _):
 def load_model_from_tensorflowhub(url: str, _):
     """
     load_model_from_hub Download a tensorflow model from tensorflow hub, ready to be used
+
     Args:
         url (str): URL leading to the model to be downloaded and used
+
     Raises:
         ValueError: When the argument is not a valid url
         TFModelException: When something goes wrong with the model loading inside the tensorflow_hub module
+
     Returns:
         Tensorflow model: The loaded model
     """
