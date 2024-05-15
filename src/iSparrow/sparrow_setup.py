@@ -43,10 +43,10 @@ def make_directories(base_cfg_dirs: dict):
             "The output folder for iSparrow must be given in the base config"
         )
 
-    ish = Path(base_cfg_dirs["home"]).expanduser().resolve()
-    ism = Path(base_cfg_dirs["models"]).expanduser().resolve()
-    iso = Path(base_cfg_dirs["output"]).expanduser().resolve()
-    ise = (Path(base_cfg_dirs["home"]).expanduser() / Path("example")).resolve()
+    ish = Path(base_cfg_dirs["home"]).expanduser()
+    ism = Path(base_cfg_dirs["models"]).expanduser()
+    iso = Path(base_cfg_dirs["output"]).expanduser()
+    ise = (Path(base_cfg_dirs["home"]).expanduser() / Path("example"))
     iscfg = Path(user_config_dir()) / "iSparrow"
     iscache = Path(user_cache_dir()) / "iSparrow"
 
@@ -244,7 +244,7 @@ def set_up_sparrow(custom_config=None):
         utils.update_dict_leafs_recursive(install_cfg, custom_install_config)
 
     for key in ["home", "models", "output"]:
-        if Path(install_cfg["Directories"][key]).expanduser().resolve().exists():
+        if Path(install_cfg["Directories"][key]).expanduser().exists():
             raise FileExistsError(
                 f"{key} directory already exists. Please remove it before running the installation."
             )
@@ -266,9 +266,9 @@ def set_up_sparrow(custom_config=None):
         yaml.safe_dump(install_cfg, yfile)
     shutil.copy(packagebase / "default.yml", config)
 
-    download_model_files(model_dir=models.resolve())
+    download_model_files(model_dir=models)
 
-    download_example_data(example_dir=examples.resolve())
+    download_example_data(example_dir=examples)
 
     global SPARROW_HOME, SPARROW_MODELS, SPARROW_OUTPUT, SPARROW_EXAMPLES, SPARROW_CACHE, SPARROW_CONFIG
 

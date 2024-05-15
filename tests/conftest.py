@@ -80,44 +80,25 @@ def make_sparrow_home(redirect_folders):
     tmpdir = redirect_folders
 
     # create directories
-    directories = {
-        "home": pathlib.Path(tmpdir, "iSparrow"),
-        "models": pathlib.Path(tmpdir, "iSparrow", "models"),
-        "example": pathlib.Path(tmpdir, "iSparrow", "example"),
-        "cache": pathlib.Path(platformdirs.user_cache_dir(), "iSparrow"),
-        "config": pathlib.Path(platformdirs.user_config_dir(), "iSparrow"),
-    }
+    packagebase = files(iSparrow)
+    directories = iSparrow.utils.read_yaml(pathlib.Path(packagebase) / "install.yml")[
+        "Directories"
+    ]
+    directories["cache"] = pathlib.Path(platformdirs.user_cache_dir(), "iSparrow")
+    directories["config"] = pathlib.Path(platformdirs.user_config_dir(), "iSparrow")
+    directories["data"] = pathlib.Path(tmpdir, "iSparrow_data")
 
     for name, path in directories.items():
-        path.mkdir(parents=True, exist_ok=True)
+        print(".... make directory: ", name, pathlib.Path(path).expanduser())
+        pathlib.Path(path).expanduser().mkdir(parents=True, exist_ok=True)
 
     yield tmpdir, directories  # yield directories instead of nothing
 
     # remove again after usage
     shutil.rmtree(tmpdir)
-
-
-@pytest.fixture()
-def make_folders(make_sparrow_home):
-    """
-    make_folders set up and dipose of a mock sparrow installation in a temporary directory
-    """
-    tmpdir, directories = make_sparrow_home
-
-    # create directories
-
-    directories["data"] = pathlib.Path(tmpdir, "iSparrow_data")
-    directories["output"] = pathlib.Path(tmpdir, "iSparrow_output")
-
-    for name, path in directories.items():
-        path.mkdir(parents=True, exist_ok=True)
-
-    yield tmpdir, directories  # yield directories instead of nothing
-
-    # remove again after usage
-    for name in ["data", "output"]:
-        shutil.rmtree(directories[name], ignore_errors=True)
-
+    shutil.rmtree(directories["data"], ignore_errors=True)
+    shutil.rmtree(directories["cache"], ignore_errors=True)
+    shutil.rmtree(directories["config"], ignore_errors=True)
 
 @pytest.fixture(scope="session")
 def load_files(make_sparrow_home):
@@ -126,15 +107,13 @@ def load_files(make_sparrow_home):
     """
 
     tmpdir, directories = make_sparrow_home
-    ise = directories["example"]
-    ism = directories["models"]
+    ise = pathlib.Path(directories["example"]).expanduser()
+    ism = pathlib.Path(directories["models"]).expanduser()
 
     iSparrow.sparrow_setup.download_example_data(ise)
     iSparrow.sparrow_setup.download_model_files(ism)
 
     yield tmpdir, directories
-
-    # no cleanup here because rmtree will do that in 'make_folders'
 
 
 @pytest.fixture()
@@ -162,7 +141,7 @@ def clean_up_test_installation(redirect_folders):
 
 # the install fixture provides a basic environment in the system's temporary directory
 @pytest.fixture()
-def install(load_files, make_folders):
+def install(load_files):
     """
     install Bundle mock install and data download into a fixture
     """
@@ -173,6 +152,7 @@ def install(load_files, make_folders):
     data.mkdir(parents=True, exist_ok=True)
 
     packagebase = files(iSparrow)
+
     shutil.copy(
         pathlib.Path(packagebase).expanduser() / "install.yml", directories["config"]
     )
@@ -204,7 +184,7 @@ def preprocessor_fx(install):
 
     _, directories = install
 
-    filepath = pathlib.Path(__file__).resolve()
+    filepath = pathlib.Path(__file__)
     testpath = filepath.parent
 
     with open(testpath / pathlib.Path("test_configs") / "cfg_default.yml", "r") as file:
