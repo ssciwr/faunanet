@@ -84,9 +84,13 @@ def make_sparrow_home(redirect_folders):
     directories = iSparrow.utils.read_yaml(pathlib.Path(packagebase) / "install.yml")[
         "Directories"
     ]
+
+    for name in directories.keys():
+        directories[name] = pathlib.Path(directories[name]).expanduser()
+
     directories["cache"] = pathlib.Path(platformdirs.user_cache_dir(), "iSparrow")
     directories["config"] = pathlib.Path(platformdirs.user_config_dir(), "iSparrow")
-    directories["data"] = pathlib.Path(tmpdir, "iSparrow_data")
+    directories["data"] = pathlib.Path(tmpdir, "iSparrow_data").expanduser()
 
     for name, path in directories.items():
         print(".... make directory: ", name, pathlib.Path(path).expanduser())
@@ -95,10 +99,12 @@ def make_sparrow_home(redirect_folders):
     yield tmpdir, directories  # yield directories instead of nothing
 
     # remove again after usage
+    for _, path in directories.items():
+        if pathlib.Path(path).expanduser().exists():
+            shutil.rmtree(path)
+
     shutil.rmtree(tmpdir)
-    shutil.rmtree(directories["data"], ignore_errors=True)
-    shutil.rmtree(directories["cache"], ignore_errors=True)
-    shutil.rmtree(directories["config"], ignore_errors=True)
+
 
 @pytest.fixture(scope="session")
 def load_files(make_sparrow_home):
@@ -141,15 +147,11 @@ def clean_up_test_installation(redirect_folders):
 
 # the install fixture provides a basic environment in the system's temporary directory
 @pytest.fixture()
-def install(load_files):
+def install(load_files, ):
     """
     install Bundle mock install and data download into a fixture
     """
     tmpdir, directories = load_files
-
-    # make a dummy data directory
-    data = pathlib.Path.home() / "iSparrow_data"
-    data.mkdir(parents=True, exist_ok=True)
 
     packagebase = files(iSparrow)
 
@@ -162,8 +164,14 @@ def install(load_files):
 
     yield tmpdir, directories
 
-    # remove the dummy data directory
-    shutil.rmtree(data)
+    # delete things in data folder again
+    for file in pathlib.Path(directories["data"]).expanduser().iterdir():
+        if file.is_file():
+            file.unlink()
+
+    # delete directories in output folder again
+    for folder in pathlib.Path(directories["output"]).iterdir(): 
+        shutil.rmtree(folder.expanduser())
 
 
 # the model fixture is just a thin wrapper around the ModelFixture class
@@ -233,7 +241,8 @@ def recording_fx(install):
 
 @pytest.fixture
 def watch_fx(install):
-    _, directories = install
+    tmpdir, directories = install
+    
     yield directories, WatchFixture(
         directories["home"],
         directories["data"],
