@@ -73,30 +73,6 @@ def cleanup_after_test(redirect_folders):
         if pathlib.Path(temp_dir, path).exists():
             shutil.rmtree(pathlib.Path(temp_dir, path))
 
-
-@pytest.fixture()
-def clean_up_test_installation(redirect_folders):
-    yield  # This is where the test runs
-
-    cfg = iSparrow.utils.read_yaml(
-        pathlib.Path(__file__).parent / "test_install_config" / "install.yml"
-    )
-
-    for _, path in cfg["Directories"].items():
-        if pathlib.Path(path).expanduser().exists():
-            shutil.rmtree(pathlib.Path(path).expanduser())
-
-    for path in [
-        pathlib.Path("~/iSparrow_data").expanduser(),
-        pathlib.Path("~/iSparrow_output").expanduser(),
-        pathlib.Path(platformdirs.user_cache_dir()) / "iSparrow",
-        pathlib.Path(platformdirs.user_config_dir()) / "iSparrow",
-    ]:
-
-        if path.exists():
-            shutil.rmtree(path)
-
-
 @pytest.fixture()
 def make_folders(redirect_folders):
     temp_dir = redirect_folders

@@ -21,35 +21,35 @@ def redirect_folders(session_mocker):
 
     session_mocker.patch(
         "platformdirs.user_cache_dir",
-        return_value=pathlib.pathlib.Path(tmp_path, "cache"),
+        return_value=pathlib.Path(tmp_path, "cache"),
     )
     session_mocker.patch(
         "platformdirs.user_config_dir",
-        return_value=pathlib.pathlib.Path(tmp_path, "config"),
+        return_value=pathlib.Path(tmp_path, "config"),
     )
     session_mocker.patch(
         "iSparrow.sparrow_setup.user_config_dir",
-        return_value=pathlib.pathlib.Path(tmp_path, "config"),
+        return_value=pathlib.Path(tmp_path, "config"),
     )
     session_mocker.patch(
         "iSparrow.sparrow_setup.user_cache_dir",
-        return_value=pathlib.pathlib.Path(tmp_path, "cache"),
+        return_value=pathlib.Path(tmp_path, "cache"),
     )
     session_mocker.patch(
         "iSparrow.repl.user_config_dir",
-        return_value=pathlib.pathlib.Path(tmp_path, "config"),
+        return_value=pathlib.Path(tmp_path, "config"),
     )
     session_mocker.patch.object(
         pathlib.Path,
         "expanduser",
-        new=lambda x: pathlib.pathlib.Path(str(x).replace("~", str(tmp_path))),
+        new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
     )
     session_mocker.patch.object(pathlib.Path, "home", new=lambda: tmp_path)
 
     session_mocker.patch.object(
         iSparrow.sparrow_setup.Path,
         "expanduser",
-        new=lambda x: pathlib.pathlib.Path(str(x).replace("~", str(tmp_path))),
+        new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
     )
     session_mocker.patch.object(
         iSparrow.sparrow_setup.Path, "home", new=lambda: tmp_path
@@ -58,10 +58,10 @@ def redirect_folders(session_mocker):
     session_mocker.patch.object(
         iSparrow.repl.Path,
         "expanduser",
-        new=lambda x: pathlib.pathlib.Path(str(x).replace("~", str(tmp_path))),
+        new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
     )
     session_mocker.patch.object(
-        iSparrow.repl.Path, "home", new=lambda: pathlib.pathlib.Path(tmp_path)
+        iSparrow.repl.Path, "home", new=lambda: pathlib.Path(tmp_path)
     )
 
     yield tmp_path
@@ -135,6 +135,29 @@ def load_files(make_sparrow_home):
     yield tmpdir, directories
 
     # no cleanup here because rmtree will do that in 'make_folders'
+
+
+@pytest.fixture()
+def clean_up_test_installation(redirect_folders):
+    yield  # This is where the test runs
+
+    cfg = iSparrow.utils.read_yaml(
+        pathlib.Path(__file__).parent / "test_install_config" / "install.yml"
+    )
+
+    for _, path in cfg["Directories"].items():
+        if pathlib.Path(path).expanduser().exists():
+            shutil.rmtree(pathlib.Path(path).expanduser())
+
+    for path in [
+        pathlib.Path("~/iSparrow_data").expanduser(),
+        pathlib.Path("~/iSparrow_output").expanduser(),
+        pathlib.Path(platformdirs.user_cache_dir()) / "iSparrow",
+        pathlib.Path(platformdirs.user_config_dir()) / "iSparrow",
+    ]:
+
+        if path.exists():
+            shutil.rmtree(path)
 
 
 # the install fixture provides a basic environment in the system's temporary directory
