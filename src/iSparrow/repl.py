@@ -42,10 +42,13 @@ class SparrowCmd(cmd.Cmd):
 
     def do_help(self, line: str):
         print("Commands: ")
-        print("set_up")
-        print("start")
-        print("stop")
-        print("exit")
+        print("set_up: set up iSparrow for usage")
+        print("start: start a watcher for analyzing incoming files in a directory")
+        print("stop: stop a previously started watcher")
+        print("pause: pause a running watcher")
+        print("continue: continue a paused watcher")
+        print("restart: restart an existing watcher")
+        print("exit: leave this shell.")
         print(
             "Commands can have optional arguments. Use 'help <command>' to get more information on a specific command."
         )
@@ -58,6 +61,18 @@ class SparrowCmd(cmd.Cmd):
         do_with_inputs: callable = lambda s: None,
         do_with_failure: callable = lambda s, e: None,
     ) -> tuple:
+        """
+        process_arguments Process the argument string of a command into its individual parts, based on a '--name=<arg>' structure. Depending on the input, different actions are taken as given in the arguments.
+        Args:
+            line (str): Argument string
+            keywords (list): expected argument names in the form of '--name=<arg>'
+            do_no_inputs (callable, optional): Function to call when no inputs are given. Defaults to lambda s:None (do nothing).
+            do_with_inputs (callable, optional): Function to call with the correct input structure. Defaults to lambda s:None.
+            do_with_failure (callable, optional): Function to call when an exception is thrown during processing. Defaults to lambda s, e: None.
+
+        Returns:
+            tuple: _description_
+        """
         inputs = None
         try:
             inputs = process_line_into_kwargs(line, keywords)
@@ -94,6 +109,16 @@ class SparrowCmd(cmd.Cmd):
         do_else: callable = lambda s: None,
         do_failure: callable = lambda s, e: None,
     ):
+        """
+        dispatch_on_watcher Process different watcher states, using different callables. Useful for error catching and handling when a command should be issued to a watcher.
+
+        Args:
+            do_is_none (callable, optional): Function to call when there is no watcher. Defaults to lambda s:None. (do nothing)
+            do_is_sleeping (callable, optional): Function to call when the watcher is sleeping. Defaults to lambda s:None.
+            do_is_running (callable, optional): Function to call when the watcher is running. Defaults to lambda s:None.
+            do_else (callable, optional): Function to call when the watcher has been stopped or has been created but is not running. Defaults to lambda s:None.
+            do_failure (callable, optional): Function to call upon an exception occuring in any of the above. Defaults to lambda s, e: None (do nothing). Make sure to override this to get proper error handling.
+        """
         if self.watcher is None:
             try:
                 do_is_none(self)
@@ -111,12 +136,17 @@ class SparrowCmd(cmd.Cmd):
                 do_failure(self, e)
         else:
             try:
-                do_else(self)
+                do_stopped(self)
             except Exception as e:
                 do_failure(self, e)
 
     def do_set_up(self, line: str):
+        """
+        do_set_up Setup iSparrow. This creates a `iSparrow` folder in the user's home directory and copies the default configuration files into os_standard_config_dir/iSparrow. If a custom configuration file is provided, it will be used instead of the default.
 
+        Args:
+            line (str): Optional path relative to the user's home directory to a custom configuration file. The file must be a yaml file with the same structure as the default configuration file.
+        """
         self.process_arguments(
             line,
             ["--cfg"],
@@ -130,7 +160,12 @@ class SparrowCmd(cmd.Cmd):
         )
 
     def do_start(self, line: str):
+        """
+        do_start Start a new sparrow watcher process. Only can be started if no other watcher is currently running.
 
+        Args:
+            line (str): optional argument --cfg=<path> to provide a custom configuration file.
+        """
         if Path(user_config_dir(), "iSparrow").exists() is False:
             print("No installation found - please run the setup command first")
             return
@@ -206,7 +241,9 @@ class SparrowCmd(cmd.Cmd):
                 )
 
     def do_stop(self, line: str):
-
+        """
+        do_stop Stop a running sparrow watcher process.
+        """
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
@@ -228,6 +265,9 @@ class SparrowCmd(cmd.Cmd):
         )
 
     def do_pause(self, line: str):
+        """
+        do_pause Pause a running sparrow watcher process.
+        """
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
@@ -243,6 +283,9 @@ class SparrowCmd(cmd.Cmd):
         )
 
     def do_continue(self, line: str):
+        """
+        do_continue Continue a paused sparrow watcher from where it was paused.
+        """
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
@@ -258,6 +301,9 @@ class SparrowCmd(cmd.Cmd):
         )
 
     def do_restart(self, line: str):
+        """
+        do_restart Restart an existing sparrow watcher with the same parameters
+        """
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
@@ -275,6 +321,9 @@ class SparrowCmd(cmd.Cmd):
         )
 
     def do_exit(self, line: str):
+        """
+        do_exit Leave the sparrow shell
+        """
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
