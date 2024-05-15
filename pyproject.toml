@@ -23,8 +23,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-tensorflow   = ["tensorflow",]
-tensorflow-lite =["tflite-runtime",]
+tensorflow   = ["tensorflow", "tensorflow-hub"]
+tensorflow-lite =["tflite-runtime"]
 
 [project.urls]
 Repository = "https://github.com/ssciwr/iSparrow"
@@ -66,3 +66,6 @@ fail_under = 80
 
 [tool.coverage.html]
 directory = "coverage_html_report"
+
+[project.scripts]
+iSparrowRecord = "iSparrow.repl"

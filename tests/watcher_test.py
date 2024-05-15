@@ -2,7 +2,7 @@ from iSparrow.sparrow_watcher import AnalysisEventHandler, SparrowWatcher
 from iSparrow.utils import wait_for_file_completion, read_yaml
 
 import pytest
-import pathlib
+from pathlib import Path
 from copy import deepcopy
 import yaml
 from math import isclose
@@ -15,7 +15,7 @@ import shutil
 def test_watcher_construction(watch_fx):
     directories, wfx = watch_fx
 
-    path_add = pathlib.Path(datetime.now().strftime("%y%m%d_%H%M"))
+    path_add = Path(datetime.now().strftime("%y%m%d_%H%M"))
 
     watcher = SparrowWatcher(
         wfx.data,
@@ -29,12 +29,12 @@ def test_watcher_construction(watch_fx):
     )
 
     # check member variables
-    assert str(pathlib.Path(watcher.outdir) / path_add) in str(watcher.output)
+    assert str(Path(watcher.outdir) / path_add) in str(watcher.output)
     assert str(watcher.input) == str(directories["data"])
     assert str(watcher.outdir) == str(directories["output"])
     assert str(watcher.model_dir) == str(directories["models"])
     assert str(watcher.model_name) == "birdnet_default"
-    assert str(pathlib.Path(watcher.outdir) / path_add) in watcher.output_directory
+    assert str(Path(watcher.outdir) / path_add) in watcher.output_directory
     assert watcher.input_directory == str(directories["data"])
     assert watcher.is_running is False
     assert watcher.output.is_dir() is False  # not yet created
@@ -45,7 +45,7 @@ def test_watcher_construction(watch_fx):
     assert watcher.check_time == 1
     assert watcher.delete_recordings == "never"
 
-    path_add = pathlib.Path(datetime.now().strftime("%y%m%d_%H%M"))
+    path_add = Path(datetime.now().strftime("%y%m%d_%H%M"))
     default_watcher = SparrowWatcher(
         wfx.data,
         wfx.output,
@@ -53,7 +53,7 @@ def test_watcher_construction(watch_fx):
         "birdnet_default",
     )
 
-    assert str(pathlib.Path(default_watcher.outdir) / path_add) in str(
+    assert str(Path(default_watcher.outdir) / path_add) in str(
         default_watcher.output
     )
     assert str(default_watcher.input) == str(directories["data"])
@@ -61,7 +61,7 @@ def test_watcher_construction(watch_fx):
     assert str(default_watcher.model_dir) == str(directories["models"])
     assert str(default_watcher.model_name) == "birdnet_default"
     assert (
-        str(pathlib.Path(default_watcher.outdir) / path_add)
+        str(Path(default_watcher.outdir) / path_add)
         in default_watcher.output_directory
     )
     assert default_watcher.input_directory == str(directories["data"])
@@ -97,7 +97,7 @@ def test_watcher_construction(watch_fx):
     # give wrong paths and check that appropriate exceptions are raised
     with pytest.raises(ValueError, match="Input directory does not exist"):
         SparrowWatcher(
-            pathlib.Path.home() / "iSparrow_data_not_there",
+            Path.home() / "iSparrow_data_not_there",
             wfx.output,
             wfx.models,
             "birdnet_default",
@@ -106,7 +106,7 @@ def test_watcher_construction(watch_fx):
     with pytest.raises(ValueError, match="Output directory does not exist"):
         SparrowWatcher(
             wfx.data,
-            pathlib.Path.home() / "iSparrow_output_not_there",
+            Path.home() / "iSparrow_output_not_there",
             wfx.models,
             "birdnet_default",
         )
@@ -200,7 +200,7 @@ def test_watcher_lowlevel_functionality(watch_fx):
 
     assert len(list(datafolder.iterdir())) == 1
     assert list(datafolder.iterdir()) == [
-        pathlib.Path(datafolder / "results_soundscape.csv"),
+        Path(datafolder / "results_soundscape.csv"),
     ]
 
     assert recording.analyzed is True
@@ -365,7 +365,7 @@ def test_watcher_integrated_simple(
 
     assert watcher.watcher_process is None
 
-    assert len(list(pathlib.Path(wfx.data).iterdir())) == number_of_files
+    assert len(list(Path(wfx.data).iterdir())) == number_of_files
 
     results = wfx.get_folder_content(watcher.output_directory, ".csv")
 
@@ -376,7 +376,7 @@ def test_watcher_integrated_simple(
     assert len(cfgs) == 1
 
     # load config and check it's consistent
-    cfg = read_yaml(pathlib.Path(watcher.output) / "config.yml")
+    cfg = read_yaml(Path(watcher.output) / "config.yml")
 
     assert cfg == wfx.config_should
 
@@ -537,7 +537,7 @@ def test_change_analyzer(watch_fx):
 
     assert watcher.model_name == "birdnet_custom"
     assert watcher.output_directory != old_output
-    assert (watcher.output / pathlib.Path("config.yml")).is_file() is True
+    assert (watcher.output / Path("config.yml")).is_file() is True
     assert watcher.preprocessor_config == wfx.custom_preprocessor_cfg
     assert watcher.model_config == wfx.custom_model_cfg
     assert watcher.recording_config == wfx.changed_custom_recording_cfg
@@ -564,7 +564,7 @@ def test_change_analyzer(watch_fx):
 
     assert len(current_files) > 0  # some analyzed files must be in the new directory
     assert len(old_files) > 0
-    assert 0 < len(list(pathlib.Path(wfx.data).iterdir())) < number_of_files
+    assert 0 < len(list(Path(wfx.data).iterdir())) < number_of_files
     assert number_of_files >= len(old_files) + len(current_files)  # some data can be
 
 

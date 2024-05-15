@@ -46,7 +46,7 @@ def make_directories(base_cfg_dirs: dict):
     ish = Path(base_cfg_dirs["home"]).expanduser().resolve()
     ism = Path(base_cfg_dirs["models"]).expanduser().resolve()
     iso = Path(base_cfg_dirs["output"]).expanduser().resolve()
-    ise = (Path(base_cfg_dirs["home"]).expanduser().resolve() / Path("example"))
+    ise = (Path(base_cfg_dirs["home"]).expanduser() / Path("example")).resolve()
     iscfg = Path(user_config_dir()) / "iSparrow"
     iscache = Path(user_cache_dir()) / "iSparrow"
 

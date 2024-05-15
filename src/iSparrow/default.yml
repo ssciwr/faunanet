@@ -5,7 +5,7 @@ Analysis:
     file_check_poll_interval: 1
     lat: 42.5
     lon: -76.45
-    date: today
+    date: 24/01/2024
   Model:
     sigmoid_sensitivity: 1.0
     num_threads: 2

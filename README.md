@@ -75,11 +75,11 @@ In the repl, this would work like this:
 This does the same as the call to ```sps.set_up_sparrow``` call above, so you can refer to the documentation of that function for further information, too. 
 
 ### Using iSparrow as a library 
-iSparrow can be used as a library in your own application. Just do 
+iSparrow can be used as a library in your own application. Just add  
 ```python 
 import iSparrow 
 ```
-to have it available in you module.
+to have it available in your module, and make sure you use the correct virtual environment in which iSparrow is installed. Keep in mind that `iSparrow` in itself extends `birdnetlib`, so make sure to check the latter's documentation, too. 
 
 ### Running iSparrow 
 iSparrow provides its own, small, REPL for interacting with a running instance. This can be used to start, stop, pause or continue it, to change classifier models or to query it's current state, input and output folders and so on. To get an overview over the available commands, you can just type  ```iSparrow``` in a terminal with the virtual environment being activated that iSparrow has been installed into. Alternatively, refer to the documentation.
