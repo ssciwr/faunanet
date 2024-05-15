@@ -326,7 +326,7 @@ def test_do_exit(capsys):
     assert out == "Exiting sparrow shell\n"
 
 
-def test_do_pause(make_sparrow_home):
+def test_do_pause(make_mock_install):
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     wait_for_watcher_status(sparrow_cmd)
@@ -342,7 +342,7 @@ def test_do_pause(make_sparrow_home):
     assert sparrow_cmd.watcher.is_running is False
 
 
-def test_do_pause_failures(make_sparrow_home, capsys):
+def test_do_pause_failures(make_mock_install, capsys):
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     assert sparrow_cmd.watcher.is_running is True
@@ -387,7 +387,7 @@ def test_do_pause_failures(make_sparrow_home, capsys):
     assert out == "Cannot pause watcher, is already sleeping\n"
 
 
-def test_do_pause_exception(make_sparrow_home, capsys, mocker):
+def test_do_pause_exception(make_mock_install, capsys, mocker):
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     assert sparrow_cmd.watcher.is_running is True
@@ -406,7 +406,7 @@ def test_do_pause_exception(make_sparrow_home, capsys, mocker):
     assert sparrow_cmd.watcher.is_running is False
 
 
-def test_do_continue(make_sparrow_home):
+def test_do_continue(make_mock_install):
 
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
@@ -425,7 +425,7 @@ def test_do_continue(make_sparrow_home):
     assert sparrow_cmd.watcher.is_running is False
 
 
-def test_do_continue_failure(make_sparrow_home, capsys):
+def test_do_continue_failure(make_mock_install, capsys):
 
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
@@ -473,7 +473,7 @@ def test_do_continue_failure(make_sparrow_home, capsys):
     assert out == "Cannot continue watcher, is not running\n"
 
 
-def test_do_continue_exception(make_sparrow_home, capsys, mocker):
+def test_do_continue_exception(make_mock_install, capsys, mocker):
 
     mocker.patch("iSparrow.SparrowWatcher.go_on", side_effect=Exception("RuntimeError"))
 
@@ -494,7 +494,7 @@ def test_do_continue_exception(make_sparrow_home, capsys, mocker):
     assert out == "Could not continue watcher: RuntimeError caused by None\n"
 
 
-def test_do_restart(make_sparrow_home):
+def test_do_restart(make_mock_install):
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     wait_for_watcher_status(sparrow_cmd)
@@ -510,7 +510,7 @@ def test_do_restart(make_sparrow_home):
     assert sparrow_cmd.watcher.is_running is False
 
 
-def test_do_restart_failure(make_sparrow_home, capsys):
+def test_do_restart_failure(make_mock_install, capsys):
     sparrow_cmd = repl.SparrowCmd()
 
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
@@ -541,7 +541,7 @@ def test_do_restart_failure(make_sparrow_home, capsys):
     assert out == "Cannot restart watcher, is not running\n"
 
 
-def test_do_restart_exceptions(make_sparrow_home, capsys, mocker):
+def test_do_restart_exceptions(make_mock_install, capsys, mocker):
     mocker.patch.object(
         iSparrow.SparrowWatcher, "stop", side_effect=Exception("RuntimeError")
     )
@@ -582,7 +582,7 @@ def test_do_exit(capsys):
     assert out == "Exiting sparrow shell\n"
 
 
-def test_change_analyzer(make_sparrow_home):
+def test_change_analyzer(make_mock_install):
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start("")
 
@@ -595,7 +595,7 @@ def test_change_analyzer(make_sparrow_home):
     sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
 
 
-def test_change_analyzer_exception(make_sparrow_home, capsys, mocker):
+def test_change_analyzer_exception(make_mock_install, capsys, mocker):
     mocker.patch.object(
         iSparrow.SparrowWatcher,
         "change_analyzer",
@@ -628,7 +628,7 @@ def test_change_analyzer_exception(make_sparrow_home, capsys, mocker):
         sparrow_cmd.watcher.stop()
 
 
-def test_change_analyzer_failure(make_sparrow_home, capsys):
+def test_change_analyzer_failure(make_mock_install, capsys):
     sparrow_cmd = repl.SparrowCmd()
     capsys.readouterr()
     sparrow_cmd.do_change_analyzer("")
@@ -660,7 +660,7 @@ def test_change_analyzer_failure(make_sparrow_home, capsys):
     assert out == "No watcher present, cannot change analyzer\n"
 
 
-def test_do_check(make_sparrow_home, capsys):
+def test_do_check(make_mock_install, capsys):
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     assert sparrow_cmd.watcher.is_running is True

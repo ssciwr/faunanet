@@ -320,6 +320,7 @@ class SparrowCmd(cmd.Cmd):
             do_failure=lambda _, e: print(
                 f"Could not restart watcher: {e} caused by {e.__cause__}"
             ),
+        )
 
     def do_check(self, line: str):
         if len(line) > 0:
@@ -379,6 +380,7 @@ class SparrowCmd(cmd.Cmd):
                 print(
                     f"An error occured while trying to change the analyzer: {e} caused by {e.__cause__}"
                 )
+
 
 def run():
     import multiprocessing
