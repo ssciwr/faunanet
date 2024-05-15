@@ -11,6 +11,7 @@ import time
 from datetime import datetime
 import shutil
 
+
 def test_watcher_construction(watch_fx):
     directories, wfx = watch_fx
 
@@ -323,7 +324,9 @@ def test_watcher_exceptions(watch_fx, mocker):
     assert watcher.is_running is False
 
 
-def test_watcher_integrated_simple(watch_fx, ):
+def test_watcher_integrated_simple(
+    watch_fx,
+):
     _, wfx = watch_fx
 
     watcher = wfx.make_watcher()
@@ -460,7 +463,8 @@ def test_watcher_integrated_delete_never(watch_fx):
         condition=lambda: (watcher.output / "results_example_4.csv").is_file()
         and wait_for_file_completion(watcher.output / "results_example_4.csv"),
         todo_event=lambda: watcher.stop(),
-        todo_else=lambda: 1,
+        todo_else=lambda: time.sleep(0.25),
+        limit=300,
     )
 
     recorder_process.join()
@@ -523,6 +527,7 @@ def test_change_analyzer(watch_fx):
             delete_recordings="always",
         ),
         todo_else=lambda: time.sleep(0.3),
+        limit=300,
     )
 
     # the following makes
@@ -551,6 +556,7 @@ def test_change_analyzer(watch_fx):
         condition=lambda: filename.is_file(),
         todo_event=lambda: watcher.stop(),
         todo_else=lambda: time.sleep(0.3),
+        limit=300,
     )
 
     current_files = [f for f in watcher.output.iterdir() if f.suffix == ".csv"]
@@ -602,6 +608,7 @@ def test_change_analyzer_recovery(watch_fx, mocker):
         condition=lambda: filename.is_file(),
         todo_event=lambda: 1,
         todo_else=lambda: time.sleep(0.3),
+        limit=300,
     )
 
     # patch the start method so we get a mock exception that is propagated through the system
@@ -631,7 +638,8 @@ def test_change_analyzer_recovery(watch_fx, mocker):
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file() and wait_for_file_completion(filename),
         todo_event=lambda: watcher.stop(),
-        todo_else=lambda: time.sleep(1),
+        todo_else=lambda: time.sleep(0.3),
+        limit=300,
     )
 
     results_folders = [f for f in watcher.outdir.iterdir() if f.is_dir()]
@@ -694,6 +702,7 @@ def test_change_analyzer_exception(watch_fx, mocker):
         condition=lambda: filename.is_file(),
         todo_event=lambda: 1,  # do nothing, just stop waiting,
         todo_else=lambda: time.sleep(0.2),
+        limit=300,
     )
 
     old_output = watcher.output_directory
