@@ -136,7 +136,7 @@ class SparrowCmd(cmd.Cmd):
                 do_failure(self, e)
         else:
             try:
-                do_stopped(self)
+                do_else(self)
             except Exception as e:
                 do_failure(self, e)
 
@@ -185,7 +185,7 @@ class SparrowCmd(cmd.Cmd):
             ),
         )
 
-        if error == True:
+        if error is True:
             return
 
         cfgpath = Path(args["cfg"]).expanduser().resolve() if "cfg" in args else None

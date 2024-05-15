@@ -1,7 +1,6 @@
 import shutil
 import pooch
 import yaml
-import os
 from pathlib import Path
 from platformdirs import user_config_dir, user_cache_dir
 from iSparrow import utils
@@ -225,7 +224,7 @@ def download_example_data(example_dir: str = "examples"):
         )
 
 
-def set_up_sparrow(custom_config: str = None):
+def set_up_sparrow(custom_config=None):
     """
     set_up_sparrow Set up the iSparrow directories and download the necessary data. This is required to run before anything else is done with iSparrow.
 

@@ -4,8 +4,8 @@ import shutil
 import pathlib
 import tempfile
 import platformdirs
-import pooch
 import yaml
+from importlib.resources import files
 
 import iSparrow
 from .fixtures.recording_fixtures import RecordingFixture
@@ -129,8 +129,8 @@ def load_files(make_sparrow_home):
     ise = directories["example"]
     ism = directories["models"]
 
-    iSparrow.download_example_data(ise)
-    iSparrow.download_model_files(ism)
+    iSparrow.sparrow_setup.download_example_data(ise)
+    iSparrow.sparrow_setup.download_model_files(ism)
 
     yield tmpdir, directories
 
@@ -171,6 +171,14 @@ def install(load_files, make_folders):
     # make a dummy data directory
     data = pathlib.Path.home() / "iSparrow_data"
     data.mkdir(parents=True, exist_ok=True)
+
+    packagebase = files(iSparrow)
+    shutil.copy(
+        pathlib.Path(packagebase).expanduser() / "install.yml", directories["config"]
+    )
+    shutil.copy(
+        pathlib.Path(packagebase).expanduser() / "default.yml", directories["config"]
+    )
 
     yield tmpdir, directories
 

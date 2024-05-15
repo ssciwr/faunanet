@@ -2,7 +2,6 @@ import iSparrow
 import pathlib
 import pytest
 import shutil
-import platformdirs
 
 tflite_file = "model.tflite"
 
@@ -26,10 +25,7 @@ def redirect_folders(tmp_path, mocker):
         "iSparrow.sparrow_setup.user_cache_dir",
         return_value=pathlib.Path(tmp_path, "cache"),
     )
-    # mocker.patch(
-    #     "iSparrow.repl.user_config_dir",
-    #     return_value=pathlib.Path(tmp_path, "config"),
-    # )
+
     mocker.patch.object(
         pathlib.Path,
         "expanduser",
@@ -43,15 +39,6 @@ def redirect_folders(tmp_path, mocker):
         new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
     )
     mocker.patch.object(iSparrow.sparrow_setup.Path, "home", new=lambda: tmp_path)
-
-    # mocker.patch.object(
-    #     iSparrow.repl.Path,
-    #     "expanduser",
-    #     new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
-    # )
-    # mocker.patch.object(
-    #     iSparrow.repl.Path, "home", new=lambda: pathlib.Path(tmp_path)
-    # )
 
     yield tmp_path
 
@@ -72,6 +59,7 @@ def cleanup_after_test(redirect_folders):
     ]:
         if pathlib.Path(temp_dir, path).exists():
             shutil.rmtree(pathlib.Path(temp_dir, path))
+
 
 @pytest.fixture()
 def make_folders(redirect_folders):
@@ -181,8 +169,14 @@ def test_setup(clean_up_test_installation):
     assert iSparrow.sparrow_setup.SPARROW_CONFIG.exists()
     assert iSparrow.sparrow_setup.SPARROW_CACHE.exists()
 
-    assert (iSparrow.sparrow_setup.SPARROW_MODELS / "birdnet_default" / tflite_file).is_file()
-    assert (iSparrow.sparrow_setup.SPARROW_MODELS / "birdnet_custom" / tflite_file).is_file()
-    assert (iSparrow.sparrow_setup.SPARROW_MODELS / "google_perch" / "saved_model.pb").is_file()
+    assert (
+        iSparrow.sparrow_setup.SPARROW_MODELS / "birdnet_default" / tflite_file
+    ).is_file()
+    assert (
+        iSparrow.sparrow_setup.SPARROW_MODELS / "birdnet_custom" / tflite_file
+    ).is_file()
+    assert (
+        iSparrow.sparrow_setup.SPARROW_MODELS / "google_perch" / "saved_model.pb"
+    ).is_file()
     assert (iSparrow.sparrow_setup.SPARROW_CONFIG / "install.yml").is_file()
     assert (iSparrow.sparrow_setup.SPARROW_CONFIG / "default.yml").is_file()
