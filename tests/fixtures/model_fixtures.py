@@ -1,6 +1,7 @@
 from iSparrow import utils
 from pathlib import Path
 import yaml
+import pytest
 import pandas as pd
 
 
@@ -9,9 +10,9 @@ class ModelFixture:
     def __init__(self, home, output, models):
         self.filepath = Path(__file__).resolve()
         self.testpath = self.filepath.parent.parent
-        self.home = Path(home).expanduser()
-        self.output = Path(output).expanduser()
-        self.models_folder = Path(models).expanduser()
+        self.home = Path(home)
+        self.output = Path(output)
+        self.models_folder = Path(models)
 
         with open(self.testpath / Path("test_configs") / "cfg_custom.yml", "r") as file:
             self.custom_cfg = yaml.safe_load(file)

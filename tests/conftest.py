@@ -38,28 +38,8 @@ def path_redirects(tmp_path, mockerfunc):
         "iSparrow.repl.user_config_dir",
         return_value=pathlib.Path(tmp_path, "config"),
     )
-    mockerfunc.patch.object(
-        pathlib.Path,
-        "expanduser",
-        new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
-    )
+
     mockerfunc.patch.object(pathlib.Path, "home", new=lambda: tmp_path)
-
-    mockerfunc.patch.object(
-        iSparrow.sparrow_setup.Path,
-        "expanduser",
-        new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
-    )
-    mockerfunc.patch.object(iSparrow.sparrow_setup.Path, "home", new=lambda: tmp_path)
-
-    mockerfunc.patch.object(
-        iSparrow.repl.Path,
-        "expanduser",
-        new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
-    )
-    mockerfunc.patch.object(
-        iSparrow.repl.Path, "home", new=lambda: pathlib.Path(tmp_path)
-    )
 
     return tmp_path
 
