@@ -3,7 +3,7 @@ import iSparrow.sparrow_setup as sps
 from iSparrow.utils import read_yaml, update_dict_leafs_recursive
 
 from pathlib import Path
-from platformdirs import user_config_dir
+from platformdirs import user_config_dir, user_cache_dir
 import cmd
 
 
@@ -213,6 +213,8 @@ class SparrowCmd(cmd.Cmd):
                     delete_recordings=cfg["Analysis"]["delete_recordings"],
                 )
             except Exception as e:
+                print(cfg)
+
                 print(
                     f"An error occured while trying to build the watcher: {e} caused by {e.__cause__}"
                 )

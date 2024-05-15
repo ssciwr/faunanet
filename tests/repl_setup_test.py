@@ -3,6 +3,7 @@ from pathlib import Path
 import iSparrow.repl as repl
 from iSparrow.utils import read_yaml
 
+
 def test_do_set_up(clean_up_test_installation):
     filepath = Path(__file__).parent / "test_install_config" / "install.yml"
     cfg = read_yaml(filepath)["Directories"]
@@ -51,9 +52,7 @@ def test_do_set_up_failure(input, expected, mocker, capsys):
     capsys.readouterr()
 
 
-def test_do_set_up_setup_exception(
-    mocker, capsys, clean_up_test_installation
-):
+def test_do_set_up_setup_exception(mocker, capsys, clean_up_test_installation):
     mocker.patch(
         "iSparrow.sparrow_setup.set_up_sparrow", side_effect=Exception("RuntimeError")
     )
