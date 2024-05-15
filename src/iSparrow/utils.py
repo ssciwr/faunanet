@@ -1,9 +1,8 @@
-import tensorflow as tf
-
 try:
     import tflite_runtime.interpreter as tflite
 except Exception:
     from tensorflow import lite as tflite
+    import tensorflow as tf
 
 from pathlib import Path
 import importlib.util
