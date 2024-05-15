@@ -51,10 +51,6 @@ def make_directories(base_cfg_dirs: dict):
     iscfg = Path(user_config_dir()) / "iSparrow"
     iscache = Path(user_cache_dir()) / "iSparrow"
 
-    if os.getenv("SPARROW_TEST_MODE") == "True":
-        iscfg = Path(user_config_dir()) / "iSparrow_tests"
-        iscache = Path(user_cache_dir()) / "iSparrow_tests"
-
     for p in [ish, ism, iso, ise, iscfg, iscache]:
         p.mkdir(parents=True, exist_ok=True)
 
