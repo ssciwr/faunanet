@@ -121,32 +121,6 @@ def load_model_from_file_pb(path: str, _):
         raise TFModelException(e)
 
 
-def load_model_from_tensorflowhub(url: str, _):
-    """
-    load_model_from_hub Download a tensorflow model from tensorflow hub, ready to be used
-
-    Args:
-        url (str): URL leading to the model to be downloaded and used
-
-    Raises:
-        ValueError: When the argument is not a valid url
-        TFModelException: When something goes wrong with the model loading inside the tensorflow_hub module
-
-    Returns:
-        Tensorflow model: The loaded model
-    """
-    if not is_url(url):
-        raise ValueError(
-            "The url given to load a model from tensorflow hub is not valid"
-        )
-
-    try:
-        model = tfhub.load(url)
-        return model
-    except Exception as e:
-        raise TFModelException(e)
-
-
 def load_module(module_name: str, file_path: str):
     """
     load_module Load a python module from 'path' with alias 'alias'
