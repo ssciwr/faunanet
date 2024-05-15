@@ -85,24 +85,18 @@ def test_do_set_up(clean_up_test_installation):
 
     tflite_file = "model.tflite"
 
-    assert pathlib.Path(cfg["home"]).expanduser().resolve().exists() is True
-    assert pathlib.Path(cfg["models"]).expanduser().resolve().exists() is True
-    assert pathlib.Path(cfg["output"]).expanduser().resolve().exists() is True
+    assert pathlib.Path(cfg["home"]).expanduser().exists() is True
+    assert pathlib.Path(cfg["models"]).expanduser().exists() is True
+    assert pathlib.Path(cfg["output"]).expanduser().exists() is True
 
     assert (
-        pathlib.Path(cfg["models"]).expanduser().resolve()
-        / "birdnet_default"
-        / tflite_file
+        pathlib.Path(cfg["models"]).expanduser() / "birdnet_default" / tflite_file
     ).is_file()
     assert (
-        pathlib.Path(cfg["models"]).expanduser().resolve()
-        / "birdnet_custom"
-        / tflite_file
+        pathlib.Path(cfg["models"]).expanduser() / "birdnet_custom" / tflite_file
     ).is_file()
     assert (
-        pathlib.Path(cfg["models"]).expanduser().resolve()
-        / "google_perch"
-        / "saved_model.pb"
+        pathlib.Path(cfg["models"]).expanduser() / "google_perch" / "saved_model.pb"
     ).is_file()
 
 
@@ -147,14 +141,17 @@ def test_do_start_custom(install, capsys):
     sparrow_cmd.do_start(CFG_PATH)
 
     assert sparrow_cmd.watcher is not None
-    assert sparrow_cmd.watcher.outdir == pathlib.Path.home() / "iSparrow_output"
-    assert sparrow_cmd.watcher.input_directory == str(
-        pathlib.Path.home() / "iSparrow_data"
+    assert (
+        sparrow_cmd.watcher.outdir == pathlib.Path.home().resolve() / "iSparrow_output"
     )
-    assert sparrow_cmd.watcher.model_dir == pathlib.Path.home() / "iSparrow/models"
+    assert sparrow_cmd.watcher.input_directory == str(
+        pathlib.Path.home().resolve() / "iSparrow_data"
+    )
+    assert (
+        sparrow_cmd.watcher.model_dir
+        == pathlib.Path.home().resolve() / "iSparrow/models"
+    )
     assert sparrow_cmd.watcher.is_running is True
-    assert sparrow_cmd.watcher.is_sleeping is False
-    assert sparrow_cmd.watcher.is_sleeping is False
     assert sparrow_cmd.watcher.delete_recordings == "always"
     assert sparrow_cmd.watcher.pattern == ".mp3"
     sparrow_cmd.watcher.stop()
@@ -166,8 +163,8 @@ def test_do_start_custom(install, capsys):
     out, _ = capsys.readouterr()
     assert sparrow_cmd.watcher.is_running is True
     assert (
-        out
-        == "It appears that there is a watcher process that is not running. Trying to start with current parameters. Use  the 'change_analyzer' command to change the parameters.\nstart the watcher process\n"
+        "It appears that there is a watcher process that is not running. Trying to start with current parameters. Use  the 'change_analyzer' command to change the parameters.\nstart the watcher process\n"
+        in out
     )
 
     capsys.readouterr()

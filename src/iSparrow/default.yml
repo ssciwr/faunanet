@@ -20,6 +20,7 @@ Analysis:
   pattern: ".wav"
   check_time: 1
   delete_recordings: "never"
+  model_dir: ~/iSparrow/models 
 
 Data: 
   input: ~/iSparrow_data

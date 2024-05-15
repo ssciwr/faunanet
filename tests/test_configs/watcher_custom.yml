@@ -1,0 +1,10 @@
+Analysis: 
+  Recording:
+    species_presence_threshold: 0.05
+    min_conf: 0.35
+
+  pattern: ".mp3"
+  delete_recordings: "always"
+
+Data: 
+  input: ~/iSparrow_data
