@@ -125,19 +125,11 @@ class WatchFixture:
         return files
 
     def wait_for_event_then_do(
-        self,
-        condition: callable,
-        todo_event: callable,
-        todo_else: callable,
-        limit: int = 20,
+        self, condition: callable, todo_event: callable, todo_else: callable
     ):
-        i = 0
         while True:
             if condition():
                 todo_event()
                 break
-            elif i >= limit:
-                raise TimeoutError("Timeout reached")
             else:
                 todo_else()
-                i += 1

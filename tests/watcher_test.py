@@ -1,20 +1,18 @@
+import pytest
+from pathlib import Path
 from iSparrow.sparrow_watcher import AnalysisEventHandler, SparrowWatcher
 from iSparrow.utils import wait_for_file_completion, read_yaml
 
-import pytest
-from pathlib import Path
 from copy import deepcopy
 import yaml
 from math import isclose
 import multiprocessing
 import time
 from datetime import datetime
-import shutil
 
 
 def test_watcher_construction(watch_fx):
     directories, wfx = watch_fx
-
     path_add = Path(datetime.now().strftime("%y%m%d_%H%M"))
 
     watcher = SparrowWatcher(
@@ -53,15 +51,13 @@ def test_watcher_construction(watch_fx):
         "birdnet_default",
     )
 
-    assert str(Path(default_watcher.outdir) / path_add) in str(
-        default_watcher.output
-    )
+    assert str(Path(default_watcher.outdir) / path_add) in str(default_watcher.output)
     assert str(default_watcher.input) == str(directories["data"])
     assert str(default_watcher.outdir) == str(directories["output"])
     assert str(default_watcher.model_dir) == str(directories["models"])
     assert str(default_watcher.model_name) == "birdnet_default"
     assert (
-        str(Path(default_watcher.outdir) / path_add)
+        str(Path(default_watcher.outdir) / wfx.path_add)
         in default_watcher.output_directory
     )
     assert default_watcher.input_directory == str(directories["data"])
@@ -159,8 +155,6 @@ def test_watcher_construction(watch_fx):
             delete_recordings="some wrong value",
         )
 
-    shutil.rmtree(watcher.output)
-
 
 def test_event_handler_construction(watch_fx):
     _, wfx = watch_fx
@@ -195,6 +189,7 @@ def test_watcher_lowlevel_functionality(watch_fx):
     # ... now we can call the functions to be tested
 
     watcher.analyze(wfx.home / "example" / "soundscape.wav", recording)
+
     assert len(list(wfx.output.iterdir())) == 1
     datafolder = list(wfx.output.iterdir())[0]
 
@@ -324,9 +319,7 @@ def test_watcher_exceptions(watch_fx, mocker):
     assert watcher.is_running is False
 
 
-def test_watcher_integrated_simple(
-    watch_fx,
-):
+def test_watcher_integrated_simple(watch_fx):
     _, wfx = watch_fx
 
     watcher = wfx.make_watcher()
@@ -358,7 +351,7 @@ def test_watcher_integrated_simple(
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file(),
         todo_event=lambda: watcher.stop(),
-        todo_else=lambda: time.sleep(1),
+        todo_else=lambda: 1,
     )
 
     assert watcher.is_running is False
@@ -387,6 +380,7 @@ def test_watcher_integrated_delete_always(watch_fx):
     watcher = wfx.make_watcher(
         delete_recordings="always",
     )
+
     # make a mock recorder process that runs in the background
     number_of_files = 7
 
@@ -396,8 +390,8 @@ def test_watcher_integrated_delete_always(watch_fx):
         target=wfx.mock_recorder,
         args=(wfx.home, wfx.data, number_of_files, sleep_for),
     )
-
     watcher.start()
+
     wfx.wait_for_event_then_do(
         condition=lambda: watcher.is_running,
         todo_event=lambda: 1,
@@ -413,8 +407,7 @@ def test_watcher_integrated_delete_always(watch_fx):
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file(),
         todo_event=lambda: watcher.stop(),
-        todo_else=lambda: time.sleep(1),
-        limit=200,
+        todo_else=lambda: time.sleep(0.2),
     )
 
     # the following makes
@@ -463,8 +456,7 @@ def test_watcher_integrated_delete_never(watch_fx):
         condition=lambda: (watcher.output / "results_example_4.csv").is_file()
         and wait_for_file_completion(watcher.output / "results_example_4.csv"),
         todo_event=lambda: watcher.stop(),
-        todo_else=lambda: time.sleep(0.25),
-        limit=300,
+        todo_else=lambda: 1,
     )
 
     recorder_process.join()
@@ -527,7 +519,6 @@ def test_change_analyzer(watch_fx):
             delete_recordings="always",
         ),
         todo_else=lambda: time.sleep(0.3),
-        limit=300,
     )
 
     # the following makes
@@ -556,7 +547,6 @@ def test_change_analyzer(watch_fx):
         condition=lambda: filename.is_file(),
         todo_event=lambda: watcher.stop(),
         todo_else=lambda: time.sleep(0.3),
-        limit=300,
     )
 
     current_files = [f for f in watcher.output.iterdir() if f.suffix == ".csv"]
@@ -608,7 +598,6 @@ def test_change_analyzer_recovery(watch_fx, mocker):
         condition=lambda: filename.is_file(),
         todo_event=lambda: 1,
         todo_else=lambda: time.sleep(0.3),
-        limit=300,
     )
 
     # patch the start method so we get a mock exception that is propagated through the system
@@ -638,8 +627,7 @@ def test_change_analyzer_recovery(watch_fx, mocker):
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file() and wait_for_file_completion(filename),
         todo_event=lambda: watcher.stop(),
-        todo_else=lambda: time.sleep(0.3),
-        limit=300,
+        todo_else=lambda: time.sleep(1),
     )
 
     results_folders = [f for f in watcher.outdir.iterdir() if f.is_dir()]
@@ -702,7 +690,6 @@ def test_change_analyzer_exception(watch_fx, mocker):
         condition=lambda: filename.is_file(),
         todo_event=lambda: 1,  # do nothing, just stop waiting,
         todo_else=lambda: time.sleep(0.2),
-        limit=300,
     )
 
     old_output = watcher.output_directory

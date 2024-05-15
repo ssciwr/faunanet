@@ -62,8 +62,12 @@ class SpeciesPredictorBase(SpeciesList):
 
         self.name = "birdnet_default"
 
-
-        self.cache_dir = user_cache_dir() / Path("iSparrow") / Path("species_lists")
+        if os.getenv("SPARROW_TEST_MODE") == "True":
+            self.cache_dir = (
+                user_cache_dir() / Path("iSparrow_tests") / Path("species_lists")
+            )
+        else:
+            self.cache_dir = user_cache_dir() / Path("iSparrow") / Path("species_lists")
 
         if self.cache_dir.exists() is False:
             self.cache_dir.mkdir(parents=True, exist_ok=True)

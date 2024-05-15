@@ -1,6 +1,7 @@
 import shutil
 import pooch
 import yaml
+import os
 from pathlib import Path
 from platformdirs import user_config_dir, user_cache_dir
 from iSparrow import utils
@@ -49,6 +50,10 @@ def make_directories(base_cfg_dirs: dict):
     ise = (Path(base_cfg_dirs["home"]).expanduser() / Path("example")).resolve()
     iscfg = Path(user_config_dir()) / "iSparrow"
     iscache = Path(user_cache_dir()) / "iSparrow"
+
+    if os.getenv("SPARROW_TEST_MODE") == "True":
+        iscfg = Path(user_config_dir()) / "iSparrow_tests"
+        iscache = Path(user_cache_dir()) / "iSparrow_tests"
 
     for p in [ish, ism, iso, ise, iscfg, iscache]:
         p.mkdir(parents=True, exist_ok=True)
@@ -224,12 +229,12 @@ def download_example_data(example_dir: str = "examples"):
         )
 
 
-def set_up_sparrow(custom_config=None):
+def set_up_sparrow(custom_config: str = None):
     """
     set_up_sparrow Set up the iSparrow directories and download the necessary data. This is required to run before anything else is done with iSparrow.
 
     Args:
-        custom_config (str, optional): Absolute path to a custom installation file. See the 'install.yml' file provided with this package for possible customization options. Defaults to None.
+        custom_config (str, optional): Path to a custom installation file. See the 'install.yml' file provided with this package for possible customization options. Defaults to None.
 
     Raises:
         FileExistsError: When there is an existing iSparrow installation.
