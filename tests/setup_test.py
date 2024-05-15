@@ -10,7 +10,9 @@ tflite_file = "model.tflite"
 
 @pytest.fixture()
 def temp_dir():
-    yield tempfile.mkdtemp()
+    tmp = tempfile.mkdtemp()
+    yield tmp
+    shutil.rmtree(tmp)
 
 
 @pytest.fixture()
@@ -29,7 +31,6 @@ def cleanup_after_test(temp_dir):
         if Path(temp_dir, path).exists():
             shutil.rmtree(Path(temp_dir, path))
 
-
 @pytest.fixture()
 def make_folders(temp_dir):
     for path in [
@@ -41,6 +42,17 @@ def make_folders(temp_dir):
 
     yield
 
+
+@pytest.fixture()
+def clean_up_test_installation():
+    cfg = sps.utils.read_yaml(
+        Path(__file__).parent / "test_install_config" / "install.yml"
+    )
+
+    for _, path in cfg["Directories"].items():
+        shutil.rmtree(Path(path).expanduser(), ignore_errors=True)
+    shutil.rmtree(Path(user_config_dir()) / "iSparrow_tests", )
+    shutil.rmtree(Path(user_cache_dir()) / "iSparrow_tests", )
 
 def test_make_directories(temp_dir, cleanup_after_test):
     base_cfg_dirs = {

@@ -81,6 +81,7 @@ def make_mock_install(patch_functions):
             shutil.rmtree(Path(path).expanduser())
     shutil.rmtree(Path(tmpdir, "iSparrow_tests_data"))
     shutil.rmtree(Path(tmpdir, "iSparrow_tests_output"))
+    shutil.rmtree(tmpdir)
 
 
 def wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_running):
@@ -205,12 +206,12 @@ def test_do_start_custom(make_mock_install, capsys):
         ("", "No config file provided, falling back to default", False),
     ],
 )
-def test_do_start_failure(input, expected, status, make_mock_install):
-    # capsys.readouterr()
+def test_do_start_failure(input, expected, status, make_mock_install, capsys):
+    capsys.readouterr()
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start(input)
-    # out, _ = capsys.readouterr()
-    # assert expected in out
+    out, _ = capsys.readouterr()
+    assert expected in out
     assert (sparrow_cmd.watcher is None) is status
 
     if sparrow_cmd.watcher is not None and sparrow_cmd.watcher.is_running is True:

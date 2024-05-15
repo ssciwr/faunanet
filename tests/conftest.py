@@ -1,6 +1,4 @@
 import multiprocessing
-
-multiprocessing.set_start_method("spawn", True)
 import pytest
 import shutil
 
@@ -16,6 +14,8 @@ from iSparrow.sparrow_setup import download_example_data, download_model_files
 from .fixtures.recording_fixtures import RecordingFixture
 from .fixtures.model_fixtures import ModelFixture
 from .fixtures.watcher_fixtures import WatchFixture
+
+multiprocessing.set_start_method("spawn", True)
 
 # set test mode
 os.environ["SPARROW_TEST_MODE"] = "True"
