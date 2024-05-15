@@ -1,48 +1,15 @@
 import pytest
 import pathlib
-from copy import deepcopy
 import iSparrow
-import time
+from .conftest import path_redirects
 
 
-@pytest.fixture()
+@pytest.fixture(autouse=True)
 def redirect_folders(tmp_path, mocker):
-
-    mocker.patch(
-        "platformdirs.user_cache_dir",
-        return_value=pathlib.Path(tmp_path, "cache"),
-    )
-    mocker.patch(
-        "platformdirs.user_config_dir",
-        return_value=pathlib.Path(tmp_path, "config"),
-    )
-    mocker.patch(
-        "iSparrow.sparrow_setup.user_config_dir",
-        return_value=pathlib.Path(tmp_path, "config"),
-    )
-    mocker.patch(
-        "iSparrow.sparrow_setup.user_cache_dir",
-        return_value=pathlib.Path(tmp_path, "cache"),
-    )
-
-    mocker.patch.object(
-        pathlib.Path,
-        "expanduser",
-        new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
-    )
-    mocker.patch.object(pathlib.Path, "home", new=lambda: tmp_path)
-
-    mocker.patch.object(
-        iSparrow.sparrow_setup.Path,
-        "expanduser",
-        new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
-    )
-    mocker.patch.object(iSparrow.sparrow_setup.Path, "home", new=lambda: tmp_path)
-
-    yield tmp_path
+    yield path_redirects(tmp_path, mocker)
 
 
-def test_do_set_up(clean_up_test_installation):
+def test_do_set_up(clean_up_test_installation, redirect_folders):
     filepath = pathlib.Path(__file__).parent / "test_install_config" / "install.yml"
     cfg = iSparrow.utils.read_yaml(filepath)["Directories"]
 
@@ -82,7 +49,7 @@ def test_do_set_up(clean_up_test_installation):
         ("", "No config file provided, falling back to default"),
     ],
 )
-def test_do_set_up_failure(input, expected, mocker, capsys):
+def test_do_set_up_failure(input, expected, mocker, capsys, redirect_folders):
     capsys.readouterr()
 
     sparrow_cmd = iSparrow.repl.SparrowCmd()
@@ -92,7 +59,7 @@ def test_do_set_up_failure(input, expected, mocker, capsys):
     capsys.readouterr()
 
 
-def test_do_set_up_setup_exception(mocker, capsys, clean_up_test_installation):
+def test_do_set_up_setup_exception(mocker, capsys, clean_up_test_installation, redirect_folders):
     mocker.patch(
         "iSparrow.sparrow_setup.set_up_sparrow", side_effect=Exception("RuntimeError")
     )

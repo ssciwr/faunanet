@@ -15,56 +15,64 @@ from .fixtures.watcher_fixtures import WatchFixture
 multiprocessing.set_start_method("spawn", True)
 
 
-@pytest.fixture(scope="session", autouse=True)
-def redirect_folders(session_mocker):
-    tmp_path = tempfile.mkdtemp()
+def path_redirects(tmp_path, mockerfunc):
 
-    session_mocker.patch(
+    mockerfunc.patch(
         "platformdirs.user_cache_dir",
         return_value=pathlib.Path(tmp_path, "cache"),
     )
-    session_mocker.patch(
+    mockerfunc.patch(
         "platformdirs.user_config_dir",
         return_value=pathlib.Path(tmp_path, "config"),
     )
-    session_mocker.patch(
+    mockerfunc.patch(
         "iSparrow.sparrow_setup.user_config_dir",
         return_value=pathlib.Path(tmp_path, "config"),
     )
-    session_mocker.patch(
+    mockerfunc.patch(
         "iSparrow.sparrow_setup.user_cache_dir",
         return_value=pathlib.Path(tmp_path, "cache"),
     )
-    session_mocker.patch(
+    mockerfunc.patch(
         "iSparrow.repl.user_config_dir",
         return_value=pathlib.Path(tmp_path, "config"),
     )
-    session_mocker.patch.object(
+    mockerfunc.patch.object(
         pathlib.Path,
         "expanduser",
         new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
     )
-    session_mocker.patch.object(pathlib.Path, "home", new=lambda: tmp_path)
+    mockerfunc.patch.object(pathlib.Path, "home", new=lambda: tmp_path)
 
-    session_mocker.patch.object(
+    mockerfunc.patch.object(
         iSparrow.sparrow_setup.Path,
         "expanduser",
         new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
     )
-    session_mocker.patch.object(
-        iSparrow.sparrow_setup.Path, "home", new=lambda: tmp_path
-    )
+    mockerfunc.patch.object(iSparrow.sparrow_setup.Path, "home", new=lambda: tmp_path)
 
-    session_mocker.patch.object(
+    mockerfunc.patch.object(
         iSparrow.repl.Path,
         "expanduser",
         new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
     )
-    session_mocker.patch.object(
+    mockerfunc.patch.object(
         iSparrow.repl.Path, "home", new=lambda: pathlib.Path(tmp_path)
     )
 
-    yield tmp_path
+    return tmp_path
+
+
+@pytest.fixture()
+def redirect_folders_func(mocker):
+    tmp_path = tempfile.mkdtemp()
+    yield path_redirects(tmp_path, mocker)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def redirect_folders(session_mocker):
+    tmp_path = tempfile.mkdtemp()
+    yield path_redirects(tmp_path, session_mocker)
 
 
 # set up the test directories and download the example files
@@ -147,7 +155,9 @@ def clean_up_test_installation(redirect_folders):
 
 # the install fixture provides a basic environment in the system's temporary directory
 @pytest.fixture()
-def install(load_files, ):
+def install(
+    load_files,
+):
     """
     install Bundle mock install and data download into a fixture
     """
@@ -170,7 +180,7 @@ def install(load_files, ):
             file.unlink()
 
     # delete directories in output folder again
-    for folder in pathlib.Path(directories["output"]).iterdir(): 
+    for folder in pathlib.Path(directories["output"]).iterdir():
         shutil.rmtree(folder.expanduser())
 
 
@@ -241,8 +251,8 @@ def recording_fx(install):
 
 @pytest.fixture
 def watch_fx(install):
-    tmpdir, directories = install
-    
+    _, directories = install
+
     yield directories, WatchFixture(
         directories["home"],
         directories["data"],

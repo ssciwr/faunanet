@@ -43,10 +43,10 @@ def make_directories(base_cfg_dirs: dict):
             "The output folder for iSparrow must be given in the base config"
         )
 
-    ish = Path(base_cfg_dirs["home"]).expanduser()
-    ism = Path(base_cfg_dirs["models"]).expanduser()
-    iso = Path(base_cfg_dirs["output"]).expanduser()
-    ise = (Path(base_cfg_dirs["home"]).expanduser() / Path("example"))
+    ish = Path(base_cfg_dirs["home"]).expanduser().resolve()
+    ism = Path(base_cfg_dirs["models"]).expanduser().resolve()
+    iso = Path(base_cfg_dirs["output"]).expanduser().resolve()
+    ise = (Path(base_cfg_dirs["home"]).expanduser().resolve() / Path("example"))
     iscfg = Path(user_config_dir()) / "iSparrow"
     iscache = Path(user_cache_dir()) / "iSparrow"
 
@@ -229,7 +229,7 @@ def set_up_sparrow(custom_config=None):
     set_up_sparrow Set up the iSparrow directories and download the necessary data. This is required to run before anything else is done with iSparrow.
 
     Args:
-        custom_config (str, optional): Path to a custom installation file. See the 'install.yml' file provided with this package for possible customization options. Defaults to None.
+        custom_config (str, optional): Absolute path to a custom installation file. See the 'install.yml' file provided with this package for possible customization options. Defaults to None.
 
     Raises:
         FileExistsError: When there is an existing iSparrow installation.
@@ -244,7 +244,7 @@ def set_up_sparrow(custom_config=None):
         utils.update_dict_leafs_recursive(install_cfg, custom_install_config)
 
     for key in ["home", "models", "output"]:
-        if Path(install_cfg["Directories"][key]).expanduser().exists():
+        if Path(install_cfg["Directories"][key]).expanduser().resolve().exists():
             raise FileExistsError(
                 f"{key} directory already exists. Please remove it before running the installation."
             )
@@ -266,9 +266,9 @@ def set_up_sparrow(custom_config=None):
         yaml.safe_dump(install_cfg, yfile)
     shutil.copy(packagebase / "default.yml", config)
 
-    download_model_files(model_dir=models)
+    download_model_files(model_dir=models.resolve())
 
-    download_example_data(example_dir=examples)
+    download_example_data(example_dir=examples.resolve())
 
     global SPARROW_HOME, SPARROW_MODELS, SPARROW_OUTPUT, SPARROW_EXAMPLES, SPARROW_CACHE, SPARROW_CONFIG
 

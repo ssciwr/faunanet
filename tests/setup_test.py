@@ -2,45 +2,14 @@ import iSparrow
 import pathlib
 import pytest
 import shutil
+from .conftest import path_redirects
 
 tflite_file = "model.tflite"
 
 
-@pytest.fixture()
+@pytest.fixture(autouse=True)
 def redirect_folders(tmp_path, mocker):
-
-    mocker.patch(
-        "platformdirs.user_cache_dir",
-        return_value=pathlib.Path(tmp_path, "cache"),
-    )
-    mocker.patch(
-        "platformdirs.user_config_dir",
-        return_value=pathlib.Path(tmp_path, "config"),
-    )
-    mocker.patch(
-        "iSparrow.sparrow_setup.user_config_dir",
-        return_value=pathlib.Path(tmp_path, "config"),
-    )
-    mocker.patch(
-        "iSparrow.sparrow_setup.user_cache_dir",
-        return_value=pathlib.Path(tmp_path, "cache"),
-    )
-
-    mocker.patch.object(
-        pathlib.Path,
-        "expanduser",
-        new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
-    )
-    mocker.patch.object(pathlib.Path, "home", new=lambda: tmp_path)
-
-    mocker.patch.object(
-        iSparrow.sparrow_setup.Path,
-        "expanduser",
-        new=lambda x: pathlib.Path(str(x).replace("~", str(tmp_path))),
-    )
-    mocker.patch.object(iSparrow.sparrow_setup.Path, "home", new=lambda: tmp_path)
-
-    yield tmp_path
+    yield path_redirects(tmp_path, mocker)
 
 
 @pytest.fixture()
