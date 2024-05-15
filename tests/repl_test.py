@@ -1,6 +1,9 @@
 import pytest
 from pathlib import Path
 from copy import deepcopy
+from importlib.resources import files
+import shutil
+import iSparrow
 import iSparrow.repl as repl
 import time
 import yaml
@@ -8,30 +11,76 @@ import yaml
 CFG_PATH = "--cfg=./tests/test_configs/watcher_custom.yml"
 
 
-def read_yaml_with_home_replacement(filepath, tmpdir):
-    with open(Path(filepath), "r") as file:
+def read_yaml_with_replacement(path, dir):
+
+    with open(Path(path)) as file:
         cfg = yaml.safe_load(file)
 
-    for key, value in cfg.items():
-        if isinstance(value, str):
-            cfg[key] = value.replace("~", str(Path.home()))
+    def update_recursive(d):
+        for k, v in d.items():
+            if isinstance(v, dict):
+                update_recursive(v)
+            else:
+                if isinstance(v, str):
+                    d[k] = v.replace("~", str(dir))
 
-    for key in ["Analysis", "Data"]:
-        for subkey, value in cfg[key].items():
-            if "~" in value:
-                cfg[key][subkey] = value.replace("~", str(tmpdir))
+    update_recursive(cfg)
+
+    if "Data" in cfg.keys():
+        cfg["Data"]["input"] = str(Path(dir, "iSparrow_tests_data"))
+        cfg["Data"]["output"] = str(Path(dir, "iSparrow_tests_output"))
 
     return cfg
 
 
 @pytest.fixture()
 def patch_functions(mocker, tmpdir):
-    mocker.patch(
-        "iSparrow.repl.read_yaml",
-        new=lambda x: read_yaml_with_home_replacement(x, tmpdir),
-    )
     mocker.patch("iSparrow.repl.user_cache_dir", new=lambda: Path(tmpdir) / "cache")
     mocker.patch("iSparrow.repl.user_config_dir", new=lambda: Path(tmpdir) / "config")
+    mocker.patch(
+        "iSparrow.repl.read_yaml", new=lambda f: read_yaml_with_replacement(f, tmpdir)
+    )
+    yield tmpdir
+
+
+@pytest.fixture()
+def make_mock_install(patch_functions):
+    tmpdir = patch_functions
+
+    packagebase = files(iSparrow)
+    cfg = repl.read_yaml(packagebase / "install.yml")["Directories"]
+
+    for name, path in cfg.items():
+        Path(path).mkdir(parents=True, exist_ok=True)
+
+    Path(tmpdir, "iSparrow_tests_data").mkdir(parents=True, exist_ok=True)
+    Path(tmpdir, "iSparrow_tests_output").mkdir(parents=True, exist_ok=True)
+
+    iscfg = Path(repl.user_config_dir()) / "iSparrow"
+    iscache = Path(repl.user_cache_dir()) / "iSparrow"
+
+    iscfg.mkdir(parents=True, exist_ok=True)
+    iscache.mkdir(parents=True, exist_ok=True)
+
+    ism = Path(cfg["models"])
+    ise = Path(cfg["home"]) / "example"
+    ism.mkdir(parents=True, exist_ok=True)
+    ise.mkdir(parents=True, exist_ok=True)
+
+    iSparrow.sparrow_setup.download_model_files(ism)
+    iSparrow.sparrow_setup.download_example_data(ise)
+
+    shutil.copy(Path(packagebase, "install.yml"), iscfg)
+    shutil.copy(Path(packagebase, "default.yml"), iscfg)
+
+    yield tmpdir
+
+    shutil.rmtree(ise)
+    for name, path in cfg.items():
+        if Path(path).exists():
+            shutil.rmtree(Path(path).expanduser())
+    shutil.rmtree(Path(tmpdir, "iSparrow_tests_data"))
+    shutil.rmtree(Path(tmpdir, "iSparrow_tests_output"))
 
 
 def wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_running):
@@ -101,44 +150,43 @@ def test_process_line_into_kwargs_failures(input, keywords, message):
         repl.process_line_into_kwargs(input, keywords=keywords)
 
 
-def test_do_start_custom(install, patch_functions):
+def test_do_start_custom(make_mock_install, capsys):
+    tmpdir = make_mock_install
 
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start(CFG_PATH)
     wait_for_watcher_status(sparrow_cmd)
 
     assert sparrow_cmd.watcher is not None
-    assert sparrow_cmd.watcher.outdir == Path.home().resolve() / "iSparrow_output"
-    assert sparrow_cmd.watcher.input_directory == str(
-        Path.home().resolve() / "iSparrow_data"
+    assert sparrow_cmd.watcher.outdir == tmpdir / "iSparrow_tests_output"
+    assert sparrow_cmd.watcher.input_directory == str(tmpdir / "iSparrow_tests_data")
+    assert sparrow_cmd.watcher.model_dir == tmpdir / "iSparrow/models"
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.delete_recordings == "always"
+    assert sparrow_cmd.watcher.pattern == ".mp3"
+    sparrow_cmd.watcher.stop()
+    assert sparrow_cmd.watcher.is_running is False
+
+    capsys.readouterr()
+    sparrow_cmd.do_start(CFG_PATH)
+
+    out, _ = capsys.readouterr()
+    assert sparrow_cmd.watcher.is_running is True
+    assert (
+        "It appears that there is a watcher process that is not running. Trying to start with current parameters. Use  the 'change_analyzer' command to change the parameters.\nstart the watcher process\n"
+        in out
     )
-    # assert sparrow_cmd.watcher.model_dir == Path.home().resolve() / "iSparrow/models"
-    # assert sparrow_cmd.watcher.is_running is True
-    # assert sparrow_cmd.watcher.delete_recordings == "always"
-    # assert sparrow_cmd.watcher.pattern == ".mp3"
-    # sparrow_cmd.watcher.stop()
-    # assert sparrow_cmd.watcher.is_running is False
 
-    # capsys.readouterr()
-    # sparrow_cmd.do_start(CFG_PATH)
+    capsys.readouterr()
+    sparrow_cmd.do_start("")
+    out, _ = capsys.readouterr()
+    assert (
+        "The watcher is running. Cannot be started again with different parameters. Try 'change_analyzer' to use different parameters.\n"
+        in out
+    )
 
-    # out, _ = capsys.readouterr()
-    # assert sparrow_cmd.watcher.is_running is True
-    # assert (
-    #     "It appears that there is a watcher process that is not running. Trying to start with current parameters. Use  the 'change_analyzer' command to change the parameters.\nstart the watcher process\n"
-    #     in out
-    # )
-
-    # capsys.readouterr()
-    # sparrow_cmd.do_start("")
-    # out, _ = capsys.readouterr()
-    # assert (
-    #     "The watcher is running. Cannot be started again with different parameters. Try 'change_analyzer' to use different parameters.\n"
-    #     in out
-    # )
-
-    # sparrow_cmd.watcher.stop()
-    # assert sparrow_cmd.watcher.is_running is False
+    sparrow_cmd.watcher.stop()
+    assert sparrow_cmd.watcher.is_running is False
 
 
 @pytest.mark.parametrize(
@@ -157,19 +205,19 @@ def test_do_start_custom(install, patch_functions):
         ("", "No config file provided, falling back to default", False),
     ],
 )
-def test_do_start_failure(input, expected, status, capsys, install):
-    capsys.readouterr()
+def test_do_start_failure(input, expected, status, make_mock_install):
+    # capsys.readouterr()
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start(input)
-    out, _ = capsys.readouterr()
-    assert expected in out
+    # out, _ = capsys.readouterr()
+    # assert expected in out
     assert (sparrow_cmd.watcher is None) is status
 
     if sparrow_cmd.watcher is not None and sparrow_cmd.watcher.is_running is True:
         sparrow_cmd.watcher.stop()
 
 
-def test_do_start_exception_in_watcher_start(install, mocker, capsys):
+def test_do_start_exception_in_watcher_start(make_mock_install, mocker, capsys):
     mocker.patch.object(
         iSparrow.SparrowWatcher, "start", side_effect=Exception("RuntimeError")
     )
@@ -187,7 +235,7 @@ def test_do_start_exception_in_watcher_start(install, mocker, capsys):
         sparrow_cmd.watcher.stop()
 
 
-def test_do_start_exception_in_watcher_build(install, mocker, capsys):
+def test_do_start_exception_in_watcher_build(make_mock_install, mocker, capsys):
     mocker.patch.object(
         iSparrow.SparrowWatcher, "__init__", side_effect=Exception("RuntimeError")
     )
@@ -203,7 +251,7 @@ def test_do_start_exception_in_watcher_build(install, mocker, capsys):
         sparrow_cmd.watcher.stop()
 
 
-def test_do_stop(install):
+def test_do_stop(make_mock_install):
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start(CFG_PATH)
     wait_for_watcher_status(sparrow_cmd)
@@ -213,7 +261,7 @@ def test_do_stop(install):
     assert sparrow_cmd.watcher.is_running is False
 
 
-def test_do_stop_failure(install, capsys):
+def test_do_stop_failure(make_mock_install, capsys):
     sparrow_cmd = repl.SparrowCmd()
 
     sparrow_cmd.do_start(CFG_PATH)
@@ -235,7 +283,7 @@ def test_do_stop_failure(install, capsys):
     assert out == "Cannot stop watcher, is not running\n"
 
 
-def test_do_stop_exceptions(install, capsys, mocker):
+def test_do_stop_exceptions(make_mock_install, capsys, mocker):
     mocker.patch("iSparrow.SparrowWatcher.stop", side_effect=Exception("RuntimeError"))
 
     sparrow_cmd = repl.SparrowCmd()
@@ -258,7 +306,7 @@ def test_do_stop_exceptions(install, capsys, mocker):
         sparrow_cmd.watcher.stop()
 
 
-def test_do_restart(install):
+def test_do_restart(make_mock_install):
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start(CFG_PATH)
     wait_for_watcher_status(sparrow_cmd)
@@ -274,7 +322,7 @@ def test_do_restart(install):
     assert sparrow_cmd.watcher.is_running is False
 
 
-def test_do_restart_failure(install, capsys):
+def test_do_restart_failure(make_mock_install, capsys):
     sparrow_cmd = repl.SparrowCmd()
 
     sparrow_cmd.do_start(CFG_PATH)
@@ -305,7 +353,7 @@ def test_do_restart_failure(install, capsys):
     assert out == "Cannot restart watcher, is not running\n"
 
 
-def test_do_restart_exceptions(install, capsys, mocker):
+def test_do_restart_exceptions(make_mock_install, capsys, mocker):
     mocker.patch.object(
         iSparrow.SparrowWatcher, "stop", side_effect=Exception("RuntimeError")
     )

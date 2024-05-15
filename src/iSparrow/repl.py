@@ -213,7 +213,6 @@ class SparrowCmd(cmd.Cmd):
                     delete_recordings=cfg["Analysis"]["delete_recordings"],
                 )
             except Exception as e:
-                print(cfg)
 
                 print(
                     f"An error occured while trying to build the watcher: {e} caused by {e.__cause__}"
