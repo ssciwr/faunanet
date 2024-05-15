@@ -50,7 +50,8 @@ def clean_up_test_installation():
     )
 
     for _, path in cfg["Directories"].items():
-        shutil.rmtree(Path(path).expanduser(), ignore_errors=True)
+        if (Path(path).expanduser().exists()): 
+            shutil.rmtree(Path(path).expanduser(), ignore_errors=True)
     shutil.rmtree(Path(user_config_dir()) / "iSparrow_tests", )
     shutil.rmtree(Path(user_cache_dir()) / "iSparrow_tests", )
 
