@@ -1,40 +1,39 @@
 from iSparrow import utils
-from pathlib import Path
+import pathlib
 import yaml
-import pytest
 import pandas as pd
 
 
 class ModelFixture:
 
     def __init__(self, home, output, models):
-        self.filepath = Path(__file__).resolve()
+        self.filepath = pathlib.Path(__file__).expanduser().resolve()
         self.testpath = self.filepath.parent.parent
-        self.home = Path(home)
-        self.output = Path(output)
-        self.models_folder = Path(models)
+        self.home = pathlib.Path(home).expanduser()
+        self.output = pathlib.Path(output).expanduser()
+        self.models_folder = pathlib.Path(models).expanduser()
 
-        with open(self.testpath / Path("test_configs") / "cfg_custom.yml", "r") as file:
+        with open(self.testpath / pathlib.Path("test_configs") / "cfg_custom.yml", "r") as file:
             self.custom_cfg = yaml.safe_load(file)
 
         with open(
-            self.testpath / Path("test_configs") / "cfg_default.yml", "r"
+            self.testpath / pathlib.Path("test_configs") / "cfg_default.yml", "r"
         ) as file:
             self.default_cfg = yaml.safe_load(file)
 
         with open(
-            self.testpath / Path("test_configs") / "cfg_wrong_model.yml", "r"
+            self.testpath / pathlib.Path("test_configs") / "cfg_wrong_model.yml", "r"
         ) as file:
             self.cfg_wrong_model = yaml.safe_load(file)
 
-        with open(self.testpath / Path("test_configs") / "cfg_google.yml", "r") as file:
+        with open(self.testpath / pathlib.Path("test_configs") / "cfg_google.yml", "r") as file:
             self.google_cfg = yaml.safe_load(file)
 
         self.default_module = utils.load_module(
             "model_default",
             str(
                 self.models_folder
-                / Path(self.default_cfg["Analysis"]["Model"]["model_path"])
+                / pathlib.Path(self.default_cfg["Analysis"]["Model"]["model_path"])
                 / "model.py"
             ),
         )
@@ -43,7 +42,7 @@ class ModelFixture:
             "pp_default",
             str(
                 self.models_folder
-                / Path(self.default_cfg["Analysis"]["Model"]["model_path"])
+                / pathlib.Path(self.default_cfg["Analysis"]["Model"]["model_path"])
                 / "preprocessor.py"
             ),
         )
@@ -52,7 +51,7 @@ class ModelFixture:
             "model_custom",
             str(
                 self.models_folder
-                / Path(self.custom_cfg["Analysis"]["Model"]["model_path"])
+                / pathlib.Path(self.custom_cfg["Analysis"]["Model"]["model_path"])
                 / "model.py"
             ),
         )
@@ -61,7 +60,7 @@ class ModelFixture:
             "model_google",
             str(
                 self.models_folder
-                / Path(self.google_cfg["Analysis"]["Model"]["model_path"])
+                / pathlib.Path(self.google_cfg["Analysis"]["Model"]["model_path"])
                 / "model.py"
             ),
         )
@@ -70,7 +69,7 @@ class ModelFixture:
             "pp_google",
             str(
                 self.models_folder
-                / Path(self.google_cfg["Analysis"]["Model"]["model_path"])
+                / pathlib.Path(self.google_cfg["Analysis"]["Model"]["model_path"])
                 / "preprocessor.py"
             ),
         )
@@ -91,8 +90,8 @@ class ModelFixture:
         self.default_analysis_results = (
             pd.read_csv(
                 self.testpath
-                / Path("stored_test_results")
-                / Path("default_results.csv")
+                / pathlib.Path("stored_test_results")
+                / pathlib.Path("default_results.csv")
             )
             .loc[:, ["scientific_name", "confidence"]]
             .sort_values(by="confidence", ascending=False)
@@ -100,7 +99,7 @@ class ModelFixture:
 
         self.custom_analysis_results = (
             pd.read_csv(
-                self.testpath / Path("stored_test_results") / Path("custom_results.csv")
+                self.testpath / pathlib.Path("stored_test_results") / pathlib.Path("custom_results.csv")
             )
             .loc[:, ["scientific_name", "confidence"]]
             .sort_values(by="confidence", ascending=False)
@@ -110,8 +109,8 @@ class ModelFixture:
             (
                 pd.read_csv(
                     self.testpath
-                    / Path("stored_test_results")
-                    / Path("google_results_minconf025.csv")
+                    / pathlib.Path("stored_test_results")
+                    / pathlib.Path("google_results_minconf025.csv")
                 ).sort_values(by="confidence", ascending=False)
             )
             .reset_index(drop=False)
