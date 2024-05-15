@@ -53,12 +53,12 @@ def clean_up_test_installation():
     for _, path in cfg["Directories"].items():
         if Path(path).expanduser().exists():
             shutil.rmtree(Path(path).expanduser(), ignore_errors=True)
-    shutil.rmtree(
-        Path(user_config_dir()) / "iSparrow_tests",
-    )
-    shutil.rmtree(
-        Path(user_cache_dir()) / "iSparrow_tests",
-    )
+
+    if (Path(user_config_dir()) / "iSparrow_tests").exists():
+        shutil.rmtree(Path(user_config_dir()) / "iSparrow_tests", ignore_errors=True)
+
+    if (Path(user_cache_dir()) / "iSparrow_tests").exists():
+        shutil.rmtree(Path(user_cache_dir()) / "iSparrow_tests", ignore_errors=True)
 
 
 def test_make_directories(temp_dir, cleanup_after_test):
