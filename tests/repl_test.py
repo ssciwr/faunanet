@@ -143,17 +143,21 @@ def test_dispatch_on_watcher(mocker, capsys):
     def raise_exception(s):
         raise Exception("RuntimeError")
 
+    type(sparrow_cmd.watcher).is_sleeping = mocker.PropertyMock(return_value=False)
+
+    type(sparrow_cmd.watcher).is_running = mocker.PropertyMock(return_value=True)
+
     capsys.readouterr()
     sparrow_cmd.dispatch_on_watcher(
         do_is_none=do_is_none_func,
         do_is_sleeping=do_is_sleeping_func,
-        do_is_running=do_is_running_func,
+        do_is_running=raise_exception,
         do_else=do_else_func,
         do_failure=do_failure_func,
     )
     out, _ = capsys.readouterr()
 
-    assert "Watcher is in an unknown state" in out
+    assert "Watcher has failed" in out
 
 
 def test_process_line_into_kwargs():
