@@ -24,7 +24,7 @@ dependencies = [
 
 [project.optional-dependencies]
 tensorflow   = ["tensorflow", "tensorflow-hub"]
-tensorflow-lite =["tflite-runtime"]
+tensorflow-lite =["tflite-runtime", "tensorflow-hub"]
 
 [project.urls]
 Repository = "https://github.com/ssciwr/iSparrow"

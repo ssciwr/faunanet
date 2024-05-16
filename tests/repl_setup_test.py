@@ -59,5 +59,5 @@ def test_do_set_up_setup_exception(mocker, capsys, clean_up_test_installation):
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_set_up("--cfg=./tests/test_configs")
     out, _ = capsys.readouterr()
-    assert out == "Could not set up iSparrow RuntimeError caused by:  None\n"
+    assert "Could not set up iSparrow RuntimeError caused by:  None\n" in out
     capsys.readouterr()

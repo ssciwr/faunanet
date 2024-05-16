@@ -1,10 +1,11 @@
-from iSparrow import SparrowWatcher
-import iSparrow.sparrow_setup as sps
-from iSparrow.utils import read_yaml, update_dict_leafs_recursive
-
 from pathlib import Path
 from platformdirs import user_config_dir, user_cache_dir
 import cmd
+import time
+
+from iSparrow import SparrowWatcher
+import iSparrow.sparrow_setup as sps
+from iSparrow.utils import read_yaml, update_dict_leafs_recursive
 
 
 def process_line_into_kwargs(line: str, keywords: list = None):
@@ -140,6 +141,22 @@ class SparrowCmd(cmd.Cmd):
             except Exception as e:
                 do_failure(self, e)
 
+    def wait_for_watcher_event(
+        self, event: callable, limit: int = 10, waiting_time: int = 5
+    ):
+        i = 0
+        while True:
+            if event(self):
+                break
+            elif i > limit:
+                print(
+                    "Error while performing watcher interaction. Exiting.", flush=True
+                )
+                break
+            else:
+                time.sleep(waiting_time)
+                i += 1
+
     def do_set_up(self, line: str):
         """
         do_set_up Setup iSparrow. This creates a `iSparrow` folder in the user's home directory and copies the default configuration files into os_standard_config_dir/iSparrow. If a custom configuration file is provided, it will be used instead of the default.
@@ -158,6 +175,7 @@ class SparrowCmd(cmd.Cmd):
                 "Could not set up iSparrow", e, "caused by: ", e.__cause__
             ),
         )
+        print("\n")
 
     def do_start(self, line: str):
         """
@@ -240,6 +258,10 @@ class SparrowCmd(cmd.Cmd):
                 print(
                     f"Something went wrong while trying to start the watcher process: {e} caused by  {e.__cause__}. A new start attempt can be made when the error has been addressed."
                 )
+        self.wait_for_watcher_event(
+            lambda s: s.watcher.is_running, limit=20, waiting_time=3
+        )
+        print("\n")
 
     def do_stop(self, line: str):
         """
@@ -265,6 +287,13 @@ class SparrowCmd(cmd.Cmd):
             do_failure=handle_failure,
         )
 
+        if self.watcher is not None:
+            self.wait_for_watcher_event(
+                lambda s: s.watcher.is_running is False, limit=20, waiting_time=3
+            )
+
+        print("\n")
+
     def do_exit(self, line: str):
         """
         do_exit Leave the sparrow shell
@@ -272,6 +301,12 @@ class SparrowCmd(cmd.Cmd):
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
+
+        if self.watcher is not None and self.watcher.is_running:
+            self.watcher.stop()
+            self.wait_for_watcher_event(
+                lambda s: s.watcher.is_running is False, limit=20, waiting_time=3
+            )
         print("Exiting sparrow shell")
         return True
 

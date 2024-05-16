@@ -281,7 +281,7 @@ def test_do_stop_failure(make_mock_install, capsys):
     capsys.readouterr()
     sparrow_cmd.do_stop("")
     out, _ = capsys.readouterr()
-    assert out == "Cannot stop watcher, is not running\n"
+    assert "Cannot stop watcher, is not running\n" in out
 
 
 def test_do_stop_exceptions(make_mock_install, capsys, mocker):
@@ -299,8 +299,7 @@ def test_do_stop_exceptions(make_mock_install, capsys, mocker):
 
     out, _ = capsys.readouterr()
     assert (
-        out
-        == "Could not stop watcher: RuntimeError caused by None. Watcher process will be killed now and all resources released. This may have left data in a corrupt state. A new watcher must be started if this session is to be continued.\n"
+        "Could not stop watcher: RuntimeError caused by None. Watcher process will be killed now and all resources released. This may have left data in a corrupt state. A new watcher must be started if this session is to be continued.\n" in out
     )
 
     if sparrow_cmd.watcher is not None and sparrow_cmd.watcher.is_running is True:
@@ -313,7 +312,7 @@ def test_do_exit(capsys):
     capsys.readouterr()
     sparrow_cmd.do_exit("wrong args")
     out, _ = capsys.readouterr()
-    assert out == "Invalid input. Expected no arguments.\n"
+    assert "Invalid input. Expected no arguments.\n" in out
 
     capsys.readouterr()
 
@@ -323,4 +322,4 @@ def test_do_exit(capsys):
 
     out, _ = capsys.readouterr()
 
-    assert out == "Exiting sparrow shell\n"
+    assert "Exiting sparrow shell\n" in out
