@@ -430,13 +430,13 @@ def test_do_pause_failures(make_mock_install, capsys):
     sparrow_cmd.watcher.is_done_analyzing.set()
     sparrow_cmd.do_pause("")
     out, _ = capsys.readouterr()
-    assert out == "Cannot pause watcher, is not running\n"
+    assert "Cannot pause watcher, is not running\n" in out
 
     capsys.readouterr()
     sparrow_cmd.watcher = None
     sparrow_cmd.do_pause("")
     out, _ = capsys.readouterr()
-    assert out == "Cannot pause watcher, no watcher present\n"
+    assert "Cannot pause watcher, no watcher present\n" in out
 
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
 
@@ -448,7 +448,7 @@ def test_do_pause_failures(make_mock_install, capsys):
     capsys.readouterr()
     sparrow_cmd.do_pause("")
     out, _ = capsys.readouterr()
-    assert out == "Cannot pause watcher, is already sleeping\n"
+    assert "Cannot pause watcher, is already sleeping\n" in out
 
 
 def test_do_pause_exception(make_mock_install, capsys, mocker):
@@ -462,7 +462,7 @@ def test_do_pause_exception(make_mock_install, capsys, mocker):
     capsys.readouterr()
     sparrow_cmd.do_pause("")
     out, _ = capsys.readouterr()
-    assert out == "Could not pause watcher: RuntimeError caused by None\n"
+    assert "Could not pause watcher: RuntimeError caused by None\n" in out
     assert sparrow_cmd.watcher is not None
     assert sparrow_cmd.watcher.is_running is True
 
@@ -516,7 +516,7 @@ def test_do_continue_failure(make_mock_install, capsys):
     sparrow_cmd.do_continue("")
 
     out, _ = capsys.readouterr()
-    assert out == "Cannot continue watcher, no watcher present\n"
+    assert "Cannot continue watcher, no watcher present\n" in out
 
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
 
@@ -526,7 +526,7 @@ def test_do_continue_failure(make_mock_install, capsys):
     sparrow_cmd.do_continue("")
     out, _ = capsys.readouterr()
 
-    assert out == "Cannot continue watcher, is not sleeping\n"
+    assert "Cannot continue watcher, is not sleeping\n" in out
 
     sparrow_cmd.watcher.stop()
 
@@ -534,7 +534,7 @@ def test_do_continue_failure(make_mock_install, capsys):
     sparrow_cmd.do_continue("")
     out, _ = capsys.readouterr()
 
-    assert out == "Cannot continue watcher, is not running\n"
+    assert "Cannot continue watcher, is not running\n" in out
 
 
 def test_do_continue_exception(make_mock_install, capsys, mocker):
@@ -555,7 +555,7 @@ def test_do_continue_exception(make_mock_install, capsys, mocker):
     capsys.readouterr()
     sparrow_cmd.do_continue("")
     out, _ = capsys.readouterr()
-    assert out == "Could not continue watcher: RuntimeError caused by None\n"
+    assert "Could not continue watcher: RuntimeError caused by None\n" in out
 
 
 def test_do_restart(make_mock_install):
@@ -602,7 +602,7 @@ def test_do_restart_failure(make_mock_install, capsys):
     capsys.readouterr()
     sparrow_cmd.do_restart("")
     out, _ = capsys.readouterr()
-    assert out == "Cannot restart watcher, is not running\n"
+    assert "Cannot restart watcher, is not running\n" in out
 
 
 def test_do_restart_exceptions(make_mock_install, capsys, mocker):
@@ -622,8 +622,8 @@ def test_do_restart_exceptions(make_mock_install, capsys, mocker):
     sparrow_cmd.do_restart("")
     out, _ = capsys.readouterr()
     assert (
-        out
-        == "trying to restart the watcher process\nCould not restart watcher: RuntimeError caused by None\n"
+        "trying to restart the watcher process\nCould not restart watcher: RuntimeError caused by None\n"
+        in out
     )
 
 
@@ -633,7 +633,7 @@ def test_do_exit(capsys):
     capsys.readouterr()
     sparrow_cmd.do_exit("wrong args")
     out, _ = capsys.readouterr()
-    assert out == "Invalid input. Expected no arguments.\n"
+    assert "Invalid input. Expected no arguments.\n" in out
 
     capsys.readouterr()
 
@@ -643,7 +643,7 @@ def test_do_exit(capsys):
 
     out, _ = capsys.readouterr()
 
-    assert out == "Exiting sparrow shell\n"
+    assert "Exiting sparrow shell\n" in out
 
 
 def test_change_analyzer(make_mock_install):
@@ -656,7 +656,14 @@ def test_change_analyzer(make_mock_install):
     assert sparrow_cmd.watcher.is_sleeping is False
     time.sleep(10)
     sparrow_cmd.watcher.is_done_analyzing.set()
+    old_out = deepcopy(sparrow_cmd.watcher.output)
     sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
+
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
+    assert sparrow_cmd.watcher.delete_recordings == "always"
+    assert sparrow_cmd.watcher.pattern == ".mp3"
+    assert old_out != sparrow_cmd.watcher.output
 
 
 def test_change_analyzer_exception(make_mock_install, capsys, mocker):
@@ -667,10 +674,11 @@ def test_change_analyzer_exception(make_mock_install, capsys, mocker):
     )
 
     sparrow_cmd = repl.SparrowCmd()
+
     capsys.readouterr()
     sparrow_cmd.do_change_analyzer("")
     out, _ = capsys.readouterr()
-    assert out == "No watcher present, cannot change analyzer\n"
+    assert "No watcher present, cannot change analyzer\n" in out
 
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
 
@@ -684,8 +692,8 @@ def test_change_analyzer_exception(make_mock_install, capsys, mocker):
     out, _ = capsys.readouterr()
 
     assert (
-        out
-        == "An error occured while trying to change the analyzer: RuntimeError caused by None\n"
+        "An error occured while trying to change the analyzer: RuntimeError caused by None\n"
+        in out
     )
 
     if sparrow_cmd.watcher is not None and sparrow_cmd.watcher.is_running is True:
@@ -697,7 +705,7 @@ def test_change_analyzer_failure(make_mock_install, capsys):
     capsys.readouterr()
     sparrow_cmd.do_change_analyzer("")
     out, _ = capsys.readouterr()
-    assert out == "No watcher present, cannot change analyzer\n"
+    assert "No watcher present, cannot change analyzer\n" in out
 
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
 
@@ -709,19 +717,30 @@ def test_change_analyzer_failure(make_mock_install, capsys):
     capsys.readouterr()
     sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
     out, _ = capsys.readouterr()
-    assert out == "Cannot change analyzer, watcher is sleeping\n"
+    assert "Cannot change analyzer, watcher is sleeping\n" in out
+
+    sparrow_cmd.watcher.go_on()
+
+    wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_sleeping is False)
+
+    capsys.readouterr()
+    sparrow_cmd.do_change_analyzer(
+        "--cfg=./tests/test_configs/watcher_custom.yml --other=superfluous"
+    )
+    out, _ = capsys.readouterr()
+    assert "Invalid input. Expected: change_analyzer --cfg=<config_file>\n" in out
 
     sparrow_cmd.watcher.stop()
     capsys.readouterr()
     sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
     out, _ = capsys.readouterr()
-    assert out == "Cannot change analyzer, watcher is not running\n"
+    assert "Cannot change analyzer, watcher is not running\n" in out
 
     sparrow_cmd.watcher = None
     capsys.readouterr()
     sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
     out, _ = capsys.readouterr()
-    assert out == "No watcher present, cannot change analyzer\n"
+    assert "No watcher present, cannot change analyzer\n" in out
 
 
 def test_do_status(make_mock_install, capsys):
@@ -735,7 +754,7 @@ def test_do_status(make_mock_install, capsys):
     capsys.readouterr()
     sparrow_cmd.do_status("")
     out, _ = capsys.readouterr()
-    assert out == "is running: True\nis sleeping: False\nmay do work: True\n"
+    assert "is running: True\nis sleeping: False\nmay do work: True\n" in out
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
     sparrow_cmd.watcher.stop()
@@ -744,11 +763,11 @@ def test_do_status(make_mock_install, capsys):
     capsys.readouterr()
     sparrow_cmd.do_status("wrong input")
     out, _ = capsys.readouterr()
-    assert out == "Invalid input. Expected no arguments.\n"
+    assert "Invalid input. Expected no arguments.\n" in out
 
     sparrow_cmd.watcher = None
 
     capsys.readouterr()
     sparrow_cmd.do_status("")
     out, _ = capsys.readouterr()
-    assert out == "No watcher present, cannot check status\n"
+    assert "No watcher present, cannot check status\n" in out
