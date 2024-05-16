@@ -6,6 +6,7 @@ from datetime import datetime
 from iSparrow.utils import wait_for_file_completion
 from iSparrow import SparrowWatcher
 from copy import deepcopy
+import csv
 
 
 class WatchFixture:
@@ -75,12 +76,14 @@ class WatchFixture:
         # don't change the model config itself
         model_cfg2 = deepcopy(self.model_cfg)
 
-        model_cfg2["name"] = "birdnet_default"
-
         self.config_should = {
             "Analysis": {
                 "input": str(self.data),
                 "output": str(self.output / self.path_add),
+                "check_time": 1,
+                "delete_recordings": "never",
+                "pattern": ".wav",
+                "model_name": "birdnet_default",
                 "model_dir": str(self.models),
                 "Preprocessor": deepcopy(self.preprocessor_cfg),
                 "Model": model_cfg2,
@@ -97,7 +100,7 @@ class WatchFixture:
         for i in range(0, number, 1):
 
             time.sleep(sleep_for)  # add a dummy time to emulate recording time
-
+            print("recording", i)
             shutil.copy(
                 Path(home) / Path("example/soundscape.wav"),
                 Path(data) / Path(f"example_{i}.wav"),
@@ -133,3 +136,30 @@ class WatchFixture:
                 break
             else:
                 todo_else()
+
+    def delete_in_output(self, watcher, files: list):
+        for f in files:
+            if (watcher.output / f).exists():
+                (watcher.output / f).unlink()
+                
+    def read_csv(self, filepath):
+        rows = []
+
+        with open(filepath, "r") as file:
+            reader = csv.reader(file)
+            rows = [row for row in reader]
+
+        return rows
+
+    def read_missings(self, path):
+        missing_files = []
+        with open(path / "missings.txt", "r") as file:
+            # Read all lines from the file and strip any leading/trailing whitespace
+            missing_files = [line.strip() for line in file.readlines()]
+        return missing_files
+
+
+@pytest.fixture()
+def watch_fx():
+    w = WatchFixture()
+    return w
