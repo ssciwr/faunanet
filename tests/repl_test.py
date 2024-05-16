@@ -1,46 +1,12 @@
 import pytest
 from pathlib import Path
-from copy import deepcopy
 from importlib.resources import files
 import shutil
 import iSparrow
 import iSparrow.repl as repl
 import time
-import yaml
 
 CFG_PATH = "--cfg=./tests/test_configs/watcher_custom.yml"
-
-
-def read_yaml_with_replacement(path, dir):
-
-    with open(Path(path)) as file:
-        cfg = yaml.safe_load(file)
-
-    def update_recursive(d):
-        for k, v in d.items():
-            if isinstance(v, dict):
-                update_recursive(v)
-            else:
-                if isinstance(v, str):
-                    d[k] = v.replace("~", str(dir))
-
-    update_recursive(cfg)
-
-    if "Data" in cfg.keys():
-        cfg["Data"]["input"] = str(Path(dir, "iSparrow_tests_data"))
-        cfg["Data"]["output"] = str(Path(dir, "iSparrow_tests_output"))
-
-    return cfg
-
-
-@pytest.fixture()
-def patch_functions(mocker, tmpdir):
-    mocker.patch("iSparrow.repl.user_cache_dir", new=lambda: Path(tmpdir) / "cache")
-    mocker.patch("iSparrow.repl.user_config_dir", new=lambda: Path(tmpdir) / "config")
-    mocker.patch(
-        "iSparrow.repl.read_yaml", new=lambda f: read_yaml_with_replacement(f, tmpdir)
-    )
-    yield tmpdir
 
 
 @pytest.fixture()
@@ -299,7 +265,8 @@ def test_do_stop_exceptions(make_mock_install, capsys, mocker):
 
     out, _ = capsys.readouterr()
     assert (
-        "Could not stop watcher: RuntimeError caused by None. Watcher process will be killed now and all resources released. This may have left data in a corrupt state. A new watcher must be started if this session is to be continued.\n" in out
+        "Could not stop watcher: RuntimeError caused by None. Watcher process will be killed now and all resources released. This may have left data in a corrupt state. A new watcher must be started if this session is to be continued.\n"
+        in out
     )
 
     if sparrow_cmd.watcher is not None and sparrow_cmd.watcher.is_running is True:

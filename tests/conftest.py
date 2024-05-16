@@ -21,6 +21,48 @@ multiprocessing.set_start_method("spawn", True)
 os.environ["SPARROW_TEST_MODE"] = "True"
 
 
+def read_yaml_with_replacement(path, dir):
+
+    with open(Path(path)) as file:
+        cfg = yaml.safe_load(file)
+
+    def update_recursive(d):
+        for k, v in d.items():
+            if isinstance(v, dict):
+                update_recursive(v)
+            else:
+                if isinstance(v, str):
+                    d[k] = v.replace("~", str(dir))
+
+    update_recursive(cfg)
+
+    if "Data" in cfg.keys():
+        cfg["Data"]["input"] = str(Path(dir, "iSparrow_tests_data"))
+        cfg["Data"]["output"] = str(Path(dir, "iSparrow_tests_output"))
+
+    return cfg
+
+
+@pytest.fixture()
+def patch_functions(mocker, tmpdir):
+    mocker.patch("iSparrow.repl.user_cache_dir", new=lambda: Path(tmpdir) / "cache")
+    mocker.patch("iSparrow.repl.user_config_dir", new=lambda: Path(tmpdir) / "config")
+    mocker.patch(
+        "iSparrow.repl.read_yaml", new=lambda f: read_yaml_with_replacement(f, tmpdir)
+    )
+    mocker.patch(
+        "iSparrow.sparrow_setup.user_cache_dir", new=lambda: Path(tmpdir) / "cache"
+    )
+    mocker.patch(
+        "iSparrow.sparrow_setup.user_config_dir", new=lambda: Path(tmpdir) / "config"
+    )
+    mocker.patch(
+        "iSparrow.sparrow_setup.utils.read_yaml",
+        new=lambda f: read_yaml_with_replacement(f, tmpdir),
+    )
+    yield tmpdir
+
+
 # set up the test directories and download the example files
 @pytest.fixture(scope="session")
 def make_sparrow_home():

@@ -233,7 +233,8 @@ class SparrowCmd(cmd.Cmd):
             except Exception as e:
 
                 print(
-                    f"An error occured while trying to build the watcher: {e} caused by {e.__cause__}"
+                    f"An error occured while trying to build the watcher: {e} caused by {e.__cause__}",
+                    flush=True,
                 )
                 return
 
@@ -242,21 +243,25 @@ class SparrowCmd(cmd.Cmd):
             except Exception as e:
                 print(
                     f"Something went wrong while trying to start the watcher: {e} caused by  {e.__cause__}. A new start attempt can be made when the error has been addressed.",
+                    flush=True,
                 )
 
         elif self.watcher.is_running:
             print(
-                "The watcher is running. Cannot be started again with different parameters. Try 'change_analyzer' to use different parameters."
+                "The watcher is running. Cannot be started again with different parameters. Try 'change_analyzer' to use different parameters.",
+                flush=True,
             )
         else:
             print(
-                "It appears that there is a watcher process that is not running. Trying to start with current parameters. Use  the 'change_analyzer' command to change the parameters."
+                "It appears that there is a watcher process that is not running. Trying to start with current parameters. Use  the 'change_analyzer' command to change the parameters.",
+                flush=True,
             )
             try:
                 self.watcher.start()
             except RuntimeError as e:
                 print(
-                    f"Something went wrong while trying to start the watcher process: {e} caused by  {e.__cause__}. A new start attempt can be made when the error has been addressed."
+                    f"Something went wrong while trying to start the watcher process: {e} caused by  {e.__cause__}. A new start attempt can be made when the error has been addressed.",
+                    flush=True,
                 )
         self.wait_for_watcher_event(
             lambda s: s.watcher.is_running, limit=20, waiting_time=3

@@ -2,29 +2,49 @@ import pytest
 from pathlib import Path
 import iSparrow.repl as repl
 from iSparrow.utils import read_yaml
+from iSparrow.sparrow_setup import utils, user_cache_dir, user_config_dir
+import shutil
 
 
-def test_do_set_up(clean_up_test_installation):
+@pytest.fixture()
+def clean_up_test_installation():
+    cfg = utils.read_yaml(Path(__file__).parent / "test_install_config" / "install.yml")
+    for _, path in cfg["Directories"].items():
+        if Path(path).expanduser().exists():
+            shutil.rmtree(Path(path).expanduser(), ignore_errors=True)
+
+    if (Path(user_config_dir()) / "iSparrow_tests").exists():
+        shutil.rmtree(Path(user_config_dir()) / "iSparrow_tests", ignore_errors=True)
+
+    if (Path(user_cache_dir()) / "iSparrow_tests").exists():
+        shutil.rmtree(Path(user_cache_dir()) / "iSparrow_tests", ignore_errors=True)
+
+
+def test_do_set_up(clean_up_test_installation, patch_functions):
+    tmpdir = patch_functions
+
     filepath = Path(__file__).parent / "test_install_config" / "install.yml"
     cfg = read_yaml(filepath)["Directories"]
 
     sparrow_cmd = repl.SparrowCmd()
-    sparrow_cmd.do_set_up(
-        f"--cfg={Path(__file__).parent}/test_install_config/install.yml"
-    )
+    sparrow_cmd.do_set_up("--cfg=" + str(filepath))
 
     tflite_file = "model.tflite"
 
-    assert Path(cfg["home"]).expanduser().exists() is True
-    assert Path(cfg["models"]).expanduser().exists() is True
-    assert Path(cfg["output"]).expanduser().exists() is True
+    assert Path(cfg["home"].replace("~", str(tmpdir))).exists() is True
+    assert Path(cfg["models"].replace("~", str(tmpdir))).exists() is True
+    assert Path(cfg["output"].replace("~", str(tmpdir))).exists() is True
 
     assert (
-        Path(cfg["models"]).expanduser() / "birdnet_default" / tflite_file
+        Path(cfg["models"].replace("~", str(tmpdir))) / "birdnet_default" / tflite_file
     ).is_file()
-    assert (Path(cfg["models"]).expanduser() / "birdnet_custom" / tflite_file).is_file()
     assert (
-        Path(cfg["models"]).expanduser() / "google_perch" / "saved_model.pb"
+        Path(cfg["models"].replace("~", str(tmpdir))) / "birdnet_custom" / tflite_file
+    ).is_file()
+    assert (
+        Path(cfg["models"].replace("~", str(tmpdir)))
+        / "google_perch"
+        / "saved_model.pb"
     ).is_file()
 
 
@@ -42,7 +62,7 @@ def test_do_set_up(clean_up_test_installation):
         ("", "No config file provided, falling back to default"),
     ],
 )
-def test_do_set_up_failure(input, expected, mocker, capsys):
+def test_do_set_up_failure(input, expected, mocker, capsys, patch_functions):
     capsys.readouterr()
 
     sparrow_cmd = repl.SparrowCmd()
