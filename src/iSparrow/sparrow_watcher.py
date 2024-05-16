@@ -13,6 +13,7 @@ import multiprocessing
 import warnings
 import csv
 import sys
+from contextlib import contextmanager
 
 
 class AnalysisEventHandler(FileSystemEventHandler):
@@ -42,7 +43,13 @@ class AnalysisEventHandler(FileSystemEventHandler):
             watcher: (SparrowWatcher): Watcher this Handler is used with
         """
         self.pattern = watcher.pattern
-        self.recording = watcher.set_up_recording()
+        self.recording = watcher._set_up_recording(
+            watcher.model_name,
+            watcher.recording_config,
+            watcher.species_predictor_config,
+            watcher.model_config,
+            watcher.preprocessor_config,
+        )
         self.callback = watcher.analyze
 
     def on_created(self, event):
@@ -134,6 +141,10 @@ class SparrowWatcher:
             "Analysis": {
                 "input": str(self.input),
                 "output": str(self.output),
+                "delete_recordings": self.delete_recordings,
+                "pattern": self.pattern,
+                "model_name": self.model_name,
+                "check_time": self.check_time,
                 "model_dir": str(self.model_dir),
                 "Preprocessor": deepcopy(self.preprocessor_config),
                 "Model": deepcopy(self.model_config),
@@ -142,19 +153,29 @@ class SparrowWatcher:
             }
         }
 
-        config["Analysis"]["Model"]["name"] = self.model_name
-
         try:
             with open(self.output / "config.yml", "w") as ymlfile:
                 yaml.safe_dump(config, ymlfile)
         except Exception as e:
             raise RuntimeError("Error during config writing ", e) from e
 
-    def set_up_recording(
+    def _set_up_recording(
         self,
+        model_name: str,
+        recording_config: dict,
+        species_predictor_config: dict,
+        model_config: dict,
+        preprocessor_config: dict,
     ) -> SparrowRecording:
         """
-        set_up_recording Set up the recording object used for analyzing audio files.
+        _set_up_recording Build a new recording from configs
+
+        Args:
+            model_name (str): name of the model to use
+            recording_config (dict): recording config
+            species_predictor_config (dict): species_predictor config
+            model_config (dict): model config data
+            preprocessor_config (dict): preprocessor config data
 
         Raises:
             ValueError: In case the species presence predictor is used. When the an error occurs during the creation of the species predictor model.
@@ -162,31 +183,31 @@ class SparrowWatcher:
         Returns:
             SparrowRecording: New instance of SpeciesRecording created with config dictionaries held by the caller.
         """
+        recording_config = deepcopy(recording_config)
+
         preprocessor = utils.load_name_from_module(
             "pp",
-            self.model_dir / Path(self.model_name) / "preprocessor.py",
+            self.model_dir / Path(model_name) / "preprocessor.py",
             "Preprocessor",
-        )(**self.preprocessor_config)
+        )(**preprocessor_config)
 
         model = utils.load_name_from_module(
-            "mo", self.model_dir / Path(self.model_name) / "model.py", "Model"
-        )(model_path=self.model_dir / self.model_name, **self.model_config)
+            "mo", self.model_dir / Path(model_name) / "model.py", "Model"
+        )(model_path=self.model_dir / model_name, **model_config)
 
         # process species range predictor
-        if all(
-            name in self.recording_config for name in ["date", "lat", "lon"]
-        ) and all(
-            self.recording_config[name] is not None for name in ["date", "lat", "lon"]
+        if all(name in recording_config for name in ["date", "lat", "lon"]) and all(
+            recording_config[name] is not None for name in ["date", "lat", "lon"]
         ):
-
+    
             try:
                 # we can use the species predictor
                 species_predictor = SpeciesPredictorBase(
-                    model_path=self.model_dir / self.model_name,
-                    **self.species_predictor_config,
+                    model_path=self.model_dir / model_name,
+                    **species_predictor_config,
                 )
 
-                self.recording_config["species_predictor"] = species_predictor
+                recording_config["species_predictor"] = species_predictor
 
             except Exception as e:
                 raise ValueError(
@@ -205,7 +226,57 @@ class SparrowWatcher:
                 pass
         # create recording object
         # species predictor is applied here once and then used for all the analysis calls that may follow
-        return SparrowRecording(preprocessor, model, "", **self.recording_config)
+        return SparrowRecording(preprocessor, model, "", **recording_config)
+
+    def _restore_old_state(self, old_state: dict):
+        """
+        _restore_old_state Restore state of the watcher instance to the state it had before a change was made.
+
+        Args:
+            old_state (dict):  Dictionary containing the old state of the calling object
+        """
+        self.model_name = old_state["model_name"]
+        self.preprocessor_config = old_state["preprocessor_config"]
+        self.model_config = old_state["model_config"]
+        self.recording_config = old_state["recording_config"]
+        self.species_predictor_config = old_state["species_predictor_config"]
+        self.pattern = old_state["pattern"]
+        self.check_time = old_state["check_time"]
+        self.delete_recordings = old_state["delete_recordings"]
+
+    @contextmanager
+    def _backup_and_restore_state(self) -> dict:
+        """
+        _backup_and_restore_state Helper context manager that creates a backup of the current object state and restores it in case of an error.
+
+        Raises:
+            RuntimeError When an error occurs during the restart of the watcher process.
+
+        Yields:
+            dict: Dictionary containing the old state of the calling object
+        """
+        old_state = {
+            "model_name": deepcopy(self.model_name),
+            "preprocessor_config": deepcopy(self.preprocessor_config),
+            "model_config": deepcopy(self.model_config),
+            "recording_config": deepcopy(self.recording_config),
+            "species_predictor_config": deepcopy(self.species_predictor_config),
+            "pattern": deepcopy(self.pattern),
+            "check_time": self.check_time,
+            "delete_recordings": self.delete_recordings,
+        }
+
+        try:
+            yield old_state
+        except Exception as e:
+            self._restore_old_state(old_state)
+
+            if self.is_running:
+                self.stop()
+
+            raise RuntimeError(
+                "Error when while trying to change the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss."
+            ) from e
 
     def __init__(
         self,
@@ -235,7 +306,8 @@ class SparrowWatcher:
             model_config (dict, optional): Keyword arguments for the model instance. Defaults to {}.
             recording_config (dict, optional): Keyword arguments for the internal SparrowRecording. Defaults to {}.
             species_predictor_config (dict, optional): Keyword arguments for a species presence predictor model. Defaults to {}.
-            check_time(int, optional): Sleep time of the thread between checks for new files in seconds. Defaults to 1.
+            pattern (str, optional): filename pattern to look for. defaults to '.wav'.
+            check_time(int, optional): Sleep time of the watcher between checks for new files in seconds. Defaults to 1.
             delete_recordings(str, optional): Mode for data clean up. Can be one of "never" or "always".
                                             "never" keeps recordings around indefinitely. 'always' deletes the recording
                                             immediatelly after analysis. Defaults to 'never'.
@@ -245,6 +317,17 @@ class SparrowWatcher:
             ValueError: When the model_dir parameter is not an existing directory.
             ValueError: When the model name does not correspond to a directory in the 'model_dir' directory in which available models are stored.
         """
+        if preprocessor_config is None:
+            preprocessor_config = {}
+
+        if model_config is None:
+            model_config = {}
+
+        if recording_config is None:
+            recording_config = {}
+
+        if species_predictor_config is None:
+            species_predictor_config = {}
 
         # set up data to use
         self.input = Path(indir)
@@ -252,12 +335,13 @@ class SparrowWatcher:
         if self.input.is_dir() is False:
             raise ValueError("Input directory does not exist")
 
-        self.outdir = outdir
+        self.outdir = Path(outdir)
 
         if self.outdir.is_dir() is False:
             raise ValueError("Output directory does not exist")
 
-        self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
+        self.output = None
+        self.old_output = None
 
         self.model_dir = Path(model_dir)
 
@@ -284,17 +368,9 @@ class SparrowWatcher:
 
         self.delete_recordings = delete_recordings
 
-        if preprocessor_config is None:
-            preprocessor_config = {}
+        self.first_analyzed = multiprocessing.Value("i", 0)
 
-        if model_config is None:
-            model_config = {}
-
-        if recording_config is None:
-            recording_config = {}
-
-        if species_predictor_config is None:
-            species_predictor_config = {}
+        self.last_analyzed = multiprocessing.Value("i", 0)
 
         self.preprocessor_config = deepcopy(preprocessor_config)
 
@@ -303,6 +379,9 @@ class SparrowWatcher:
         self.recording_config = deepcopy(recording_config)
 
         self.species_predictor_config = deepcopy(species_predictor_config)
+
+        self.batchfile_name = "batch_info.yml"
+
 
     @property
     def output_directory(self):
@@ -344,26 +423,32 @@ class SparrowWatcher:
         # corrupt files are produced
         self.is_done_analyzing.clear()
 
+        self.last_analyzed.value = int(Path(filename).stat().st_ctime)
+
+        if self.first_analyzed.value == 0:
+            self.first_analyzed.value = self.last_analyzed.value
+
         recording.analyze()
 
         results = recording.detections
 
-        self.save_results(results, suffix=Path(filename).stem)
+        self.save_results(self.output, results, suffix=Path(filename).stem)
 
         self.is_done_analyzing.set()  # give good-to-go for main process
 
         if self.delete_recordings == "always":
             Path(filename).unlink()
 
-    def save_results(self, results: list, suffix=""):
+    def save_results(self, outfolder: str, results: list, suffix=""):
         """
         save_results Save results to csv file.
 
         Args:
+            outfolder (str): folder to save the results in
             suffix (str, optional): _description_. Defaults to "".
         """
 
-        with open(self.output / Path(f"results_{suffix}.csv"), "w") as csvfile:
+        with open(Path(outfolder) / Path(f"results_{suffix}.csv"), "w") as csvfile:
             if len(results) == 0:
                 writer = csv.writer(csvfile)
                 writer.writerow([])
@@ -384,22 +469,26 @@ class SparrowWatcher:
         if self.is_running:
             raise RuntimeError("watcher process still running, stop first.")
 
+        self.old_output = self.output
+        self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
         self.output.mkdir(exist_ok=True, parents=True)
+        self.first_analyzed.value = 0
+        self.last_analyzed.value = 0
 
         self._write_config()
 
         try:
             print("start the watcher process")
             # create a background watchertask such that the command is handed back to the parent process
-
-            self.may_do_work.set()
-            self.is_done_analyzing.clear()
             self.watcher_process = multiprocessing.Process(
                 target=watchertask, args=(self,)
             )
             self.watcher_process.daemon = True
             self.watcher_process.name = "watcher_process"
             self.watcher_process.start()
+            self.may_do_work.set()
+            self.is_done_analyzing.clear()
+
         except Exception as e:
 
             if self.output.is_dir():
@@ -475,6 +564,14 @@ class SparrowWatcher:
                     "Something went wrong when trying to stop the watcher process"
                 ) from e
 
+            with open(self.output / self.batchfile_name, "w") as batch_info:
+                yaml.safe_dump(
+                    {
+                        "first": self.first_analyzed.value,
+                        "last": self.last_analyzed.value,
+                    },
+                    batch_info,
+                )
         else:
             raise RuntimeError("Cannot stop watcher process, is not alive anymore.")
 
@@ -492,7 +589,10 @@ class SparrowWatcher:
         """
         change_analyzer Change classifier model to the one indicated by name.
         The given model name must correspond to the name of a folder in the
-        iSparrow models directory created upon install.
+        iSparrow models directory created upon install. A clean-up method is
+        run after model change to compensate any loss of analysis data that
+        may occur during the restart of the watcher process with a different
+        model.
 
         Args:
             model_name (str): Name of the model to be used
@@ -501,6 +601,11 @@ class SparrowWatcher:
             recording_config (dict, optional): Parameters for the underlyin SparrowRecording object. If empty, default parameters of the recording will be used. Defaults to {}.
             species_predictor_config (dict, optional): _description_. If empty, default parameters of the species predictor will be used. Defaults to {}.
             Make sure the model you use is compatible with a species predictor before supplying these.
+            pattern (str, optional): filename pattern to look for. defaults to '.wav'.
+            check_time(int, optional): Sleep time of the watcher between checks for new files in seconds. Defaults to 1.
+            delete_recordings(str, optional): Mode for data clean up. Can be one of "never" or "always".
+                                            "never" keeps recordings around indefinitely. 'always' deletes the recording
+                                            immediatelly after analysis. Defaults to 'never'.
 
         Raises:
             ValueError: _description_
@@ -510,7 +615,6 @@ class SparrowWatcher:
         if self.watcher_process is None or self.is_running is False:
             raise RuntimeError("Watcher not running, cannot change analyzer")
 
-        print("changing analyzer to: ", model_name)
         # import and build new model, pause the analyzer process,
         # change the model, resume the analyzer
         if preprocessor_config is None:
@@ -528,47 +632,149 @@ class SparrowWatcher:
         if (self.model_dir / model_name).is_dir() is False:
             raise ValueError("Given model name does not exist in model dir.")
 
-        old_model_name = self.model_name
-        old_preprocessor_config = deepcopy(self.preprocessor_config)
-        old_model_config = deepcopy(self.model_config)
-        old_recording_config = deepcopy(self.recording_config)
-        old_species_predictor_config = deepcopy(self.species_predictor_config)
-        old_pattern = deepcopy(self.pattern)
-        old_check_time = self.check_time
-        old_delete = self.delete_recordings
+        with self._backup_and_restore_state() as old_state:
+            self.model_name = model_name
+            self.preprocessor_config = preprocessor_config
+            self.model_config = model_config
+            self.recording_config = recording_config
+            self.species_predictor_config = species_predictor_config
+            self.pattern = pattern
+            self.check_time = check_time
+            self.delete_recordings = delete_recordings
 
-        self.model_name = model_name
-        self.output = Path(self.outdir) / Path(datetime.now().strftime("%y%m%d_%H%M%S"))
-        self.preprocessor_config = preprocessor_config
-        self.model_config = model_config
-        self.recording_config = recording_config
-        self.species_predictor_config = species_predictor_config
-        self.pattern = pattern
-        self.check_time = check_time
-        self.delete_recordings = delete_recordings
-
-        # restart process to make changes take effect
-        try:
             self.restart()
-        except Exception as e:
-            # restore state when something goes wrong
-            self.model_name = old_model_name
-            self.preprocessor_config = old_preprocessor_config
-            self.model_config = old_model_config
-            self.recording_config = old_recording_config
-            self.species_predictor_config = old_species_predictor_config
-            self.pattern = old_pattern
-            self.check_time = old_check_time
-            self.delete_recordings = old_delete
 
-            self.may_do_work.clear()
-            self.is_done_analyzing.set()
-            self.output = Path(self.outdir) / Path(
-                datetime.now().strftime("%y%m%d_%H%M%S")
-            )
-            if self.is_running:
-                self.stop()
+            try:
+                while self.last_analyzed.value <= self.first_analyzed.value:
+                    sleep(5)
+                self.clean_up()
 
+            except Exception as e:
+                status = (
+                    "still running"
+                    if self.is_running
+                    else "not running, any changes have been undone."
+                )
+
+                cause = e.__cause__ if e.__cause__ is not None else e
+
+                if self.is_running is False:
+                    self.restore_old_state(old_state)
+                    self.may_do_work.clear()
+                    self.is_done_analyzing.set()
+                    self.output = Path(self.outdir) / Path(
+                        datetime.now().strftime("%y%m%d_%H%M%S")
+                    )
+                raise RuntimeError(
+                    f"Error when cleaning up data after analyzer change, watcher is {status}. The cause was {cause}. This error may have lead to corrupt data in newly created analysis files."
+                ) from e
+
+    def _get_clean_up_limits(self, older_output: str, newer_output: str) -> tuple:
+        """
+        _get_clean_up_limits Determine the lower and upper time limit for the clean up of the older output directory.
+
+        Args:
+            older_output (str): Older output folder that is actually cleaned up.
+            newer_output (str): Newer output folder that is used to determine the upper time limit for the clean up.
+
+        Raises:
+            RuntimeError: When the newer output directory is not the currently worked on, but also has no batch info file.
+
+        Returns:
+            tuple: (lower time limit, upper time limit) pair of timestamps to use for the clean up.
+        """
+        with open(older_output / self.batchfile_name, "r") as batch_info:
+            lower_limit = yaml.safe_load(batch_info)["last"]
+
+        if newer_output is None:
+            upper_limit = int(datetime.now().timestamp())
+
+        elif Path(newer_output / self.batchfile_name).is_file():
+            with open(newer_output / self.batchfile_name, "r") as batch_info:
+                upper_limit = yaml.safe_load(batch_info)["first"]
+
+        elif newer_output != self.output:
             raise RuntimeError(
-                "Error when restarting the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss."
-            ) from e
+                f"{newer_output} is not the current output directory {self.output} but has no batchinfo.yml file."
+            )
+
+        else:
+            upper_limit = self.first_analyzed.value
+        return lower_limit, upper_limit
+
+    def _clean_up_between(self, older_output: str, newer_output: str):
+        """
+        _clean_up_between Run clean up on the older output directory between the last analyzed file and the first analyzed file in the newer output directory.
+                          This function assumes that older_output and newer_output are consecutive output directories of the watcher process. Passing it
+                          non-consecutive directories is undefined and may lead to unexpected results.
+                          If newer_output is None, the current time is used as upper limit and all files in the older output directory are analyzed that have
+                          not been analyzed by the current process.
+
+        Args:
+            older_output (str): Older output directory. This is done one that gets cleaned up.
+            newer_output (str): Newer output directory. This is used to determine the upper limit time for the clean up.
+        """
+        if older_output == self.output and self.is_running:
+            warnings.warn(
+                "Cannot clean up current output directory while watcher is running"
+            )
+            return
+
+        with open(older_output / "config.yml", "r") as ymlfile:
+            cfg = yaml.safe_load(ymlfile)
+
+        lower_limit, upper_limit = self._get_clean_up_limits(older_output, newer_output)
+
+        input_folder = Path(cfg["Analysis"]["input"])
+        outputfolder = cfg["Analysis"]["output"]
+
+        audiofiles = [
+            f
+            for f in input_folder.iterdir()
+            if f.suffix == cfg["Analysis"]["pattern"]
+            and not Path(outputfolder, f"results_{f.stem}.csv").is_file()
+            and lower_limit < f.stat().st_ctime < upper_limit
+        ]
+
+        if len(audiofiles) > 0:
+            recording = self._set_up_recording(
+                cfg["Analysis"]["model_name"],
+                cfg["Analysis"]["Recording"],
+                cfg["Analysis"]["SpeciesPredictor"],
+                cfg["Analysis"]["Model"],
+                cfg["Analysis"]["Preprocessor"],
+            )
+
+            for audiofile in audiofiles:
+                recording.path = audiofile
+                recording.analyzed = False
+                recording.analyze()
+                results = recording.detections
+                self.save_results(outputfolder, results, suffix=str(audiofile.stem))
+
+                if cfg["Analysis"]["delete_recordings"] == "always":
+                    audiofile.unlink()
+
+            with open(older_output / "missings.txt", "w") as missing:
+                for audiofile in audiofiles:
+                    missing.write(f"{audiofile}\n")
+
+    def clean_up(self):
+        """
+        clean_up Run cleanup on the all the output directories of the watcher process that reside in the current output base directory.
+
+        """
+        folders = sorted(
+            filter(lambda f: f.is_file() is False, list(self.outdir.iterdir())),
+            key=lambda x: x.stat().st_ctime,
+        )
+
+        folders.append(None)  # add dummy to include the last folder
+
+        if folders == [
+            None,
+        ]:
+            raise RuntimeError("No output folders found to clean up")
+        else:
+            for i in range(1, len(folders)):
+                self._clean_up_between(folders[i - 1], folders[i])
