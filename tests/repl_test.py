@@ -771,3 +771,41 @@ def test_do_status(make_mock_install, capsys):
     sparrow_cmd.do_status("")
     out, _ = capsys.readouterr()
     assert "No watcher present, cannot check status\n" in out
+
+
+def test_do_cleanup_no_arguments(mocker, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.do_cleanup("")
+    captured = capsys.readouterr()
+    assert "Cannot run cleanup, no watcher present" in captured.out
+
+
+def test_do_cleanup_with_arguments(mocker, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.do_cleanup("some arguments")
+    captured = capsys.readouterr()
+    assert "Invalid input. Expected no arguments." in captured.out
+
+
+def test_do_cleanup_watcher_sleeping(mocker, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.watcher = mocker.Mock()
+    mocker.patch.object(sparrow_cmd.watcher, "is_sleeping", return_value=True)
+    mocker.patch.object(sparrow_cmd.watcher, "is_running", return_value=False)
+    sparrow_cmd.do_cleanup("")
+    sparrow_cmd.watcher.cleanup.assert_called_once()
+
+
+def test_do_cleanup_watcher_failure(mocker, capsys, make_mock_install):
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.do_start("")
+
+    wait_for_watcher_status(sparrow_cmd)
+    mocker.patch.object(sparrow_cmd.watcher, "clean_up", return_value=False)
+
+    capsys.readouterr()
+    sparrow_cmd.do_cleanup("")
+    captured = capsys.readouterr()
+    assert "Error while running cleanup: " in captured.out
+
+    sparrow_cmd.watcher.stop()
