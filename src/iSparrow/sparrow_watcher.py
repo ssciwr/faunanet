@@ -638,8 +638,13 @@ class SparrowWatcher:
             self.restart()
 
             try:
+                i = 0
                 while self.last_analyzed.value <= self.first_analyzed.value:
-                    sleep(5)
+                    sleep(3)
+                    if i > 10:
+                        break
+                    i += 1
+                warnings.warn("No data was incoming in 30s, trying to clean up data anyway.")
                 self.clean_up()
 
             except Exception as e:
@@ -757,6 +762,8 @@ class SparrowWatcher:
         clean_up Run cleanup on the all the output directories of the watcher process that reside in the current output base directory.
 
         """
+
+        print("clean up the output directories")
         folders = sorted(
             filter(lambda f: f.is_file() is False, list(self.outdir.iterdir())),
             key=lambda x: x.stat().st_ctime,

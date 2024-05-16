@@ -328,9 +328,9 @@ class SparrowCmd(cmd.Cmd):
             do_is_none=lambda _: print(
                 "Cannot run cleanup, no watcher present", flush=True
             ),
-            do_is_sleeping=lambda self: self.watcher.cleanup(),
-            do_is_running=lambda self: self.watcher.cleanup(),
-            do_else=lambda self: self.watcher.cleanup(),
+            do_is_sleeping=lambda self: self.watcher.clean_up(),
+            do_is_running=lambda self: self.watcher.clean_up(),
+            do_else=lambda self: self.watcher.clean_up(),
             do_failure=lambda s, e: print(
                 "Error while running cleanup: ", e, flush=True
             ),
@@ -525,31 +525,6 @@ class SparrowCmd(cmd.Cmd):
 
         self.wait_for_watcher_event(
             lambda s: s.watcher.is_running, limit=20, waiting_time=3
-        )
-
-        print("\n")
-
-    def do_cleanup(self, line: str):
-        """
-        do_cleanup Assure consistency of data by running the cleanup method of the watcher.
-
-        Args:
-            line (str): Empty string. No arguments are expected.
-        """
-        if len(line) > 0:
-            print("Invalid input. Expected no arguments.", flush=True)
-            return
-
-        self.dispatch_on_watcher(
-            do_is_none=lambda _: print(
-                "Cannot cleanup data, no watcher present", flush=True
-            ),
-            do_is_sleeping=lambda s: s.watcher.cleanup(),
-            do_is_running=lambda s: s.watcher.cleanup(),
-            do_else=lambda s: s.watcher.cleanup(),
-            do_failure=lambda _, e: print(
-                f"Could not restart watcher: {e} caused by {e.__cause__}", flush=True
-            ),
         )
 
         print("\n")
