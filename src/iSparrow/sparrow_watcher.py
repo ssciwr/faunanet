@@ -12,7 +12,6 @@ import yaml
 import multiprocessing
 import warnings
 import csv
-import sys
 from contextlib import contextmanager
 
 
@@ -80,34 +79,28 @@ def watchertask(watcher):
     Raises:
         RuntimeError: When something goes wrong inside the analyzer process.
     """
-    sys.stdout = open(watcher.output / "stdout.txt", "w")
-    sys.stderr = open(watcher.output / "stderr.txt", "w")
+
+    # build the recorder
+    observer = Observer()
+
+    event_handler = AnalysisEventHandler(
+        watcher,
+    )
+    observer.schedule(event_handler, watcher.input, recursive=True)
+    observer.start()
 
     try:
-        # build the recorder
-        observer = Observer()
+        while True:
+            sleep(watcher.check_time)
+    except KeyboardInterrupt:
+        observer.stop()
+    except Exception as e:
+        observer.stop()
+        raise RuntimeError(
+            "Something went wrong in the watcher/analysis process"
+        ) from e
 
-        event_handler = AnalysisEventHandler(
-            watcher,
-        )
-        observer.schedule(event_handler, watcher.input, recursive=True)
-        observer.start()
-
-        try:
-            while True:
-                sleep(watcher.check_time)
-        except KeyboardInterrupt:
-            observer.stop()
-        except Exception as e:
-            observer.stop()
-            raise RuntimeError(
-                "Something went wrong in the watcher/analysis process"
-            ) from e
-
-        observer.join()
-    finally:
-        sys.stdout.close()
-        sys.stderr.close()
+    observer.join()
 
 
 class SparrowWatcher:
@@ -199,7 +192,7 @@ class SparrowWatcher:
         if all(name in recording_config for name in ["date", "lat", "lon"]) and all(
             recording_config[name] is not None for name in ["date", "lat", "lon"]
         ):
-    
+
             try:
                 # we can use the species predictor
                 species_predictor = SpeciesPredictorBase(
@@ -381,7 +374,6 @@ class SparrowWatcher:
         self.species_predictor_config = deepcopy(species_predictor_config)
 
         self.batchfile_name = "batch_info.yml"
-
 
     @property
     def output_directory(self):
