@@ -46,6 +46,8 @@ def make_folders(temp_dir):
 
 @pytest.fixture()
 def clean_up_test_installation():
+    yield
+
     cfg = sps.utils.read_yaml(
         Path(__file__).parent / "test_install_config" / "install.yml"
     )

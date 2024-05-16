@@ -8,6 +8,8 @@ import shutil
 
 @pytest.fixture()
 def clean_up_test_installation():
+    yield 
+
     cfg = utils.read_yaml(Path(__file__).parent / "test_install_config" / "install.yml")
     for _, path in cfg["Directories"].items():
         if Path(path).expanduser().exists():
@@ -29,7 +31,7 @@ def test_do_set_up(clean_up_test_installation, patch_functions):
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_set_up("--cfg=" + str(filepath))
 
-    tflite_file = "model.tflite"
+    tflite_file = "model.tflite"2
 
     assert Path(cfg["home"].replace("~", str(tmpdir))).exists() is True
     assert Path(cfg["models"].replace("~", str(tmpdir))).exists() is True
