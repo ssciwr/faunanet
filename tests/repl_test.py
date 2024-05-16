@@ -62,6 +62,85 @@ def wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_running):
             i += 1
 
 
+def test_dispatch_on_watcher(mocker, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.watcher = None
+
+    capsys.readouterr()
+
+    sparrow_cmd.dispatch_on_watcher(
+        do_is_none=lambda s: print("Watcher is None"),
+        do_is_sleeping=lambda s: print("Watcher is sleeping"),
+        do_is_running=lambda s: print("Watcher is running"),
+        do_else=lambda s: print("Watcher is in an unknown state"),
+        do_failure=lambda s, e: print("Watcher has failed"),
+    )
+
+    out, _ = capsys.readouterr()
+    assert "Watcher is None" in out
+
+    sparrow_cmd.watcher = mocker.patch("iSparrow.repl.SparrowWatcher", autospec=True)
+
+    type(sparrow_cmd.watcher).is_running = mocker.PropertyMock(return_value=True)
+    type(sparrow_cmd.watcher).is_sleeping = mocker.PropertyMock(return_value=False)
+
+    capsys.readouterr()
+    sparrow_cmd.dispatch_on_watcher(
+        do_is_none=lambda s: print("Watcher is None"),
+        do_is_sleeping=lambda s: print("Watcher is sleeping"),
+        do_is_running=lambda s: print("Watcher is running"),
+        do_else=lambda s: print("Watcher is in an unknown state"),
+        do_failure=lambda s, e: print("Watcher has failed"),
+    )
+    out, _ = capsys.readouterr()
+    assert "Watcher is running" in out
+
+    type(sparrow_cmd.watcher).is_sleeping = mocker.PropertyMock(return_value=True)
+    type(sparrow_cmd.watcher).is_running = mocker.PropertyMock(return_value=False)
+
+    capsys.readouterr()
+    sparrow_cmd.dispatch_on_watcher(
+        do_is_none=lambda s: print("Watcher is None"),
+        do_is_sleeping=lambda s: print("Watcher is sleeping"),
+        do_is_running=lambda s: print("Watcher is running"),
+        do_else=lambda s: print("Watcher is in an unknown state"),
+        do_failure=lambda s, e: print("Watcher has failed"),
+    )
+    out, _ = capsys.readouterr()
+
+    assert "Watcher is sleeping" in out
+
+    type(sparrow_cmd.watcher).is_sleeping = mocker.PropertyMock(return_value=False)
+    type(sparrow_cmd.watcher).is_running = mocker.PropertyMock(return_value=False)
+
+    capsys.readouterr()
+    sparrow_cmd.dispatch_on_watcher(
+        do_is_none=lambda s: print("Watcher is None"),
+        do_is_sleeping=lambda s: print("Watcher is sleeping"),
+        do_is_running=lambda s: print("Watcher is running"),
+        do_else=lambda s: print("Watcher is in an unknown state"),
+        do_failure=lambda s, e: print("Watcher has failed"),
+    )
+    out, _ = capsys.readouterr()
+
+    assert "Watcher is in an unknown state" in out
+
+    def raise_exception(s):
+        raise Exception("RuntimeError")
+
+    capsys.readouterr()
+    sparrow_cmd.dispatch_on_watcher(
+        do_is_none=lambda s: print("Watcher is None"),
+        do_is_sleeping=lambda s: print("Watcher is sleeping"),
+        do_is_running=raise_exception,
+        do_else=lambda s: print("Watcher is in an unknown state"),
+        do_failure=lambda s, e: print("Watcher has failed"),
+    )
+    out, _ = capsys.readouterr()
+
+    assert "Watcher is in an unknown state" in out
+
+
 def test_process_line_into_kwargs():
     assert repl.process_line_into_kwargs(
         "--cfg=./tests/test_configs --stuff=other", keywords=["cfg", "stuff"]
