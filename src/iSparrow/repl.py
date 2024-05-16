@@ -92,6 +92,7 @@ class SparrowCmd(cmd.Cmd):
             )
             return inputs, True
         elif len(inputs) == 0:
+            print("No config file provided, falling back to default")
             try:
                 do_no_inputs(self, inputs)
                 return inputs, False
