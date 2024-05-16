@@ -1,10 +1,11 @@
-from iSparrow import SparrowWatcher
-import iSparrow.sparrow_setup as sps
-from iSparrow.utils import read_yaml, update_dict_leafs_recursive
-
 from pathlib import Path
 from platformdirs import user_config_dir, user_cache_dir
 import cmd
+import time
+
+from iSparrow import SparrowWatcher
+import iSparrow.sparrow_setup as sps
+from iSparrow.utils import read_yaml, update_dict_leafs_recursive
 
 
 def process_line_into_kwargs(line: str, keywords: list = None):
@@ -140,6 +141,22 @@ class SparrowCmd(cmd.Cmd):
             except Exception as e:
                 do_failure(self, e)
 
+    def wait_for_watcher_event(
+        self, event: callable, limit: int = 10, waiting_time: int = 5
+    ):
+        i = 0
+        while True:
+            if event(self):
+                break
+            elif i > limit:
+                print(
+                    "Error while performing watcher interaction. Exiting.", flush=True
+                )
+                break
+            else:
+                time.sleep(waiting_time)
+                i += 1
+
     def do_set_up(self, line: str):
         """
         do_set_up Setup iSparrow. This creates a `iSparrow` folder in the user's home directory and copies the default configuration files into os_standard_config_dir/iSparrow. If a custom configuration file is provided, it will be used instead of the default.
@@ -158,6 +175,7 @@ class SparrowCmd(cmd.Cmd):
                 "Could not set up iSparrow", e, "caused by: ", e.__cause__
             ),
         )
+        print("\n")
 
     def do_start(self, line: str):
         """
@@ -215,7 +233,8 @@ class SparrowCmd(cmd.Cmd):
             except Exception as e:
 
                 print(
-                    f"An error occured while trying to build the watcher: {e} caused by {e.__cause__}"
+                    f"An error occured while trying to build the watcher: {e} caused by {e.__cause__}",
+                    flush=True,
                 )
                 return
 
@@ -224,26 +243,37 @@ class SparrowCmd(cmd.Cmd):
             except Exception as e:
                 print(
                     f"Something went wrong while trying to start the watcher: {e} caused by  {e.__cause__}. A new start attempt can be made when the error has been addressed.",
+                    flush=True,
                 )
 
         elif self.watcher.is_running:
             print(
-                "The watcher is running. Cannot be started again with different parameters. Try 'change_analyzer' to use different parameters."
+                "The watcher is running. Cannot be started again with different parameters. Try 'change_analyzer' to use different parameters.",
+                flush=True,
             )
         else:
             print(
-                "It appears that there is a watcher process that is not running. Trying to start with current parameters. Use  the 'change_analyzer' command to change the parameters."
+                "It appears that there is a watcher process that is not running. Trying to start with current parameters. Use  the 'change_analyzer' command to change the parameters.",
+                flush=True,
             )
             try:
                 self.watcher.start()
             except RuntimeError as e:
                 print(
-                    f"Something went wrong while trying to start the watcher process: {e} caused by  {e.__cause__}. A new start attempt can be made when the error has been addressed."
+                    f"Something went wrong while trying to start the watcher process: {e} caused by  {e.__cause__}. A new start attempt can be made when the error has been addressed.",
+                    flush=True,
                 )
+        self.wait_for_watcher_event(
+            lambda s: s.watcher.is_running, limit=20, waiting_time=3
+        )
+        print("\n")
 
     def do_stop(self, line: str):
         """
         do_stop Stop a running sparrow watcher process.
+
+        Args:
+            line (str): Empty string. No arguments are expected.
         """
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
@@ -265,17 +295,39 @@ class SparrowCmd(cmd.Cmd):
             do_failure=handle_failure,
         )
 
+        if self.watcher is not None:
+            self.wait_for_watcher_event(
+                lambda s: s.watcher.is_running is False, limit=20, waiting_time=3
+            )
+
+        print("\n")
+
     def do_exit(self, line: str):
         """
         do_exit Leave the sparrow shell
+
+        Args:
+            line (str): Empty string. No arguments are expected.
         """
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
+
+        if self.watcher is not None and self.watcher.is_running:
+            self.watcher.stop()
+            self.wait_for_watcher_event(
+                lambda s: s.watcher.is_running is False, limit=20, waiting_time=3
+            )
         print("Exiting sparrow shell")
         return True
 
     def do_pause(self, line: str):
+        """
+        do_pause Pause the watcher process.
+
+        Args:
+            line (str): Empty string, no arguments expected
+        """
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
@@ -291,6 +343,12 @@ class SparrowCmd(cmd.Cmd):
         )
 
     def do_continue(self, line: str):
+        """
+        do_continue Continue the watcher process after it has been paused.
+
+        Args:
+            line (str): Empty string, no arguments expected
+        """
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
@@ -306,6 +364,12 @@ class SparrowCmd(cmd.Cmd):
         )
 
     def do_restart(self, line: str):
+        """
+        do_restart Restart the watcher process.
+
+        Args:
+            line (str): Empty string, no arguments expected
+        """
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
@@ -322,7 +386,13 @@ class SparrowCmd(cmd.Cmd):
             ),
         )
 
-    def do_check(self, line: str):
+    def do_status(self, line: str):
+        """
+        do_status Get the current status of the watcher process.
+
+        Args:
+            line (str): Empty string, no arguments expected
+        """
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
         elif self.watcher is None:
@@ -333,6 +403,12 @@ class SparrowCmd(cmd.Cmd):
             print("may do work:", self.watcher.may_do_work.is_set())
 
     def do_change_analyzer(self, line: str):
+        """
+        do_change_analyzer Change the analyzer of the watcher process. This will assert data consistency in the output folder of the old analyzer.
+
+        Args:
+            line (str): Path to a custom configuration file. The file must be a yaml file with the same structure as the default configuration file.
+        """
         if self.watcher is None:
             print("No watcher present, cannot change analyzer")
         elif self.watcher.is_running is False:
@@ -380,6 +456,27 @@ class SparrowCmd(cmd.Cmd):
                 print(
                     f"An error occured while trying to change the analyzer: {e} caused by {e.__cause__}"
                 )
+
+    def do_cleanup(self, line: str):
+        """
+        do_cleanup Assure consistency of data by running the cleanup method of the watcher.
+
+        Args:
+            line (str): Empty string. No arguments are expected.
+        """
+        if len(line) > 0:
+            print("Invalid input. Expected no arguments.")
+            return
+
+        self.dispatch_on_watcher(
+            do_is_none=lambda _: print("Cannot cleanup data, no watcher present"),
+            do_is_sleeping=lambda s: s.watcher.cleanup(),
+            do_is_running=lambda s: s.watcher.cleanup(),
+            do_else=lambda s: s.watcher.cleanup(),
+            do_failure=lambda _, e: print(
+                f"Could not restart watcher: {e} caused by {e.__cause__}"
+            ),
+        )
 
 
 def run():

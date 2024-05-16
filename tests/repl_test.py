@@ -1,46 +1,13 @@
 import pytest
 from pathlib import Path
-from copy import deepcopy
 from importlib.resources import files
 import shutil
 import iSparrow
 import iSparrow.repl as repl
 import time
-import yaml
+from copy import deepcopy
 
 CFG_PATH = "--cfg=./tests/test_configs/watcher_custom.yml"
-
-
-def read_yaml_with_replacement(path, dir):
-
-    with open(Path(path)) as file:
-        cfg = yaml.safe_load(file)
-
-    def update_recursive(d):
-        for k, v in d.items():
-            if isinstance(v, dict):
-                update_recursive(v)
-            else:
-                if isinstance(v, str):
-                    d[k] = v.replace("~", str(dir))
-
-    update_recursive(cfg)
-
-    if "Data" in cfg.keys():
-        cfg["Data"]["input"] = str(Path(dir, "iSparrow_tests_data"))
-        cfg["Data"]["output"] = str(Path(dir, "iSparrow_tests_output"))
-
-    return cfg
-
-
-@pytest.fixture()
-def patch_functions(mocker, tmpdir):
-    mocker.patch("iSparrow.repl.user_cache_dir", new=lambda: Path(tmpdir) / "cache")
-    mocker.patch("iSparrow.repl.user_config_dir", new=lambda: Path(tmpdir) / "config")
-    mocker.patch(
-        "iSparrow.repl.read_yaml", new=lambda f: read_yaml_with_replacement(f, tmpdir)
-    )
-    yield tmpdir
 
 
 @pytest.fixture()
@@ -94,6 +61,104 @@ def wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_running):
         else:
             time.sleep(3)
             i += 1
+
+
+def test_dispatch_on_watcher(mocker, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.watcher = None
+
+    capsys.readouterr()
+
+    def do_is_none_func(s):
+        print("Watcher is None")
+
+    def do_is_sleeping_func(s):
+        print("Watcher is sleeping")
+
+    def do_is_running_func(s):
+        print("Watcher is running")
+
+    def do_else_func(s):
+        print("Watcher is in an unknown state")
+
+    def do_failure_func(s, e):
+        print("Watcher has failed")
+
+    sparrow_cmd.dispatch_on_watcher(
+        do_is_none=do_is_none_func,
+        do_is_sleeping=do_is_sleeping_func,
+        do_is_running=do_is_running_func,
+        do_else=do_else_func,
+        do_failure=do_failure_func,
+    )
+
+    out, _ = capsys.readouterr()
+    assert "Watcher is None" in out
+
+    sparrow_cmd.watcher = mocker.patch("iSparrow.repl.SparrowWatcher", autospec=True)
+
+    type(sparrow_cmd.watcher).is_running = mocker.PropertyMock(return_value=True)
+    type(sparrow_cmd.watcher).is_sleeping = mocker.PropertyMock(return_value=False)
+
+    capsys.readouterr()
+    sparrow_cmd.dispatch_on_watcher(
+        do_is_none=do_is_none_func,
+        do_is_sleeping=do_is_sleeping_func,
+        do_is_running=do_is_running_func,
+        do_else=do_else_func,
+        do_failure=do_failure_func,
+    )
+    out, _ = capsys.readouterr()
+    assert "Watcher is running" in out
+
+    type(sparrow_cmd.watcher).is_sleeping = mocker.PropertyMock(return_value=True)
+    type(sparrow_cmd.watcher).is_running = mocker.PropertyMock(return_value=False)
+
+    capsys.readouterr()
+    sparrow_cmd.dispatch_on_watcher(
+        do_is_none=do_is_none_func,
+        do_is_sleeping=do_is_sleeping_func,
+        do_is_running=do_is_running_func,
+        do_else=do_else_func,
+        do_failure=do_failure_func,
+    )
+    out, _ = capsys.readouterr()
+
+    assert "Watcher is sleeping" in out
+
+    type(sparrow_cmd.watcher).is_sleeping = mocker.PropertyMock(return_value=False)
+    type(sparrow_cmd.watcher).is_running = mocker.PropertyMock(return_value=False)
+
+    capsys.readouterr()
+    sparrow_cmd.dispatch_on_watcher(
+        do_is_none=do_is_none_func,
+        do_is_sleeping=do_is_sleeping_func,
+        do_is_running=do_is_running_func,
+        do_else=do_else_func,
+        do_failure=do_failure_func,
+    )
+    out, _ = capsys.readouterr()
+
+    assert "Watcher is in an unknown state" in out
+
+    def raise_exception(s):
+        raise Exception("RuntimeError")
+
+    type(sparrow_cmd.watcher).is_sleeping = mocker.PropertyMock(return_value=False)
+
+    type(sparrow_cmd.watcher).is_running = mocker.PropertyMock(return_value=True)
+
+    capsys.readouterr()
+    sparrow_cmd.dispatch_on_watcher(
+        do_is_none=do_is_none_func,
+        do_is_sleeping=do_is_sleeping_func,
+        do_is_running=raise_exception,
+        do_else=do_else_func,
+        do_failure=do_failure_func,
+    )
+    out, _ = capsys.readouterr()
+
+    assert "Watcher has failed" in out
 
 
 def test_process_line_into_kwargs():
@@ -281,7 +346,7 @@ def test_do_stop_failure(make_mock_install, capsys):
     capsys.readouterr()
     sparrow_cmd.do_stop("")
     out, _ = capsys.readouterr()
-    assert out == "Cannot stop watcher, is not running\n"
+    assert "Cannot stop watcher, is not running\n" in out
 
 
 def test_do_stop_exceptions(make_mock_install, capsys, mocker):
@@ -299,8 +364,8 @@ def test_do_stop_exceptions(make_mock_install, capsys, mocker):
 
     out, _ = capsys.readouterr()
     assert (
-        out
-        == "Could not stop watcher: RuntimeError caused by None. Watcher process will be killed now and all resources released. This may have left data in a corrupt state. A new watcher must be started if this session is to be continued.\n"
+        "Could not stop watcher: RuntimeError caused by None. Watcher process will be killed now and all resources released. This may have left data in a corrupt state. A new watcher must be started if this session is to be continued.\n"
+        in out
     )
 
     if sparrow_cmd.watcher is not None and sparrow_cmd.watcher.is_running is True:
@@ -313,7 +378,7 @@ def test_do_exit(capsys):
     capsys.readouterr()
     sparrow_cmd.do_exit("wrong args")
     out, _ = capsys.readouterr()
-    assert out == "Invalid input. Expected no arguments.\n"
+    assert "Invalid input. Expected no arguments.\n" in out
 
     capsys.readouterr()
 
@@ -322,8 +387,7 @@ def test_do_exit(capsys):
     assert value is True
 
     out, _ = capsys.readouterr()
-
-    assert out == "Exiting sparrow shell\n"
+    assert "Exiting sparrow shell\n" in out
 
 
 def test_do_pause(make_mock_install):
@@ -660,7 +724,7 @@ def test_change_analyzer_failure(make_mock_install, capsys):
     assert out == "No watcher present, cannot change analyzer\n"
 
 
-def test_do_check(make_mock_install, capsys):
+def test_do_status(make_mock_install, capsys):
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     assert sparrow_cmd.watcher.is_running is True
@@ -669,7 +733,7 @@ def test_do_check(make_mock_install, capsys):
     wait_for_watcher_status(sparrow_cmd)
 
     capsys.readouterr()
-    sparrow_cmd.do_check("")
+    sparrow_cmd.do_status("")
     out, _ = capsys.readouterr()
     assert out == "is running: True\nis sleeping: False\nmay do work: True\n"
     assert sparrow_cmd.watcher.is_running is True
@@ -678,13 +742,13 @@ def test_do_check(make_mock_install, capsys):
     assert sparrow_cmd.watcher.is_running is False
 
     capsys.readouterr()
-    sparrow_cmd.do_check("wrong input")
+    sparrow_cmd.do_status("wrong input")
     out, _ = capsys.readouterr()
     assert out == "Invalid input. Expected no arguments.\n"
 
     sparrow_cmd.watcher = None
 
     capsys.readouterr()
-    sparrow_cmd.do_check("")
+    sparrow_cmd.do_status("")
     out, _ = capsys.readouterr()
     assert out == "No watcher present, cannot check status\n"

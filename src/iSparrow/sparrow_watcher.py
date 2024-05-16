@@ -12,7 +12,7 @@ import yaml
 import multiprocessing
 import warnings
 import csv
-from copy import deepcopy
+import sys
 
 
 class AnalysisEventHandler(FileSystemEventHandler):
@@ -73,28 +73,34 @@ def watchertask(watcher):
     Raises:
         RuntimeError: When something goes wrong inside the analyzer process.
     """
-
-    # build the recorder
-    observer = Observer()
-
-    event_handler = AnalysisEventHandler(
-        watcher,
-    )
-    observer.schedule(event_handler, watcher.input, recursive=True)
-    observer.start()
+    sys.stdout = open(watcher.output / "stdout.txt", "w")
+    sys.stderr = open(watcher.output / "stderr.txt", "w")
 
     try:
-        while True:
-            sleep(watcher.check_time)
-    except KeyboardInterrupt:
-        observer.stop()
-    except Exception as e:
-        observer.stop()
-        raise RuntimeError(
-            "Something went wrong in the watcher/analysis process"
-        ) from e
+        # build the recorder
+        observer = Observer()
 
-    observer.join()
+        event_handler = AnalysisEventHandler(
+            watcher,
+        )
+        observer.schedule(event_handler, watcher.input, recursive=True)
+        observer.start()
+
+        try:
+            while True:
+                sleep(watcher.check_time)
+        except KeyboardInterrupt:
+            observer.stop()
+        except Exception as e:
+            observer.stop()
+            raise RuntimeError(
+                "Something went wrong in the watcher/analysis process"
+            ) from e
+
+        observer.join()
+    finally:
+        sys.stdout.close()
+        sys.stderr.close()
 
 
 class SparrowWatcher:
@@ -187,6 +193,16 @@ class SparrowWatcher:
                     "An error occured during species range predictor creation. Does you model provide a model file called 'species_presence_model'?"
                 ) from e
 
+        # make sure the date is set correctly
+        if "date" in self.recording_config:
+            if self.recording_config["date"] == "today":
+                self.recording_config["date"] = datetime.now()
+            elif isinstance(self.recording_config["date"], str):
+                self.recording_config["date"] = datetime.strptime(
+                    self.recording_config["date"], "%d/%m/%Y"
+                )
+            else:
+                pass
         # create recording object
         # species predictor is applied here once and then used for all the analysis calls that may follow
         return SparrowRecording(preprocessor, model, "", **self.recording_config)

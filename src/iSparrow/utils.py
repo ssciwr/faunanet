@@ -1,10 +1,3 @@
-import tensorflow as tf
-
-try:
-    import tflite_runtime.interpreter as tflite
-except Exception:
-    from tensorflow import lite as tflite
-
 from pathlib import Path
 import importlib.util
 import os
@@ -83,6 +76,11 @@ def load_model_from_file_tflite(path: str, num_threads: int = 1):
     Returns:
         TensorflowLite interpreter: The loaded model
     """
+    try:
+        import tflite_runtime.interpreter as tflite
+    except Exception:
+        from tensorflow import lite as tflite
+
     if Path(path).exists() is False:
         raise FileNotFoundError(f"The desired model file does not exist: {path}")
 
@@ -107,6 +105,8 @@ def load_model_from_file_pb(path: str, _):
     Returns:
         Tensorflow model: The loaded model
     """
+    import tensorflow as tf
+
     if "." in Path(path).name or ".pb" in Path(path).name:
         # tensorflow assumes a model file to be named "saved_model.pb" and the path given to be a directory
         path = Path(path).parent
@@ -116,32 +116,6 @@ def load_model_from_file_pb(path: str, _):
 
     try:
         model = tf.saved_model.load(path)
-        return model
-    except Exception as e:
-        raise TFModelException(e)
-
-
-def load_model_from_tensorflowhub(url: str, _):
-    """
-    load_model_from_hub Download a tensorflow model from tensorflow hub, ready to be used
-
-    Args:
-        url (str): URL leading to the model to be downloaded and used
-
-    Raises:
-        ValueError: When the argument is not a valid url
-        TFModelException: When something goes wrong with the model loading inside the tensorflow_hub module
-
-    Returns:
-        Tensorflow model: The loaded model
-    """
-    if not is_url(url):
-        raise ValueError(
-            "The url given to load a model from tensorflow hub is not valid"
-        )
-
-    try:
-        model = tfhub.load(url)
         return model
     except Exception as e:
         raise TFModelException(e)
