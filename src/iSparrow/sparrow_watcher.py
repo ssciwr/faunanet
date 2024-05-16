@@ -79,6 +79,7 @@ def watchertask(watcher):
     Raises:
         RuntimeError: When something goes wrong inside the analyzer process.
     """
+
     # build the recorder
     observer = Observer()
 
@@ -208,15 +209,15 @@ class SparrowWatcher:
                 ) from e
 
         # make sure the date is set correctly
-        if "date" in self.recording_config:
-            if self.recording_config["date"] == "today":
-                self.recording_config["date"] = datetime.now()
-            elif isinstance(self.recording_config["date"], str):
-                self.recording_config["date"] = datetime.strptime(
-                    self.recording_config["date"], "%d/%m/%Y"
-                )
+        if "date" in recording_config:
+            if isinstance(recording_config["date"], str) is False:
+                pass  # no action needed
+            elif recording_config["date"] == "today":
+                recording_config["date"] = datetime.now()
             else:
-                pass
+                recording_config["date"] = datetime.strptime(
+                    recording_config["date"], "%d/%m/%Y"
+                )
         # create recording object
         # species predictor is applied here once and then used for all the analysis calls that may follow
         return SparrowRecording(preprocessor, model, "", **recording_config)
@@ -374,7 +375,6 @@ class SparrowWatcher:
         self.species_predictor_config = deepcopy(species_predictor_config)
 
         self.batchfile_name = "batch_info.yml"
-
 
     @property
     def output_directory(self):

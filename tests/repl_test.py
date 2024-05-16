@@ -509,6 +509,7 @@ def test_do_continue_failure(make_mock_install, capsys):
     assert "Invalid input. Expected no arguments.\n" in out
 
     sparrow_cmd.do_stop("")
+    wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_running is False)
     sparrow_cmd.watcher = None
 
     capsys.readouterr()
@@ -563,15 +564,16 @@ def test_do_restart(make_mock_install):
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
     wait_for_watcher_status(sparrow_cmd)
-
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
     old_output = deepcopy(sparrow_cmd.watcher.output)
     sparrow_cmd.do_restart("")
+    wait_for_watcher_status(sparrow_cmd)
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
-    assert old_output == sparrow_cmd.watcher.output
+    assert old_output != sparrow_cmd.watcher.output
     sparrow_cmd.watcher.stop()
+    wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_running is False)
     assert sparrow_cmd.watcher.is_running is False
 
 
@@ -592,6 +594,7 @@ def test_do_restart_failure(make_mock_install, capsys):
 
     sparrow_cmd.watcher.is_done_analyzing.set()
     sparrow_cmd.watcher.pause()
+    wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_sleeping is True)
 
     capsys.readouterr()
     sparrow_cmd.do_restart("")
@@ -599,6 +602,7 @@ def test_do_restart_failure(make_mock_install, capsys):
     assert "Cannot restart watcher, is sleeping and must be continued first\n" in out
 
     sparrow_cmd.watcher.stop()
+    wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_running is False)
 
     capsys.readouterr()
     sparrow_cmd.do_restart("")
@@ -628,7 +632,7 @@ def test_do_restart_exceptions(make_mock_install, capsys, mocker):
     )
 
 
-def test_change_analyzer(make_mock_install):
+def test_do_change_analyzer(make_mock_install):
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start("")
 
@@ -636,16 +640,22 @@ def test_change_analyzer(make_mock_install):
 
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
-    time.sleep(10)
-    sparrow_cmd.watcher.is_done_analyzing.set()
+
     old_out = deepcopy(sparrow_cmd.watcher.output)
     sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
-
+    wait_for_watcher_status(sparrow_cmd)
+    print("done waiting")
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
     assert sparrow_cmd.watcher.delete_recordings == "always"
     assert sparrow_cmd.watcher.pattern == ".mp3"
     assert old_out != sparrow_cmd.watcher.output
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.watcher.may_do_work.clear()
+
+    sparrow_cmd.watcher.stop()
+    wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_running is False)
+    assert sparrow_cmd.watcher.is_running is False
 
 
 def test_change_analyzer_exception(make_mock_install, capsys, mocker):
@@ -695,6 +705,7 @@ def test_change_analyzer_failure(make_mock_install, capsys):
 
     sparrow_cmd.watcher.is_done_analyzing.set()
     sparrow_cmd.watcher.pause()
+    wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_sleeping is True)
 
     capsys.readouterr()
     sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
@@ -713,6 +724,7 @@ def test_change_analyzer_failure(make_mock_install, capsys):
     assert "Invalid input. Expected: change_analyzer --cfg=<config_file>\n" in out
 
     sparrow_cmd.watcher.stop()
+    wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_running is False)
     capsys.readouterr()
     sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
     out, _ = capsys.readouterr()
