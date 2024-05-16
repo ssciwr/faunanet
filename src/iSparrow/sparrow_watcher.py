@@ -13,6 +13,7 @@ import multiprocessing
 import warnings
 import csv
 import sys
+from contextlib import contextmanager
 
 
 class AnalysisEventHandler(FileSystemEventHandler):
@@ -79,8 +80,8 @@ def watchertask(watcher):
     Raises:
         RuntimeError: When something goes wrong inside the analyzer process.
     """
-    sys.stdout = open(watcher.output / "stdout.txt", "w")
-    sys.stderr = open(watcher.output / "stderr.txt", "w")
+    # sys.stdout = open(watcher.output / "stdout.txt", "w")
+    # sys.stderr = open(watcher.output / "stderr.txt", "w")
 
     try:
         # build the recorder
@@ -105,8 +106,9 @@ def watchertask(watcher):
 
         observer.join()
     finally:
-        sys.stdout.close()
-        sys.stderr.close()
+        pass
+        # sys.stdout.close()
+        # sys.stderr.close()
 
 
 class SparrowWatcher:
@@ -198,7 +200,7 @@ class SparrowWatcher:
         if all(name in recording_config for name in ["date", "lat", "lon"]) and all(
             recording_config[name] is not None for name in ["date", "lat", "lon"]
         ):
-
+    
             try:
                 # we can use the species predictor
                 species_predictor = SpeciesPredictorBase(
@@ -229,10 +231,10 @@ class SparrowWatcher:
 
     def _restore_old_state(self, old_state: dict):
         """
-        _restore_old_state _summary_
+        _restore_old_state Restore state of the watcher instance to the state it had before a change was made.
 
         Args:
-            old_state (dict): _description_
+            old_state (dict):  Dictionary containing the old state of the calling object
         """
         self.model_name = old_state["model_name"]
         self.preprocessor_config = old_state["preprocessor_config"]
@@ -316,6 +318,17 @@ class SparrowWatcher:
             ValueError: When the model_dir parameter is not an existing directory.
             ValueError: When the model name does not correspond to a directory in the 'model_dir' directory in which available models are stored.
         """
+        if preprocessor_config is None:
+            preprocessor_config = {}
+
+        if model_config is None:
+            model_config = {}
+
+        if recording_config is None:
+            recording_config = {}
+
+        if species_predictor_config is None:
+            species_predictor_config = {}
 
         # set up data to use
         self.input = Path(indir)
@@ -323,7 +336,7 @@ class SparrowWatcher:
         if self.input.is_dir() is False:
             raise ValueError("Input directory does not exist")
 
-        self.outdir = outdir
+        self.outdir = Path(outdir)
 
         if self.outdir.is_dir() is False:
             raise ValueError("Output directory does not exist")
@@ -357,19 +370,8 @@ class SparrowWatcher:
         self.delete_recordings = delete_recordings
 
         self.first_analyzed = multiprocessing.Value("i", 0)
+
         self.last_analyzed = multiprocessing.Value("i", 0)
-
-        if preprocessor_config is None:
-            preprocessor_config = {}
-
-        if model_config is None:
-            model_config = {}
-
-        if recording_config is None:
-            recording_config = {}
-
-        if species_predictor_config is None:
-            species_predictor_config = {}
 
         self.preprocessor_config = deepcopy(preprocessor_config)
 
@@ -380,6 +382,7 @@ class SparrowWatcher:
         self.species_predictor_config = deepcopy(species_predictor_config)
 
         self.batchfile_name = "batch_info.yml"
+
 
     @property
     def output_directory(self):
@@ -472,9 +475,6 @@ class SparrowWatcher:
         self.output.mkdir(exist_ok=True, parents=True)
         self.first_analyzed.value = 0
         self.last_analyzed.value = 0
-
-        if self.old_output is None:
-            self.old_output = self.output
 
         self._write_config()
 
