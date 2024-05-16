@@ -18,6 +18,7 @@ dependencies = [
     "birdnetlib==0.15.0",
     "pooch", 
     "resampy", # for audio loading
+    "tensorflow-hub",
     "platformdirs", # get cache dirs without os dependence etc
     "ffmpeg-python"
 ]
