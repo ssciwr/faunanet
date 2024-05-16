@@ -68,12 +68,27 @@ def test_dispatch_on_watcher(mocker, capsys):
 
     capsys.readouterr()
 
+    def do_is_none_func(s):
+        print("Watcher is None")
+
+    def do_is_sleeping_func(s):
+        print("Watcher is sleeping")
+
+    def do_is_running_func(s):
+        print("Watcher is running")
+
+    def do_else_func(s):
+        print("Watcher is in an unknown state")
+
+    def do_failure_func(s, e):
+        print("Watcher has failed")
+
     sparrow_cmd.dispatch_on_watcher(
-        do_is_none=lambda s: print("Watcher is None"),
-        do_is_sleeping=lambda s: print("Watcher is sleeping"),
-        do_is_running=lambda s: print("Watcher is running"),
-        do_else=lambda s: print("Watcher is in an unknown state"),
-        do_failure=lambda s, e: print("Watcher has failed"),
+        do_is_none=do_is_none_func,
+        do_is_sleeping=do_is_sleeping_func,
+        do_is_running=do_is_running_func,
+        do_else=do_else_func,
+        do_failure=do_failure_func,
     )
 
     out, _ = capsys.readouterr()
@@ -86,11 +101,11 @@ def test_dispatch_on_watcher(mocker, capsys):
 
     capsys.readouterr()
     sparrow_cmd.dispatch_on_watcher(
-        do_is_none=lambda s: print("Watcher is None"),
-        do_is_sleeping=lambda s: print("Watcher is sleeping"),
-        do_is_running=lambda s: print("Watcher is running"),
-        do_else=lambda s: print("Watcher is in an unknown state"),
-        do_failure=lambda s, e: print("Watcher has failed"),
+        do_is_none=do_is_none_func,
+        do_is_sleeping=do_is_sleeping_func,
+        do_is_running=do_is_running_func,
+        do_else=do_else_func,
+        do_failure=do_failure_func,
     )
     out, _ = capsys.readouterr()
     assert "Watcher is running" in out
@@ -100,11 +115,11 @@ def test_dispatch_on_watcher(mocker, capsys):
 
     capsys.readouterr()
     sparrow_cmd.dispatch_on_watcher(
-        do_is_none=lambda s: print("Watcher is None"),
-        do_is_sleeping=lambda s: print("Watcher is sleeping"),
-        do_is_running=lambda s: print("Watcher is running"),
-        do_else=lambda s: print("Watcher is in an unknown state"),
-        do_failure=lambda s, e: print("Watcher has failed"),
+        do_is_none=do_is_none_func,
+        do_is_sleeping=do_is_sleeping_func,
+        do_is_running=do_is_running_func,
+        do_else=do_else_func,
+        do_failure=do_failure_func,
     )
     out, _ = capsys.readouterr()
 
@@ -115,11 +130,11 @@ def test_dispatch_on_watcher(mocker, capsys):
 
     capsys.readouterr()
     sparrow_cmd.dispatch_on_watcher(
-        do_is_none=lambda s: print("Watcher is None"),
-        do_is_sleeping=lambda s: print("Watcher is sleeping"),
-        do_is_running=lambda s: print("Watcher is running"),
-        do_else=lambda s: print("Watcher is in an unknown state"),
-        do_failure=lambda s, e: print("Watcher has failed"),
+        do_is_none=do_is_none_func,
+        do_is_sleeping=do_is_sleeping_func,
+        do_is_running=do_is_running_func,
+        do_else=do_else_func,
+        do_failure=do_failure_func,
     )
     out, _ = capsys.readouterr()
 
@@ -130,11 +145,11 @@ def test_dispatch_on_watcher(mocker, capsys):
 
     capsys.readouterr()
     sparrow_cmd.dispatch_on_watcher(
-        do_is_none=lambda s: print("Watcher is None"),
-        do_is_sleeping=lambda s: print("Watcher is sleeping"),
-        do_is_running=raise_exception,
-        do_else=lambda s: print("Watcher is in an unknown state"),
-        do_failure=lambda s, e: print("Watcher has failed"),
+        do_is_none=do_is_none_func,
+        do_is_sleeping=do_is_sleeping_func,
+        do_is_running=do_is_running_func,
+        do_else=do_else_func,
+        do_failure=do_failure_func,
     )
     out, _ = capsys.readouterr()
 
