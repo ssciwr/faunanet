@@ -6,10 +6,9 @@ from pathlib import Path
 import os
 import tempfile
 from platformdirs import user_cache_dir, user_config_dir
-import pooch
 import yaml
 
-from iSparrow.utils import read_yaml, load_module
+from iSparrow.utils import load_module
 from iSparrow.sparrow_setup import download_example_data, download_model_files
 from .fixtures.recording_fixtures import RecordingFixture
 from .fixtures.model_fixtures import ModelFixture
