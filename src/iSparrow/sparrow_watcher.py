@@ -80,8 +80,8 @@ def watchertask(watcher):
     Raises:
         RuntimeError: When something goes wrong inside the analyzer process.
     """
-    # sys.stdout = open(watcher.output / "stdout.txt", "w")
-    # sys.stderr = open(watcher.output / "stderr.txt", "w")
+    sys.stdout = open(watcher.output / "stdout.txt", "w")
+    sys.stderr = open(watcher.output / "stderr.txt", "w")
 
     try:
         # build the recorder
@@ -106,9 +106,8 @@ def watchertask(watcher):
 
         observer.join()
     finally:
-        pass
-        # sys.stdout.close()
-        # sys.stderr.close()
+        sys.stdout.close()
+        sys.stderr.close()
 
 
 class SparrowWatcher:
