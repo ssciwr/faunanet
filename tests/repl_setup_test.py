@@ -31,7 +31,7 @@ def test_do_set_up(clean_up_test_installation, patch_functions):
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_set_up("--cfg=" + str(filepath))
 
-    tflite_file = "model.tflite"2
+    tflite_file = "model.tflite"
 
     assert Path(cfg["home"].replace("~", str(tmpdir))).exists() is True
     assert Path(cfg["models"].replace("~", str(tmpdir))).exists() is True
