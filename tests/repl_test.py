@@ -387,6 +387,7 @@ def test_do_exit(capsys):
     assert value is True
 
     out, _ = capsys.readouterr()
+
     assert "Exiting sparrow shell\n" in out
 
 
@@ -625,25 +626,6 @@ def test_do_restart_exceptions(make_mock_install, capsys, mocker):
         "trying to restart the watcher process\nCould not restart watcher: RuntimeError caused by None\n"
         in out
     )
-
-
-def test_do_exit(capsys):
-    sparrow_cmd = repl.SparrowCmd()
-
-    capsys.readouterr()
-    sparrow_cmd.do_exit("wrong args")
-    out, _ = capsys.readouterr()
-    assert "Invalid input. Expected no arguments.\n" in out
-
-    capsys.readouterr()
-
-    value = sparrow_cmd.do_exit("")
-
-    assert value is True
-
-    out, _ = capsys.readouterr()
-
-    assert "Exiting sparrow shell\n" in out
 
 
 def test_change_analyzer(make_mock_install):
