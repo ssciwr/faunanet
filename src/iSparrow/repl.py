@@ -299,31 +299,6 @@ class SparrowCmd(cmd.Cmd):
 
         print("\n")
 
-    def do_cleanup(self, line: str):
-        """
-        do_cleanup Run the cleanup method of the watcher process to assure data consistency
-
-        Args:
-            line (str): Empty string, no arguments expected
-        """
-        if len(line) > 0:
-            print("Invalid input. Expected no arguments.")
-            return
-
-        self.dispatch_on_watcher(
-            do_is_none=lambda _: print(
-                "Cannot run cleanup, no watcher present", flush=True
-            ),
-            do_is_sleeping=lambda self: self.watcher.cleanup(),
-            do_is_running=lambda self: self.watcher.cleanup(),
-            do_else=lambda self: self.watcher.cleanup(),
-            do_failure=lambda s, e: print(
-                "Error while running cleanup: ", e, flush=True
-            ),
-        )
-
-        print("\n")
-
     def do_exit(self, line: str):
         """
         do_exit Leave the sparrow shell
