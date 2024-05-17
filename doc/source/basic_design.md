@@ -40,4 +40,4 @@ Faunanet-lab_output
 All parameterization of any `Faunanet-lab` functionality happens via `.yml` files. This choice serves two purposes:  
 First, it centralizes where parameters are defined and clearly separates it from the code itself, thus providing a cleaner interface. Second, it allows to bundle results with the parameters with which they were obtained (see above) and thus improves reproducibility. These advantages extend to all aspects of package development and usage, as defining and paramterizing software tests profits as much from this approach as running `Faunanet-lab` with different machine learning models in a scientific setting or wanting to change the hardware of your homemade bioacoustic lab that records the birds in your garden.
 
-`Faunanet-lab` uses configuration files both for its own setup and for the running of maching learning models to analyze audio data. 
+`Faunanet-lab` uses configuration files both for its own setup and for the running of maching learning models to analyze audio data.
