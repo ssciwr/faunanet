@@ -10,7 +10,7 @@ Welcome to iSparrow's documentation!
    :caption: Contents:
 
    readme_link
-   modules
+   iSparrow
    license_link
 
 Indices and tables

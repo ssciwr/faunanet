@@ -19,8 +19,8 @@ sys.path.insert(0, os.path.abspath("../../src/iSparrow"))
 # -- Project information -----------------------------------------------------
 
 project = "iSparrow"
-copyright = "2024, Scientific Software Center"
-author = "Scientific Software Center"
+copyright = "2024, Scientific Software Center, Interdisciplinary Center for scientific computing, University of Heidelberg"
+author = "Inga Ulusoy, Harald Mack"
 
 # The full version, including alpha/beta/rc tags
 release = "0.1"
