@@ -115,8 +115,11 @@ via yaml files. To start a default instance, after you have completed the setup 
 ```bash 
 (Faunanet) start 
 ``` 
-The default configuration expects a folder `~/faunanet-lib_data` to exist in which audio files to be classified land. `Faunanet-lab` will then watch this folder indefinitely for incoming `.wav` files and analyze them. Results will be written to `~/faunanet-lib_output/ddmmyyyyy`, one csv-file at per incoming file. See {doc}`basic_design` to learn more about how `Faunanet-lab` handles results folders at startup. The `Faunanet-lab` watcher process will take note of any subfolders of the data folder, too. 
-By default, `Faunanet-lab` will use the birdnet-v.2.4 tflite model for classification. In order to see all parameters for this model as well as the other default models that `Faunanet-lab` provides, see {doc}`using_configuration_files`. 
+The default configuration expects a folder `~/faunanet-lib_data` to exist in which audio files to be classified land. `Faunanet-lab` will then watch this folder indefinitely for incoming `.wav` files and analyze them. Results will be written to `~/faunanet-lib_output/ddmmyyyyy`, one csv-file at per incoming file. See {doc}`basic_design` to learn more about how `Faunanet-lab` handles results folders at startup. The `Faunanet-lab` watcher process will take note of any files landing subfolders of the data folder, too. 
+By default, `Faunanet-lab` will use the birdnet-v.2.4 tflite model for classification. In order to see all parameters for this model as well as the other default models that `Faunanet-lab` provides, see {doc}`using_configuration_files`. To see what else you can do with the REPL, see {doc}`repl_usage`. 
+
+The easiest way to provide your own model to use with `Faunanet-lab` is to retrain the `Birdnet-Analyzer` model as described [here](https://github.com/kahst/BirdNET-Analyzer?tab=readme-ov-file#training). Models obtained in this way will use the same set of configuration parameters as the default model, so customization is achiedved most easily. For more details about how to use your own model, see {doc}`using_custom_models`. 
+
 
 ### As a library in your own project
 Once `Faunanet-lab` is installed, you can use 
