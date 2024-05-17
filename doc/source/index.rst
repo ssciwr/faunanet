@@ -9,9 +9,10 @@ Welcome to iSparrow's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   getting_started
    readme_link
-   iSparrow
    license_link
+   iSparrow_api_doc
 
 Indices and tables
 ==================
