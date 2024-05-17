@@ -1,10 +1,43 @@
 # Basic design of Faunanet-lab
-## Analysis in Batches
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat. Duis semper. Duis arcu massa, scelerisque vitae, consequat in, pretium a, enim. Pellentesque congue. Ut in risus volutpat libero pharetra tempor. Cras vestibulum bibendum augue. Praesent egestas leo in pede. Praesent blandit odio eu enim. Pellentesque sed dui ut augue blandit sodales. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Aliquam nibh. Mauris ac mauris sed pede pellentesque fermentum. Maecenas adipiscing ante non diam sodales hendrerit.
+`Faunanet-lab` has been developed in a scientific context, and thus strives to adhere to scientific principles in its implementation. 
 
-## Parameterization through configuration files
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat. Duis semper. Duis arcu massa, scelerisque vitae, consequat in, pretium a, enim. Pellentesque congue. Ut in risus volutpat libero pharetra tempor. Cras vestibulum bibendum augue. Praesent egestas leo in pede. Praesent blandit odio eu enim. Pellentesque sed dui ut augue blandit sodales. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Aliquam nibh. Mauris ac mauris sed pede pellentesque fermentum. Maecenas adipiscing ante non diam sodales hendrerit.
+## Analysis in batches
+Each time `Faunanet-lab` is started, a new folder is created in the configured output folder, which uses the current date and time as folder name, according to the format `yymmdd_hhMMss`. In this folder, all analysis results will be written that are created until the current watcher process stops. When it is started up again, a new such folder is created. Each 'run' of `Faunanet-lab` hence corresponds to a batch of input files which area analyzed with a particular machine learning model configured with a particular set of parameters. `Faunanet-lab` always bundles the configuration file that contains the name of the used machine learning model and the parameters used for running the model and prepocessing the data together with the results and stores them in all together in the same folder. 
+Each csv-file that contains analysis results contains the input filename in its filename. 
+In this way, it is always documented how certain results where obtained and from where.
 
-## One language for everything 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat. Duis semper. Duis arcu massa, scelerisque vitae, consequat in, pretium a, enim. Pellentesque congue. Ut in risus volutpat libero pharetra tempor. Cras vestibulum bibendum augue. Praesent egestas leo in pede. Praesent blandit odio eu enim. Pellentesque sed dui ut augue blandit sodales. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Aliquam nibh. Mauris ac mauris sed pede pellentesque fermentum. Maecenas adipiscing ante non diam sodales hendrerit.
+Every time the machine learning model is exchanged or the `Faunanet-lab` process is restarted, a new batch will be created in a new folder. 
+Additionally, methods are provided that ensure data consistency even when the watcher process is shut down or crashes unexpectedly, such that analysis data is not lost. 
+After a number of restarts and/or model exchanges, you will end up with a folder structure like this: 
+```
+Faunanet-lab_output
+  240510_150322 # batch 1
+    results_file1.csv
+    results_file2.csv
+    ...
+    results_fileM.csv 
+    config.yml # configuration with which the results where created.
+    missings.txt # list of files that have been reanalyzed to ensure data consistency
+    
+  240511_080343 # batch 2
+    results_file1.csv
+    results_file2.csv
+    ...
+    results_fileN.csv 
+    config.yml
+    missings.txt 
+    
+  240513_183323 # batch 3
+    results_file1.csv
+    results_file2.csv
+    ...
+    results_fileL.csv 
+    config.yml 
+    missings.txt 
+```
 
+## Separate code and parameterization 
+All parameterization of any `Faunanet-lab` functionality happens via `.yml` files. This choice serves two purposes:  
+First, it centralizes where parameters are defined and clearly separates it from the code itself, thus providing a cleaner interface. Second, it allows to bundle results with the parameters with which they were obtained (see above) and thus improves reproducibility. These advantages extend to all aspects of package development and usage, as defining and paramterizing software tests profits as much from this approach as running `Faunanet-lab` with different machine learning models in a scientific setting or wanting to change the hardware of your homemade bioacoustic lab that records the birds in your garden.
+
+`Faunanet-lab` uses configuration files both for its own setup and for the running of maching learning models to analyze audio data. 
