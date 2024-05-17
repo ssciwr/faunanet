@@ -10,9 +10,12 @@ Welcome to iSparrow's documentation!
    :caption: Contents:
 
    getting_started
-   readme_link
-   license_link
+   basic_design
+   using_configuration_files
+   repl_usage 
+   library_usage
    iSparrow_api_doc
+   license_link
 
 Indices and tables
 ==================
