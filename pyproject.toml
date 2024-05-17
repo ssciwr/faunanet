@@ -1,5 +1,5 @@
 [project]
-name = "iSparrow"
+name = "FaunanetLab"
 version = "0.1"
 requires-python = ">= 3.9"
 authors=[{name = "Inga Ulusoy", email = "inga.ulusoy@uni-heidelberg.de"}, {name = "Harald Mack", email = "harald.mack@uni-heidelberg.de"}]
