@@ -1,2 +1,1 @@
-# Using Faunanet-lab on the terminal 
-TODO
+# Using the Faunanet REPL

@@ -1,4 +1,4 @@
-# Getting started 
+# Getting Faunanet-lab up and running
 This page will provide you with a quick way to get a basic *Faunanet-lab* installation running. 
 For further details, please refer to the linked pages for each section.  
 
@@ -87,6 +87,9 @@ Directories:
   models: ~/faunanet-lab/models 
   output: ~/faunanet-lab_output
 ```
+```{todo}
+17/05/2024: Update this once the rest of the code is merged.
+```
 If you want to customize the locations of the folders that `Faunanet-lab` needs, you can provide your own `install.yml` file in which you customize these folders, e.g: 
 ```yaml 
 Directories: 
@@ -104,9 +107,23 @@ In order to use you customized install file, run the setup metho from the REPL w
 ```bash 
 set-up --cfg=/path/to/custom/setupfile.yml 
 ``` 
+See {doc}`basic_design` and {doc}`using_configuration_files` to learn more about how configuration files are used in `Faunanet-lab`. 
 
+#### Starting a default `Faunanet-lab` instance 
+The logic for starting a `Faunanet-lab` instance is the same as for the setup. There is a default set of parameters with which a `Faunanet-lab` instance can be started, and which can be customized 
+via yaml files. To start a default instance, after you have completed the setup stage, run 
+```bash 
+(Faunanet) start 
+``` 
+The default configuration expects a folder `~/faunanet-lib_data` to exist in which audio files to be classified land. `Faunanet-lab` will then watch this folder indefinitely for incoming `.wav` files and analyze them. Results will be written to `~/faunanet-lib_output/ddmmyyyyy`, one csv-file at per incoming file. See {doc}`basic_design` to learn more about how `Faunanet-lab` handles results folders at startup. The `Faunanet-lab` watcher process will take note of any subfolders of the data folder, too. 
+By default, `Faunanet-lab` will use the birdnet-v.2.4 tflite model for classification. In order to see all parameters for this model as well as the other default models that `Faunanet-lab` provides, see {doc}`using_configuration_files`. 
 
-
-### As a library in your own project 
+### As a library in your own project
+Once `Faunanet-lab` is installed, you can use 
+```python 
+import Faunanet-lab
+``` 
+to get access to the basic functionality. 
+Please refer to {doc}`iSparrow_api_doc` for the code documentation.
 
 

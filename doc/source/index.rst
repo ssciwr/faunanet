@@ -1,25 +1,19 @@
-.. iSparrow documentation master file, created by
+.. Faunanet-lab documentation master file, created by
    sphinx-quickstart on Thu Dec  3 09:44:08 2020.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to iSparrow's documentation!
-====================================
+Welcome to Faunanet-lab's documentation!
+========================================
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
    getting_started
-   basic_design
+   repl_usage
    using_configuration_files
-   repl_usage 
-   library_usage
+   using_custom_models
+   using_faunanet-lab_through_docker
+   basic_design
    iSparrow_api_doc
    license_link
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
