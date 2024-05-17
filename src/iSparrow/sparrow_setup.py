@@ -197,7 +197,7 @@ def download_example_data(example_dir: str = "examples"):
     download_example_data Download the example audio files used by iSparrow for its tests and examples.
 
     Args:
-        example_dir (str): Path to the iSparrow example directory. Defaults to 'examples'.
+        example_dir (str, optional): Path to the iSparrow example directory. Defaults to 'examples'.
     """
 
     print("... Downloading example files...")

@@ -35,7 +35,7 @@ class SparrowRecording(RecordingBase):
         preprocessor: PreprocessorBase,
         model: ModelBase,
         path: str,
-        date: datetime = None,
+        date: datetime.datetime = None,
         lat: float = None,
         lon: float = None,
         species_presence_threshold: float = 0.03,
@@ -157,7 +157,7 @@ class SparrowRecording(RecordingBase):
         self,
         lat: float,
         lon: float,
-        date: datetime = None,
+        date: datetime.datetime = None,
         species_presence_threshold: float = 0.03,
     ):
         # this abstracts away the underlying species predictor model and is useful when reusing the recording or
@@ -168,8 +168,8 @@ class SparrowRecording(RecordingBase):
         Args:
             lat (float): Latitude coordinate to predict species presence for.
             lon (float): Longitude coordinate to predict species presence for.
-            date (datetime, optional): Date to predict species presence for. Only relevant when `week` is not -1. Defaults to None.
-            week (int, optional): Week (4 weeks per month) to predict species presence for. Defaults to -1. Only relevant when `date` is `None.
+            date (datetime, optional): Date to predict species presence for. Only relevant when 'week' is not -1. Defaults to None.
+            week (int, optional): Week (4 weeks per month) to predict species presence for. Defaults to -1. Only relevant when 'date' is None.
             species_presence_threshold (float, optional): Threshold above which a species is considered to be persent. Restricted to [0, 1]. Defaults to 0.03.
         """
         self.allowed_species = self.species_predictor.predict(
