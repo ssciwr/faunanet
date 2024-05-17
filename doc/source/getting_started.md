@@ -1,6 +1,6 @@
 # Getting Faunanet-lab up and running
 This page will provide you with a quick way to get a basic *Faunanet-lab* installation running. 
-For further details, please refer to the linked pages for each section.  
+For further details, please refer to the respective topic pages.  
 
 ## Installation
 ### Installation for deployment
@@ -64,9 +64,21 @@ Welcome to Faunanet! Type help or ? to list commands
 (Faunanet) set-up 
 ```
 This will create a default setup which creates folders `faunanet-lab`, `faunanet-lab/examples`, `faunanet-lab/models` and `faunanet-lab_output` in your home directory. 
-Furthermore, there will be `standard_user_cache_directory/faunanet-lab` and `standard_user_config_directory/faunanet-lab`. `standard_user_c****_directory` is the operating-system dependent standard folder for configurations and cached files, e.g. `~/home/.cache` and `~/home/.config` on Linux. The setup configuration with all the folder paths will be copied to  `standard_user_config_directory/faunanet-lab/install.yml`. 
-These folders serve the following purposes: 
+Furthermore, there will be `user_cache_directory/faunanet-lab` and `user_config_directory/faunanet-lab`. `user_c****_directory` is the operating-system dependent standard folder for configurations and cached files, e.g. `~/home/.cache` and `~/home/.config` on Linux. The setup configuration with all the folder paths will be copied to  `user_config_directory/faunanet-lab/install.yml`. 
 
+#### Customizing the setup 
+The `Faunanet-lab` setup can be customized by providing a custom installation configuration file
+The default `install.yml` file looks like this: 
+```yaml 
+Directories: 
+  home: ~/faunanet-lab
+  models: ~/faunanet-lab/models 
+  output: ~/faunanet-lab_output
+```
+```{todo}
+17/05/2024: Update this once the rest of the code is merged.
+```
+The specified folders serve the following purposes: 
 
 | foldername|purpose|customizable|
 | ----------|-------|------------|
@@ -78,18 +90,6 @@ These folders serve the following purposes:
 
 The presence of this file is used to determine if there is a `Faunanet-lab` folder already. Currently, `Faunanet-lab` does not have a dedicated `uninstall` method, so make sure to remove this file and all folders by hand if you want to get rid of an existing setup.
 
-
-#### Customizing the setup 
-The default `install.yml` file looks like this: 
-```yaml 
-Directories: 
-  home: ~/faunanet-lab
-  models: ~/faunanet-lab/models 
-  output: ~/faunanet-lab_output
-```
-```{todo}
-17/05/2024: Update this once the rest of the code is merged.
-```
 If you want to customize the locations of the folders that `Faunanet-lab` needs, you can provide your own `install.yml` file in which you customize these folders, e.g: 
 ```yaml 
 Directories: 
@@ -118,8 +118,13 @@ via yaml files. To start a default instance, after you have completed the setup 
 The default configuration expects a folder `~/faunanet-lib_data` to exist in which audio files to be classified land. `Faunanet-lab` will then watch this folder indefinitely for incoming `.wav` files and analyze them. Results will be written to `~/faunanet-lib_output/ddmmyyyyy`, one csv-file at per incoming file. See {doc}`basic_design` to learn more about how `Faunanet-lab` handles results folders at startup. The `Faunanet-lab` watcher process will take note of any files landing subfolders of the data folder, too. 
 By default, `Faunanet-lab` will use the birdnet-v.2.4 tflite model for classification. In order to see all parameters for this model as well as the other default models that `Faunanet-lab` provides, see {doc}`using_configuration_files`. To see what else you can do with the REPL, see {doc}`repl_usage`. 
 
-The easiest way to provide your own model to use with `Faunanet-lab` is to retrain the `Birdnet-Analyzer` model as described [here](https://github.com/kahst/BirdNET-Analyzer?tab=readme-ov-file#training). Models obtained in this way will use the same set of configuration parameters as the default model, so customization is achiedved most easily. For more details about how to use your own model, see {doc}`using_custom_models`. 
-
+#### Use custom parameters for a `Faunanet-lab` instance
+If you want to customize the parameters this instance is run with, you once more have to provide a custom configuration file: 
+```bash
+(Faunanet) start --cfg=/path/to/custom/run.yml 
+```
+The general structure of such a file is described in {doc}`using_configuration_files`. A model to be used with `Faunanet-lab` must provide its own complete set of default parameters. The default model and example models ship these upon setup. 
+The easiest way to provide your own model to use with `Faunanet-lab` is to retrain the `Birdnet-Analyzer` model as described [here](https://github.com/kahst/BirdNET-Analyzer?tab=readme-ov-file#training). Models obtained in this way will use the same set of parameters as the default model, so customization is easy. For more details about how to use your own model, see {doc}`using_custom_models`. 
 
 ### As a library in your own project
 Once `Faunanet-lab` is installed, you can use 
