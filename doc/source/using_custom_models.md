@@ -1,1 +1,1 @@
-# Using your own models with Faunanet-lab
+# Using your own models with Faunanetlab
