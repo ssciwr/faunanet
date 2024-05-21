@@ -16,6 +16,6 @@ sphinx:
   configuration: doc/source/conf.py
 
 python:
-   install:
-   - requirements: doc/source/requirements.txt
-   - path: src/iSparrow
+  install:
+    - requirements: doc/source/requirements.txt
+    - path: src/iSparrow
