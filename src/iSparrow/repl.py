@@ -43,8 +43,8 @@ class SparrowCmd(cmd.Cmd):
 
     def do_help(self, line: str):
         print("Commands: ")
-        print("set_up: set up iSparrow for usage")
-        print("start: start a watcher for analyzing incoming files in a directory")
+        print("set_up: set up iSparrow for usage. Usage: 'set_up --cfg=<path>'. When no argumnet is provided, the default is used.")
+        print("start: start a watcher for analyzing incoming files in a directory. Usage: 'start --cfg=<path>'. When no argumnet is provided, the default from birdnetlib is used.")
         print("stop: stop a previously started watcher")
         print("exit: leave this shell.")
         print(
