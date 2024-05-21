@@ -13,11 +13,12 @@
 ## Features
 Using the birdnetv2.4 model by default, `faunanet-lab` provides three core features: 
 
-- Easily and arbitrarily exchange the underlying maching learning model
-- Easy configuration using YAML files which are stored alongside the analysis results 
+- Easily and arbitrarily exchange the underlying maching learning model for bioacoustics.
+- Easy configuration using YAML files which are stored alongside the analysis results. 
 - Integrated, extendible REPL with which to interact with which to interact with a running instance.
 
-The main element of `faunanet-lab` is a 'watcher' system that continuously monitors a folder for incoming data files and allows for on-the-fly model- or parameter-change via the REPL. It can also be used as a library in your python project.   
+The main element of `faunanet-lab` is a 'watcher' system that continuously monitors a folder for incoming data files and allows for on-the-fly model- or parameter-change via the REPL. It can also be used as a library in your python project.
+By extending elements of bridnetlib rather, `faunanet-lab` conserves the latter's capabilities while still adding its own functionality on top of it. 
 
 ## Getting started 
 Please refer to the 'Getting faunanet-lab up and running' section in the documentation for an introduction. 
