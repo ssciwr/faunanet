@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath("../../src/iSparrow"))
 
 # -- Project information -----------------------------------------------------
 
-project = "Faunanetlab"
+project = "faunanet-lab"
 copyright = "2024, Scientific Software Center, Interdisciplinary Center for scientific computing, University of Heidelberg"
 author = "Inga Ulusoy inga.ulusoy@uni-heidelberg.de, Harald Mack, harald.mack@iwr.uni-heidelberg.de"
 
