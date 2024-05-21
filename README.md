@@ -1,5 +1,9 @@
 [![tests](https://github.com/ssciwr/iSparrow/actions/workflows/main.yml/badge.svg?event=push)](https://github.com/ssciwr/iSparrow/actions/workflows/main.yml)
 [![codecov](https://codecov.io/gh/ssciwr/iSparrow/graph/badge.svg?token=FwyE0PNiOk)](https://codecov.io/gh/ssciwr/iSparrow)
+[![OS - Linux](https://img.shields.io/badge/OS-Linux-green.svg)](https://www.linux.org/)
+[![OS - macOS](https://img.shields.io/badge/OS-macOS-green.svg)](https://www.apple.com/macos)
+[![OS - Windows](https://img.shields.io/badge/OS-Windows-green.svg)](https://www.microsoft.com/windows)
+[![Documentation](https://readthedocs.org/projects/isparrow/badge/?version=latest)](https://isparrow.readthedocs.io/en/latest/?badge=latest)
 
 # faunanet-lab
 `faunanet-lab` is an extension of [*Birdnet-Analyzer*](https://github.com/kahst/BirdNET-Analyzer), and uses [*birdnetlib*](https://github.com/joeweiss/birdnetlib) as its basis. 
