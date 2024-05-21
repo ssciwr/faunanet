@@ -11,7 +11,7 @@
 `faunanet-lab` was developed with the goal to provide a platform for bioacoustics research projects, started at the Interdisciplinary center for scientific computing at the University of Heidelberg. 
 
 ## Features
-Using the basic birdnet-model by default, `faunanet-lab` provides three core features: 
+Using the birdnetv2.4 model by default, `faunanet-lab` provides three core features: 
 
 - Easily and arbitrarily exchange the underlying maching learning model
 - Easy configuration using YAML files which are stored alongside the analysis results 
