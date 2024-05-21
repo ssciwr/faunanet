@@ -2,11 +2,3 @@ sphinx
 myst-parser
 sphinxcontrib-napoleon
 sphinx_rtd_theme
-numpy
-librosa
-PyYAML
-birdnetlib==0.15.0
-pooch 
-resampy
-platformdirs
-ffmpeg-python

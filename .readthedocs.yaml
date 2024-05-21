@@ -18,4 +18,5 @@ sphinx:
 python:
   install:
     - requirements: doc/source/requirements.txt
-    # - path: src/iSparrow
+    - method: pip 
+      path: .
