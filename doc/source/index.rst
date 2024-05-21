@@ -13,7 +13,7 @@ Welcome to Faunanetlab's documentation!
    repl_usage
    using_configuration_files
    using_custom_models
-   using_faunanet-lab_through_docker
+   using_faunanetlab_through_docker
    basic_design
    iSparrow_api_doc
    license_link
