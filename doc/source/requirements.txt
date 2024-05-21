@@ -9,4 +9,4 @@ birdnetlib==0.15.0
 pooch 
 resampy
 platformdirs
-ffmpeg-python"
+ffmpeg-python
