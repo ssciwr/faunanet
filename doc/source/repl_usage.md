@@ -36,6 +36,6 @@ The REPL can be left with a call to the `exit` method.
 
 ```{important}
 When exiting the REPL with `exit` or with a keyboard interrupt, the watcher process will be terminated too, so if you want to have a running instance you can connect or 
-disconnect to and from, use a terminal multiplexer like tmux or use docker (see {doc}`using_faunanet-lab_through_docker`).
+disconnect to and from, use a terminal multiplexer like tmux or use docker (see {doc}`using_faunanetlab_through_docker`).
 ```
 

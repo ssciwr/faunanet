@@ -14,6 +14,6 @@ Welcome to faunanet-lab's documentation!
    basic_design
    using_configuration_files
    using_custom_models
-   using_faunanet-lab_through_docker
+   using_faunanetlab_through_docker
    iSparrow_api_doc
    license_link
