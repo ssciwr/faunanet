@@ -264,7 +264,7 @@ def test_do_start_custom(make_mock_install, capsys):
         ),
         (
             "--cfg=./tests/test_configs/watcher_custom.yml --stuff=superfluous",
-            "Invalid input. Expected 1 blocks of the form --name=<arg>\n",
+            "Invalid input. Expected 1 blocks of the form --name=<arg> with names ['--cfg']\n",
             True,
         ),
         ("", "No config file provided, falling back to default", False),

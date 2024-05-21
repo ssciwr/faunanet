@@ -57,7 +57,7 @@ def test_do_set_up(clean_up_test_installation, patch_functions):
         ),
         (
             "--cfg=./tests/test_configs --stuff=superfluous",
-            "Expected 1 blocks of the form --name=<arg>\n",
+            "Expected 1 blocks of the form --name=<arg> with names ['--cfg']\n",
         ),
         ("", "No config file provided, falling back to default"),
     ],
