@@ -208,15 +208,17 @@ class SparrowWatcher:
                 ) from e
 
         # make sure the date is set correctly
-        if "date" in self.recording_config:
-            if self.recording_config["date"] == "today":
-                self.recording_config["date"] = datetime.now()
-            elif isinstance(self.recording_config["date"], str):
-                self.recording_config["date"] = datetime.strptime(
-                    self.recording_config["date"], "%d/%m/%Y"
+        if "date" in recording_config:
+            if recording_config["date"] == "today":
+                recording_config["date"] = datetime.now()
+            elif isinstance(recording_config["date"], str):
+                recording_config["date"] = datetime.strptime(
+                    recording_config["date"], "%d/%m/%Y"
                 )
             else:
+                # nothing to do here
                 pass
+
         # create recording object
         # species predictor is applied here once and then used for all the analysis calls that may follow
         return SparrowRecording(preprocessor, model, "", **recording_config)
