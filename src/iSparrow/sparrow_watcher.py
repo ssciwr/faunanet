@@ -13,6 +13,7 @@ import multiprocessing
 import warnings
 import csv
 from contextlib import contextmanager
+import traceback
 
 
 class AnalysisEventHandler(FileSystemEventHandler):
@@ -81,13 +82,17 @@ def watchertask(watcher):
     """
 
     # build the recorder
-    observer = Observer()
+    try:
+        observer = Observer()
 
-    event_handler = AnalysisEventHandler(
-        watcher,
-    )
-    observer.schedule(event_handler, watcher.input, recursive=True)
-    observer.start()
+        event_handler = AnalysisEventHandler(
+            watcher,
+        )
+        observer.schedule(event_handler, watcher.input, recursive=True)
+        observer.start()
+    except Exception as e:
+        tb = traceback.format_exc()
+        watcher.exception_queue.put((e, tb))
 
     try:
         while True:
@@ -96,9 +101,8 @@ def watchertask(watcher):
         observer.stop()
     except Exception as e:
         observer.stop()
-        raise RuntimeError(
-            "Something went wrong in the watcher/analysis process"
-        ) from e
+        tb = traceback.format_exc()
+        watcher.exception_queue.put((e, tb))
 
     observer.join()
 
@@ -351,6 +355,8 @@ class SparrowWatcher:
         self.model_name = model_name
 
         self.watcher_process = None
+
+        self.exception_queue = multiprocessing.Queue()
 
         self.may_do_work = multiprocessing.Event()
 
@@ -744,7 +750,7 @@ class SparrowWatcher:
             and not Path(outputfolder, f"results_{f.stem}.csv").is_file()
             and lower_limit < f.stat().st_ctime < upper_limit
         ]
-
+        print("audiofiles: ", audiofiles)
         if len(audiofiles) > 0:
             recording = self._set_up_recording(
                 cfg["Analysis"]["model_name"],
@@ -787,4 +793,5 @@ class SparrowWatcher:
             raise RuntimeError("No output folders found to clean up")
         else:
             for i in range(1, len(folders)):
+                print("clean_up: ", folders[i - 1], folders[i], "/", len(folders))
                 self._clean_up_between(folders[i - 1], folders[i])
