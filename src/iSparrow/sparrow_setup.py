@@ -285,19 +285,16 @@ def set_up_sparrow(custom_config: str = None):
 
         with open(Path(config) / "install.yml", "r") as yfile:
             old_cfg = yaml.safe_load(yfile)["Directories"]
+            old_dirs = [Path(p).expanduser().resolve() for p in old_cfg.values()]
 
         for dir in [home, models, output, examples, config, cache]:
 
             # avoid compromising existing installations
-            if (
-                Path(dir).exists()
-                and Path(dir).expanduser().resolve()
-                != Path(old_cfg[dir]).expanduser().resolve()
-            ):
+            if Path(dir).exists() and Path(dir).expanduser().resolve() not in old_dirs:
                 shutil.rmtree(dir)
-
+        p = Path(config, "install.yml")
         raise FileExistsError(
-            "An iSparrow installation already exists. Please remove it before running the installation."
+            f"An iSparrow installation already exists at {p}. Please remove it before running the installation."
         )
 
     with open(Path(config) / "install.yml", "w") as yfile:
