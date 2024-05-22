@@ -2,6 +2,7 @@ from pathlib import Path
 from platformdirs import user_config_dir, user_cache_dir
 import cmd
 import time
+import traceback
 
 from iSparrow import SparrowWatcher
 import iSparrow.sparrow_setup as sps
@@ -43,8 +44,12 @@ class SparrowCmd(cmd.Cmd):
 
     def do_help(self, line: str):
         print("Commands: ")
-        print("set_up: set up iSparrow for usage")
-        print("start: start a watcher for analyzing incoming files in a directory")
+        print(
+            "set_up: set up iSparrow for usage. Usage: 'set_up --cfg=<path>'. When no argumnet is provided, the default is used."
+        )
+        print(
+            "start: start a watcher for analyzing incoming files in a directory. Usage: 'start --cfg=<path>'. When no argumnet is provided, the default from birdnetlib is used."
+        )
         print("stop: stop a previously started watcher")
         print("pause: pause a running watcher")
         print("continue: continue a paused watcher")
@@ -54,6 +59,7 @@ class SparrowCmd(cmd.Cmd):
             "cleanup: cleanup the output directory of the watcher, assuring data consistency"
         )
         print("status: get the current status of the watcher process")
+        print("get_setup_info: get information about the current setup of iSparrow")
         print("exit: leave this shell.")
         print(
             "Commands can have optional arguments. Use 'help <command>' to get more information on a specific command."
@@ -158,8 +164,10 @@ class SparrowCmd(cmd.Cmd):
                 )
             except Exception as e:
                 print(
-                    f"Could not stop watcher: {e} caused by {e.__cause__}. Watcher process"
+                    f"Could not stop watcher: {e} caused by {e.__cause__}. Watcher process will be killed now."
                 )
+                print("traceback: ")
+                traceback.print_exc()
 
                 if self.watcher.is_running:
                     self.watcher.watcher_process.kill()
@@ -219,8 +227,6 @@ class SparrowCmd(cmd.Cmd):
             print("No installation found - please run the setup command first")
             return
 
-        cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
-
         args, error = self.process_arguments(
             line,
             ["--cfg"],
@@ -231,19 +237,38 @@ class SparrowCmd(cmd.Cmd):
             do_with_failure=lambda _, __, e: print(
                 "Something in the start command parsing went wrong. Check your passed commands. Caused by: ",
                 e,
+                flush=True,
             ),
         )
 
         if error is True:
+            print("An error occurred while processing arguments.")
+            print("traceback: ")
+            traceback.print_exc()
+            print("\n")
             return
 
         cfgpath = Path(args["cfg"]).expanduser().resolve() if "cfg" in args else None
 
         if self.watcher is None:
+            folders = read_yaml(
+                Path(user_config_dir()) / Path("iSparrow") / "install.yml"
+            )["Directories"]
+
+            model_dir = Path(folders["models"]).expanduser()
 
             if cfgpath is not None:
                 custom_cfg = read_yaml(cfgpath)
+
+                cfg = read_yaml(
+                    model_dir
+                    / Path(custom_cfg["Analysis"]["modelname"])
+                    / "default.yml"
+                )
+
                 update_dict_leafs_recursive(cfg, custom_cfg)
+            else:
+                cfg = read_yaml(model_dir / Path("birdnet_default") / "default.yml")
 
             try:
                 self.watcher = SparrowWatcher(
@@ -267,15 +292,22 @@ class SparrowCmd(cmd.Cmd):
                     f"An error occured while trying to build the watcher: {e} caused by {e.__cause__}",
                     flush=True,
                 )
+                print("Traceback: ")
+                traceback.print_exc()
                 return
 
             try:
                 self.watcher.start()
+                self.wait_for_watcher_event(
+                    lambda s: s.watcher.is_running, limit=20, waiting_time=3
+                )
             except Exception as e:
                 print(
                     f"Something went wrong while trying to start the watcher: {e} caused by  {e.__cause__}. A new start attempt can be made when the error has been addressed.",
                     flush=True,
                 )
+                print("Traceback: ")
+                traceback.print_exc()
 
         elif self.watcher.is_running:
             print(
@@ -294,9 +326,8 @@ class SparrowCmd(cmd.Cmd):
                     f"Something went wrong while trying to start the watcher process: {e} caused by  {e.__cause__}. A new start attempt can be made when the error has been addressed.",
                     flush=True,
                 )
-        self.wait_for_watcher_event(
-            lambda s: s.watcher.is_running, limit=20, waiting_time=3
-        )
+                print("Traceback: ")
+                traceback.print_exc()
         print("\n")
 
     def do_stop(self, line: str):
@@ -474,6 +505,61 @@ class SparrowCmd(cmd.Cmd):
             )
         print("\n")
 
+    def do_get_setup_info(self, line: str):
+        """
+        do_get_setup_info Get information about the current setup of iSparrow. If no setup information is found, the cache and config directories are listed.
+        Args:
+            line (str): Empty string, no arguments expected
+        """
+        if len(line) > 0:
+            print("Invalid input. Expected no arguments.", flush=True)
+        elif Path(user_config_dir(), "iSparrow", "install.yml").is_file() is False:
+            print(
+                "cache directories: ",
+                [
+                    f.expanduser()
+                    for f in Path(user_cache_dir()).iterdir()
+                    if "iSparrow" in str(f)
+                ],
+                flush=True,
+            )
+            print(
+                "config directories: ",
+                [
+                    f.expanduser()
+                    for f in Path(user_config_dir()).iterdir()
+                    if "iSparrow" in str(f)
+                ],
+                flush=True,
+            )
+            print("No further setup information found", flush=True)
+        else:
+            print(
+                "cache directories: ",
+                [
+                    f.expanduser()
+                    for f in Path(user_cache_dir()).iterdir()
+                    if "iSparrow" in str(f)
+                ],
+                flush=True,
+            )
+            print(
+                "config directories: ",
+                [
+                    f.expanduser()
+                    for f in Path(user_config_dir()).iterdir()
+                    if "iSparrow" in str(f)
+                ],
+                flush=True,
+            )
+            print(
+                "Current setup: ",
+                read_yaml(Path(user_config_dir(), "iSparrow", "install.yml")),
+                flush=True,
+            )
+
+        print("\n")
+
     def do_change_analyzer(self, line: str):
         """
         do_change_analyzer Change the analyzer of the watcher process. This will assert data consistency in the output folder of the old analyzer.
@@ -481,16 +567,8 @@ class SparrowCmd(cmd.Cmd):
         Args:
             line (str): Path to a custom configuration file. The file must be a yaml file with the same structure as the default configuration file.
         """
-        if self.watcher is None:
-            print("No watcher present, cannot change analyzer", flush=True)
-            return
-        elif self.watcher.is_running is False:
-            print("Cannot change analyzer, watcher is not running", flush=True)
-            return
-        elif self.watcher.is_sleeping:
-            print("Cannot change analyzer, watcher is sleeping", flush=True)
-            return
-        else:
+
+        def run_analyzer_change(s, line: str):
             inputs = process_line_into_kwargs(
                 line,
                 ["--cfg"],
@@ -533,6 +611,15 @@ class SparrowCmd(cmd.Cmd):
                     flush=True,
                 )
 
+        self.dispatch_on_watcher(
+            do_is_none=lambda _: print("No watcher present, cannot change analyzer\n"),
+            do_is_sleeping=lambda _: print(
+                "Cannot change analyzer, watcher is sleeping\n"
+            ),
+            do_is_running=run_analyzer_change(line),
+            do_else=lambda _: print("Cannot change analyzer, watcher is not running\n"),
+        )
+
         self.wait_for_watcher_event(
             lambda s: s.watcher.is_running, limit=20, waiting_time=3
         )
@@ -558,6 +645,8 @@ class SparrowCmd(cmd.Cmd):
             print("Exiting shell...\n")
             self.handle_exit()
             return
+        finally:
+            print(self.prompt, end="", flush=True)
 
 
 def run():
