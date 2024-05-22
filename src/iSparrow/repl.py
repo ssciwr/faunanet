@@ -393,7 +393,6 @@ class SparrowCmd(cmd.Cmd):
             print("Invalid input. Expected no arguments.")
             return
 
-        self.handle_exit()
         print("Exiting sparrow shell")
         return True
 
@@ -650,13 +649,14 @@ class SparrowCmd(cmd.Cmd):
             try:
                 super().cmdloop()
 
-                while not self.exception_queue.empty():
-                    e, traceback_str = self.exception_queue.get()
+                while not self.watcher.exception_queue.empty():
+                    e, traceback_str = self.watcher.exception_queue.get()
                     print("An error occurred in the watcher subprocess: ", e)
                     print("Traceback: ", traceback_str)
             except KeyboardInterrupt:
                 print("Execution Interrupted\n")
                 print("Exiting shell...\n")
+                self.running = False
                 break
             except Exception as e:
                 print("An error occured: ", e, " caused by: ", e.__cause__)

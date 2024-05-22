@@ -6,6 +6,7 @@ import iSparrow
 import iSparrow.repl as repl
 import time
 from copy import deepcopy
+from queue import Queue
 
 CFG_PATH = "--cfg=./tests/test_configs/watcher_custom.yml"
 
@@ -805,3 +806,59 @@ def test_do_cleanup_watcher_failure(mocker, capsys, make_mock_install):
     assert "Error while running cleanup: " in captured.out
 
     sparrow_cmd.watcher.stop()
+
+
+def test_cmdloop_keyboard_interrupt(mocker, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+    assert sparrow_cmd.running
+    mocker.patch.object(repl.cmd.Cmd, "cmdloop", side_effect=KeyboardInterrupt)
+    capsys.readouterr()
+    sparrow_cmd.cmdloop()
+    out, _ = capsys.readouterr()
+    assert not sparrow_cmd.running
+    assert "Execution Interrupted\n" in out
+    assert "Exiting shell...\n" in out
+
+
+def test_cmdloop_exception(mocker, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+    assert sparrow_cmd.running
+
+    def except_set_false():
+        sparrow_cmd.running = False
+        raise Exception("dummy exception")
+
+    mocker.patch.object(repl.cmd.Cmd, "cmdloop", side_effect=except_set_false)
+    capsys.readouterr()
+    sparrow_cmd.cmdloop()
+    out, _ = capsys.readouterr()
+    assert "An error occured:  dummy exception  caused by:  None\n" in out
+    assert (
+        "If you tried to modify the watcher, make sure to restart it or exit and start a new session"
+        in out
+    )
+
+
+def test_cmdloop_exception_queue(mocker, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+
+    def set_false():
+        sparrow_cmd.running = False
+
+    mocker.patch.object(repl.cmd.Cmd, "cmdloop", side_effect=set_false)
+
+    watcher_mock = mocker.Mock()
+    watcher_mock.exception_queue = Queue()
+    sparrow_cmd.watcher = watcher_mock
+
+    sparrow_cmd.watcher.exception_queue.put((Exception("Test"), "Traceback"))
+
+    # Now, you can assign this mock to the watcher member of the SparrowCmd instance
+    sparrow_cmd.watcher = watcher_mock
+
+    sparrow_cmd.running = True
+    capsys.readouterr()
+    sparrow_cmd.cmdloop()
+    out, _ = capsys.readouterr()
+    assert "An error occurred in the watcher subprocess: " in out
+    assert "Traceback: " in out
