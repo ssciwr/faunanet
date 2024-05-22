@@ -750,7 +750,7 @@ class SparrowWatcher:
             and not Path(outputfolder, f"results_{f.stem}.csv").is_file()
             and lower_limit < f.stat().st_ctime < upper_limit
         ]
-        print("audiofiles: ", audiofiles)
+
         if len(audiofiles) > 0:
             recording = self._set_up_recording(
                 cfg["Analysis"]["model_name"],
