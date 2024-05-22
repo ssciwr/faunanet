@@ -41,6 +41,7 @@ class SparrowCmd(cmd.Cmd):
     def __init__(self):
         super().__init__()
         self.watcher = None
+        self.running = True
 
     def do_help(self, line: str):
         print("Commands: ")
@@ -98,7 +99,6 @@ class SparrowCmd(cmd.Cmd):
             )
             return inputs, True
         elif len(inputs) == 0:
-            print("No config file provided, falling back to default")
             try:
                 do_no_inputs(self, inputs)
                 return inputs, False
@@ -156,6 +156,7 @@ class SparrowCmd(cmd.Cmd):
         """
         handle_exit  Stops the watcher if it is running upon exiting the shell if it is running.
         """
+        self.running = False
         if self.watcher is not None and self.watcher.is_running:
             try:  # Try to stop the watcher
                 self.watcher.stop()
@@ -166,7 +167,7 @@ class SparrowCmd(cmd.Cmd):
                 print(
                     f"Could not stop watcher: {e} caused by {e.__cause__}. Watcher process will be killed now."
                 )
-                print("traceback: ")
+                print("Traceback: ")
                 traceback.print_exc()
 
                 if self.watcher.is_running:
@@ -214,7 +215,6 @@ class SparrowCmd(cmd.Cmd):
                 "Could not set up iSparrow", e, "caused by: ", e.__cause__
             ),
         )
-        print("\n")
 
     def do_start(self, line: str):
         """
@@ -245,7 +245,6 @@ class SparrowCmd(cmd.Cmd):
             print("An error occurred while processing arguments.")
             print("traceback: ")
             traceback.print_exc()
-            print("\n")
             return
 
         cfgpath = Path(args["cfg"]).expanduser().resolve() if "cfg" in args else None
@@ -259,17 +258,16 @@ class SparrowCmd(cmd.Cmd):
 
             if cfgpath is not None:
                 custom_cfg = read_yaml(cfgpath)
-
-                cfg = read_yaml(
-                    model_dir
-                    / Path(custom_cfg["Analysis"]["modelname"])
-                    / "default.yml"
+                modelname = (
+                    Path(custom_cfg["Analysis"]["modelname"])
+                    if "modelname" in custom_cfg["Analysis"]
+                    else Path("birdnet_default")
                 )
+                cfg = read_yaml(model_dir / modelname / "default.yml")
 
                 update_dict_leafs_recursive(cfg, custom_cfg)
             else:
                 cfg = read_yaml(model_dir / Path("birdnet_default") / "default.yml")
-
             try:
                 self.watcher = SparrowWatcher(
                     indir=Path(cfg["Data"]["input"]).expanduser().resolve(),
@@ -328,7 +326,6 @@ class SparrowCmd(cmd.Cmd):
                 )
                 print("Traceback: ")
                 traceback.print_exc()
-        print("\n")
 
     def do_stop(self, line: str):
         """
@@ -359,8 +356,6 @@ class SparrowCmd(cmd.Cmd):
                 lambda s: s.watcher.is_running is False, limit=20, waiting_time=3
             )
 
-        print("\n")
-
     def do_cleanup(self, line: str):
         """
         do_cleanup Run the cleanup method of the watcher process to assure data consistency
@@ -384,12 +379,11 @@ class SparrowCmd(cmd.Cmd):
             ),
         )
 
-        print("\n")
-
     def do_exit(self, line: str):
         """
         do_exit Leave the sparrow shell
         """
+        self.running = False
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
@@ -424,7 +418,6 @@ class SparrowCmd(cmd.Cmd):
                 f"Could not pause watcher: {e} caused by {e.__cause__}", flush=True
             ),
         )
-        print("\n")
 
     def do_continue(self, line: str):
         """
@@ -452,7 +445,6 @@ class SparrowCmd(cmd.Cmd):
                 f"Could not continue watcher: {e} caused by {e.__cause__}", flush=True
             ),
         )
-        print("\n")
 
     def do_restart(self, line: str):
         """
@@ -481,7 +473,6 @@ class SparrowCmd(cmd.Cmd):
                 f"Could not restart watcher: {e} caused by {e.__cause__}", flush=True
             ),
         )
-        print("\n")
 
     def do_status(self, line: str):
         """
@@ -503,7 +494,6 @@ class SparrowCmd(cmd.Cmd):
                 self.watcher.is_done_analyzing.is_set(),
                 flush=True,
             )
-        print("\n")
 
     def do_get_setup_info(self, line: str):
         """
@@ -558,8 +548,6 @@ class SparrowCmd(cmd.Cmd):
                 flush=True,
             )
 
-        print("\n")
-
     def do_change_analyzer(self, line: str):
         """
         do_change_analyzer Change the analyzer of the watcher process. This will assert data consistency in the output folder of the old analyzer.
@@ -610,6 +598,8 @@ class SparrowCmd(cmd.Cmd):
                     f"An error occured while trying to change the analyzer: {e} caused by {e.__cause__}",
                     flush=True,
                 )
+                print("Traceback: ")
+                traceback.print_exc()
 
         self.dispatch_on_watcher(
             do_is_none=lambda _: print("No watcher present, cannot change analyzer\n"),
@@ -624,7 +614,18 @@ class SparrowCmd(cmd.Cmd):
             lambda s: s.watcher.is_running, limit=20, waiting_time=3
         )
 
+    def emptyline(self):
         print("\n")
+
+    def postloop(self):
+        self.handle_exit()
+
+    def precmd(self, line):
+        return line
+
+    def postcmd(self, stop, line):
+        print("\n")
+        return stop
 
     def cmdloop(self, intro=None):
         """
@@ -633,20 +634,22 @@ class SparrowCmd(cmd.Cmd):
         Args:
             intro (str, optional): Intro text when starting. Defaults to None.
         """
-        try:
-            super().cmdloop(intro=self.intro)
-        except KeyboardInterrupt:
-            print("Execution Interrupted\n")
-            print("Exiting shell...\n")
-            self.handle_exit()
-            return
-        except Exception as e:
-            print("An error occured: ", e, " caused by: ", e.__cause__)
-            print("Exiting shell...\n")
-            self.handle_exit()
-            return
-        finally:
-            print(self.prompt, end="", flush=True)
+        while self.running:
+            try:
+                super().cmdloop()
+            except KeyboardInterrupt:
+                print("Execution Interrupted\n")
+                print("Exiting shell...\n")
+                break
+            except Exception as e:
+                print("An error occured: ", e, " caused by: ", e.__cause__)
+                print("Traceback: ")
+                traceback.print_exc()
+                print(
+                    "If you tried to modify the watcher, make sure to restart it or exit and start a new session"
+                )
+            finally:
+                print(self.prompt, flush=True)
 
 
 def run():
