@@ -682,8 +682,7 @@ def test_change_analyzer_exception(make_mock_install, capsys, mocker):
     out, _ = capsys.readouterr()
 
     assert (
-        "An error occured while trying to change the analyzer: RuntimeError caused by None\n"
-        in out
+        "An error occured when changing analyzer: RuntimeError, caused by None\n" in out
     )
 
     if sparrow_cmd.watcher is not None and sparrow_cmd.watcher.is_running is True:
@@ -719,7 +718,10 @@ def test_change_analyzer_failure(make_mock_install, capsys):
         "--cfg=./tests/test_configs/watcher_custom.yml --other=superfluous"
     )
     out, _ = capsys.readouterr()
-    assert "Invalid input. Expected: change_analyzer --cfg=<config_file>\n" in out
+    assert (
+        "Invalid input. Expected 1 blocks of the form --name=<arg> with names ['--cfg']\n"
+        in out
+    )
 
     sparrow_cmd.watcher.stop()
     wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_running is False)
