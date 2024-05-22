@@ -514,7 +514,15 @@ class SparrowWatcher:
             RuntimeError: When the watcher process is not running.
         """
         if self.watcher_process is not None and self.watcher_process.is_alive():
-            self.is_done_analyzing.wait()  # wait for the finish event
+            is_flag_set = self.is_done_analyzing.wait(
+                timeout=30
+            )  # wait for the analysis finish event
+
+            if is_flag_set is False:
+                warnings.warn(
+                    "pause timeout expired, setting on pause without regard for status"
+                )
+
             self.may_do_work.clear()
         else:
             raise RuntimeError("Cannot pause watcher process, is not alive anymore.")
@@ -766,7 +774,6 @@ class SparrowWatcher:
 
         """
 
-        print("clean up the output directories")
         folders = sorted(
             filter(lambda f: f.is_file() is False, list(self.outdir.iterdir())),
             key=lambda x: x.stat().st_ctime,
