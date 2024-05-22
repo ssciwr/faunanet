@@ -72,7 +72,7 @@ class SparrowCmd(cmd.Cmd):
         keywords: list,
         do_no_inputs: callable = lambda s: None,
         do_with_inputs: callable = lambda s: None,
-        do_with_failure: callable = lambda s, e: None,
+        do_with_failure: callable = lambda s, args, e: None,
     ) -> tuple:
         """
         process_arguments Process the argument string of a command into its individual parts, based on a '--name=<arg>' structure. Depending on the input, different actions are taken as given in the arguments.
@@ -204,10 +204,15 @@ class SparrowCmd(cmd.Cmd):
         Args:
             line (str): Optional path relative to the user's home directory to a custom configuration file. The file must be a yaml file with the same structure as the default configuration file.
         """
+
+        def do_no_inputs(s, _):
+            print("No config file provided, falling back to default\n")
+            sps.set_up_sparrow(None)
+
         self.process_arguments(
             line,
             ["--cfg"],
-            do_no_inputs=lambda self, inputs: sps.set_up_sparrow(None),
+            do_no_inputs=lambda self, inputs: do_no_inputs(self, inputs),
             do_with_inputs=lambda self, inputs: sps.set_up_sparrow(
                 Path(inputs["cfg"]).expanduser().resolve()
             ),
@@ -556,62 +561,69 @@ class SparrowCmd(cmd.Cmd):
             line (str): Path to a custom configuration file. The file must be a yaml file with the same structure as the default configuration file.
         """
 
-        def run_analyzer_change(s, line: str):
-            inputs = process_line_into_kwargs(
-                line,
-                ["--cfg"],
+        # add a closure to encapsulate analyzer change logic
+        def run_analyzer_change(cfg: str = ""):
+
+            cfgpath = cfg
+
+            custom_config = read_yaml(cfgpath)
+
+            folders = read_yaml(
+                Path(user_config_dir()) / Path("iSparrow") / "install.yml"
+            )["Directories"]
+
+            model_dir = Path(folders["models"]).expanduser()
+
+            modelname = (
+                Path(custom_config["Analysis"]["modelname"])
+                if "modelname" in custom_config["Analysis"]
+                else self.watcher.model_name
             )
 
-            cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
+            config = read_yaml(model_dir / modelname / "default.yml")
 
-            cfgpath = None
+            update_dict_leafs_recursive(config, custom_config)
 
-            if len(inputs) > 1:
-                print(
-                    "Invalid input. Expected: change_analyzer --cfg=<config_file>",
-                    flush=True,
-                )
-                return
-            elif len(inputs) == 1:
-                cfgpath = Path(inputs["cfg"]).expanduser().resolve()
-            else:
-                cfgpath = None
+            self.watcher.change_analyzer(
+                model_name=config["Analysis"]["modelname"],
+                preprocessor_config=config["Data"]["Preprocessor"],
+                model_config=config["Analysis"]["Model"],
+                recording_config=config["Analysis"]["Recording"],
+                species_predictor_config=config["Analysis"].get(
+                    "SpeciesPredictor", None
+                ),
+                pattern=config["Analysis"]["pattern"],
+                check_time=config["Analysis"]["check_time"],
+                delete_recordings=config["Analysis"]["delete_recordings"],
+            )
 
-            if cfgpath is not None:
-                custom_cfg = read_yaml(cfgpath)
-                update_dict_leafs_recursive(cfg, custom_cfg)
-            try:
-                self.watcher.change_analyzer(
-                    model_name=cfg["Analysis"]["modelname"],
-                    preprocessor_config=cfg["Data"]["Preprocessor"],
-                    model_config=cfg["Analysis"]["Model"],
-                    recording_config=cfg["Analysis"]["Recording"],
-                    species_predictor_config=cfg["Analysis"].get(
-                        "SpeciesPredictor", None
-                    ),
-                    pattern=cfg["Analysis"]["pattern"],
-                    check_time=cfg["Analysis"]["check_time"],
-                    delete_recordings=cfg["Analysis"]["delete_recordings"],
-                )
-            except Exception as e:
-                print(
-                    f"An error occured while trying to change the analyzer: {e} caused by {e.__cause__}",
-                    flush=True,
-                )
-                print("Traceback: ")
-                traceback.print_exc()
+            self.wait_for_watcher_event(
+                lambda s: s.watcher.is_running, limit=20, waiting_time=3
+            )
+
+        def do_on_failure(s, e):
+            print(
+                f"An error occured when changing analyzer: {e}, caused by {e.__cause__}\n"
+            )
+            print("Traceback: ")
+            traceback.print_exc()
 
         self.dispatch_on_watcher(
             do_is_none=lambda _: print("No watcher present, cannot change analyzer\n"),
             do_is_sleeping=lambda _: print(
                 "Cannot change analyzer, watcher is sleeping\n"
             ),
-            do_is_running=run_analyzer_change(line),
+            do_is_running=lambda s: s.process_arguments(
+                line,
+                ["--cfg"],
+                do_no_inputs=lambda s: print(
+                    "Cannot change analyzer, no config file provided\n"
+                ),
+                do_with_inputs=lambda _, kwargs: run_analyzer_change(**kwargs),
+                do_with_failure=lambda s, _, e: do_on_failure(s, e),
+            ),
             do_else=lambda _: print("Cannot change analyzer, watcher is not running\n"),
-        )
-
-        self.wait_for_watcher_event(
-            lambda s: s.watcher.is_running, limit=20, waiting_time=3
+            do_failure=do_on_failure,
         )
 
     def emptyline(self):
@@ -637,6 +649,11 @@ class SparrowCmd(cmd.Cmd):
         while self.running:
             try:
                 super().cmdloop()
+
+                while not self.exception_queue.empty():
+                    e, traceback_str = self.exception_queue.get()
+                    print("An error occurred in the watcher subprocess: ", e)
+                    print("Traceback: ", traceback_str)
             except KeyboardInterrupt:
                 print("Execution Interrupted\n")
                 print("Exiting shell...\n")
