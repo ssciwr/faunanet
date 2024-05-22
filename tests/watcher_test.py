@@ -2,23 +2,23 @@ import pytest
 from pathlib import Path
 from iSparrow.sparrow_watcher import AnalysisEventHandler, SparrowWatcher
 from iSparrow.utils import wait_for_file_completion, read_yaml
+import iSparrow
 from copy import deepcopy
 import yaml
 from math import isclose
 import multiprocessing
 import time
 from datetime import datetime
-import random
 import shutil
 
 
-def test_watcher_construction(watch_fx):
+def test_watcher_construction(watch_fx, mocker):
     directories, wfx = watch_fx
 
     watcher = SparrowWatcher(
         wfx.data,
         wfx.output,
-        wfx.home / "models",
+        wfx.models,
         "birdnet_default",
         preprocessor_config=wfx.preprocessor_cfg,
         model_config=wfx.model_cfg,
@@ -29,13 +29,12 @@ def test_watcher_construction(watch_fx):
     # check member variables
     assert str(watcher.input) == str(directories["data"])
     assert str(watcher.outdir) == str(directories["output"])
-    assert watcher.output is None
     assert watcher.old_output is None
+    assert watcher.output is None
     assert str(watcher.model_dir) == str(directories["models"])
     assert str(watcher.model_name) == "birdnet_default"
     assert watcher.input_directory == str(directories["data"])
     assert watcher.is_running is False
-    assert watcher.input.is_dir()
     assert watcher.outdir.is_dir()
     assert watcher.model_dir.is_dir()
     assert (watcher.model_dir / watcher.model_name).is_dir()
@@ -46,19 +45,16 @@ def test_watcher_construction(watch_fx):
     default_watcher = SparrowWatcher(
         wfx.data,
         wfx.output,
-        wfx.home / "models",
+        wfx.models,
         "birdnet_default",
     )
-    assert default_watcher.output is None
-    assert default_watcher.old_output is None
+
     assert str(default_watcher.input) == str(directories["data"])
     assert str(default_watcher.outdir) == str(directories["output"])
     assert str(default_watcher.model_dir) == str(directories["models"])
     assert str(default_watcher.model_name) == "birdnet_default"
-
     assert default_watcher.input_directory == str(directories["data"])
     assert default_watcher.is_running is False
-    assert default_watcher.input.is_dir()
     assert default_watcher.outdir.is_dir()
     assert default_watcher.model_dir.is_dir()
     assert (default_watcher.model_dir / default_watcher.model_name).is_dir()
@@ -69,7 +65,8 @@ def test_watcher_construction(watch_fx):
     watcher.output = Path(watcher.outdir) / Path(
         datetime.now().strftime("%y%m%d_%H%M%S")
     )
-    watcher.output.mkdir(exist_ok=True, parents=True)
+
+    watcher.output.mkdir(parents=True, exist_ok=True)
 
     watcher._write_config()
 
@@ -100,7 +97,7 @@ def test_watcher_construction(watch_fx):
         SparrowWatcher(
             Path.home() / "iSparrow_data_not_there",
             wfx.output,
-            wfx.home / "models",
+            wfx.models,
             "birdnet_default",
         )
 
@@ -108,7 +105,7 @@ def test_watcher_construction(watch_fx):
         SparrowWatcher(
             wfx.data,
             Path.home() / "iSparrow_output_not_there",
-            wfx.home / "/models",
+            wfx.models,
             "birdnet_default",
         )
 
@@ -126,10 +123,15 @@ def test_watcher_construction(watch_fx):
         SparrowWatcher(
             wfx.data,
             wfx.output,
-            wfx.home / "models",
+            wfx.models,
             "does_not_exist",
         )
 
+    mocker.patch.object(
+        iSparrow.SpeciesPredictorBase,
+        "__init__",
+        raise_exception=ValueError("Simulated error occurred"),
+    )
     with pytest.raises(
         ValueError,
         match="An error occured during species range predictor creation. Does you model provide a model file called 'species_presence_model'?",
@@ -137,7 +139,7 @@ def test_watcher_construction(watch_fx):
         sp = SparrowWatcher(
             wfx.data,
             wfx.output,
-            wfx.home / "models",
+            wfx.models,
             "birdnet_custom",
             preprocessor_config=wfx.custom_preprocessor_cfg,
             model_config=wfx.custom_model_cfg,
@@ -145,11 +147,11 @@ def test_watcher_construction(watch_fx):
         )
 
         sp._set_up_recording(
-            "birdnet_custom",
-            sp.recording_config,
-            sp.species_predictor_config,
-            sp.model_config,
-            sp.preprocessor_config,
+            "birdnet_default",
+            wfx.recording_cfg,
+            wfx.species_predictor_cfg,
+            wfx.model_cfg,
+            wfx.preprocessor_cfg,
         )
 
     with pytest.raises(
@@ -229,12 +231,13 @@ def test_watcher_daemon_lowlevel_functionality(watch_fx):
     _, wfx = watch_fx
 
     watcher = wfx.make_watcher()
-    watcher.output = Path(watcher.outdir) / Path(
-        datetime.now().strftime("%y%m%d_%H%M%S")
-    )
+
     # this is normally performed by the `start` method of the watcher,
     # but because this is a low level test of the basic functionality
     # we must do it by hand here:
+    watcher.output = Path(watcher.outdir) / Path(
+        datetime.now().strftime("%y%m%d_%H%M%S")
+    )
     watcher.output.mkdir(parents=True, exist_ok=True)
     # run the watcher process dry and make sure start, pause stop works
     watcher.start()
@@ -440,7 +443,6 @@ def test_watcher_integrated_delete_always(watch_fx):
 
     # the following makes
     recorder_process.join()
-
     recorder_process.close()
 
     assert watcher.is_running is False

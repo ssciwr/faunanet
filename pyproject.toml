@@ -18,14 +18,13 @@ dependencies = [
     "birdnetlib==0.15.0",
     "pooch", 
     "resampy", # for audio loading
-    "tensorflow-hub",
     "platformdirs", # get cache dirs without os dependence etc
     "ffmpeg-python"
 ]
 
 [project.optional-dependencies]
-tensorflow   = ["tensorflow", "tensorflow-hub"]
-tensorflow-lite =["tflite-runtime"]
+tensorflow   = ["tensorflow",]
+tensorflow-lite =["tflite-runtime",]
 
 [project.urls]
 Repository = "https://github.com/ssciwr/iSparrow"
@@ -67,3 +66,6 @@ fail_under = 80
 
 [tool.coverage.html]
 directory = "coverage_html_report"
+
+[project.scripts]
+iSparrow = "iSparrow.repl:run"
