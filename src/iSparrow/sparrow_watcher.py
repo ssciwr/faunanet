@@ -103,7 +103,6 @@ def watchertask(watcher):
     observer.join()
 
 
-
 class SparrowWatcher:
     """
     Class that watches a directory and applies a classifier model to each new file that is created in it.
@@ -193,7 +192,7 @@ class SparrowWatcher:
         if all(name in recording_config for name in ["date", "lat", "lon"]) and all(
             recording_config[name] is not None for name in ["date", "lat", "lon"]
         ):
-    
+
             try:
                 # we can use the species predictor
                 species_predictor = SpeciesPredictorBase(
@@ -210,14 +209,16 @@ class SparrowWatcher:
 
         # make sure the date is set correctly
         if "date" in recording_config:
-            if isinstance(recording_config["date"], str) is False:
-                pass  # no action needed
-            elif recording_config["date"] == "today":
+            if recording_config["date"] == "today":
                 recording_config["date"] = datetime.now()
-            else:
+            elif isinstance(recording_config["date"], str):
                 recording_config["date"] = datetime.strptime(
                     recording_config["date"], "%d/%m/%Y"
                 )
+            else:
+                # nothing to do here
+                pass
+
         # create recording object
         # species predictor is applied here once and then used for all the analysis calls that may follow
         return SparrowRecording(preprocessor, model, "", **recording_config)
@@ -644,7 +645,9 @@ class SparrowWatcher:
                     if i > 10:
                         break
                     i += 1
-                warnings.warn("No data was incoming in 30s, trying to clean up data anyway.")
+                warnings.warn(
+                    "No data was incoming in 30s, trying to clean up data anyway."
+                )
                 self.clean_up()
 
             except Exception as e:

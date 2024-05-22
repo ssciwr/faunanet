@@ -51,7 +51,6 @@ def clean_up_test_installation():
     cfg = sps.utils.read_yaml(
         Path(__file__).parent / "test_install_config" / "install.yml"
     )
-
     for _, path in cfg["Directories"].items():
         if Path(path).expanduser().exists():
             shutil.rmtree(Path(path).expanduser(), ignore_errors=True)
@@ -70,7 +69,7 @@ def test_make_directories(temp_dir, cleanup_after_test):
         "output": str(Path(temp_dir, "test_output")),
     }
     ish, ism, iso, ise, iscfg, iscache = sps.make_directories(base_cfg_dirs)
-    print(ish, ism, iso, ise, iscfg, iscache)
+
     assert ish.exists()
     assert ism.exists()
     assert iso.exists()

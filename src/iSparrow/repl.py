@@ -88,7 +88,7 @@ class SparrowCmd(cmd.Cmd):
 
         if len(inputs) > len(keywords):
             print(
-                f"Invalid input. Expected {len(keywords)} blocks of the form --name=<arg>"
+                f"Invalid input. Expected {len(keywords)} blocks of the form --name=<arg> with names {keywords}"
             )
             return inputs, True
         elif len(inputs) == 0:
@@ -146,9 +146,35 @@ class SparrowCmd(cmd.Cmd):
             except Exception as e:
                 do_failure(self, e)
 
+    def handle_exit(self):
+        """
+        handle_exit  Stops the watcher if it is running upon exiting the shell if it is running.
+        """
+        if self.watcher is not None and self.watcher.is_running:
+            try:  # Try to stop the watcher
+                self.watcher.stop()
+                self.wait_for_watcher_event(
+                    lambda s: s.watcher.is_running is False, limit=20, waiting_time=3
+                )
+            except Exception as e:
+                print(
+                    f"Could not stop watcher: {e} caused by {e.__cause__}. Watcher process"
+                )
+
+                if self.watcher.is_running:
+                    self.watcher.watcher_process.kill()
+
     def wait_for_watcher_event(
         self, event: callable, limit: int = 10, waiting_time: int = 5
     ):
+        """
+        wait_for_watcher_event Wait for  defined event happening to the watcher process, and block the caller until then.
+
+        Args:
+            event (callable): Event to wait for. Must be a function that takes the current instance of the shell as an argument and returns a boolean.
+            limit (int, optional): Timeout limit for the waiting. Timeout in seconds is limit * waiting_time. Defaults to 10.
+            waiting_time (int, optional): Waiting time for each test. Defaults to 5.
+        """
         i = 0
         while True:
             if event(self):
@@ -177,7 +203,7 @@ class SparrowCmd(cmd.Cmd):
                 Path(inputs["cfg"]).expanduser().resolve()
             ),
             do_with_failure=lambda self, inputs, e: print(
-                "Could not set up iSparrow", e, "caused by: ", e.__cause__, flush=True
+                "Could not set up iSparrow", e, "caused by: ", e.__cause__
             ),
         )
         print("\n")
@@ -190,9 +216,7 @@ class SparrowCmd(cmd.Cmd):
             line (str): optional argument --cfg=<path> to provide a custom configuration file.
         """
         if Path(user_config_dir(), "iSparrow").exists() is False:
-            print(
-                "No installation found - please run the setup command first", flush=True
-            )
+            print("No installation found - please run the setup command first")
             return
 
         cfg = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "default.yml")
@@ -201,13 +225,12 @@ class SparrowCmd(cmd.Cmd):
             line,
             ["--cfg"],
             do_no_inputs=lambda _, __: print(
-                "No config file provided, falling back to default", flush=True
+                "No config file provided, falling back to default"
             ),
             do_with_inputs=lambda _, __: None,
             do_with_failure=lambda _, __, e: print(
                 "Something in the start command parsing went wrong. Check your passed commands. Caused by: ",
                 e,
-                flush=True,
             ),
         )
 
@@ -279,30 +302,24 @@ class SparrowCmd(cmd.Cmd):
     def do_stop(self, line: str):
         """
         do_stop Stop a running sparrow watcher process.
-
-        Args:
-            line (str): Empty string. No arguments are expected.
         """
         if len(line) > 0:
-            print("Invalid input. Expected no arguments.", flush=True)
+            print("Invalid input. Expected no arguments.")
             return
 
         def handle_failure(s: cmd, e: Exception):
             print(
-                f"Could not stop watcher: {e} caused by {e.__cause__}. Watcher process will be killed now and all resources released. This may have left data in a corrupt state. A new watcher must be started if this session is to be continued.",
-                flush=True,
+                f"Could not stop watcher: {e} caused by {e.__cause__}. Watcher process will be killed now and all resources released. This may have left data in a corrupt state. A new watcher must be started if this session is to be continued."
             )
             if s.watcher.is_running:
                 s.watcher.watcher_process.kill()
             s.watcher = None
 
         self.dispatch_on_watcher(
-            do_is_none=lambda _: print(
-                "Cannot stop watcher, no watcher present", flush=True
-            ),
+            do_is_none=lambda _: print("Cannot stop watcher, no watcher present"),
             do_is_sleeping=lambda self: self.watcher.stop(),
             do_is_running=lambda self: self.watcher.stop(),
-            do_else=lambda _: print("Cannot stop watcher, is not running", flush=True),
+            do_else=lambda _: print("Cannot stop watcher, is not running"),
             do_failure=handle_failure,
         )
 
@@ -341,20 +358,13 @@ class SparrowCmd(cmd.Cmd):
     def do_exit(self, line: str):
         """
         do_exit Leave the sparrow shell
-
-        Args:
-            line (str): Empty string. No arguments are expected.
         """
         if len(line) > 0:
-            print("Invalid input. Expected no arguments.", flush=True)
+            print("Invalid input. Expected no arguments.")
             return
 
-        if self.watcher is not None and self.watcher.is_running:
-            self.watcher.stop()
-            self.wait_for_watcher_event(
-                lambda s: s.watcher.is_running is False, limit=20, waiting_time=3
-            )
-        print("Exiting sparrow shell", flush=True)
+        self.handle_exit()
+        print("Exiting sparrow shell")
         return True
 
     def do_pause(self, line: str):
@@ -528,6 +538,26 @@ class SparrowCmd(cmd.Cmd):
         )
 
         print("\n")
+
+    def cmdloop(self, intro=None):
+        """
+        cmdloop Override of the cmd.cmdloop method to catch KeyboardInterrupts and other exceptions that might occur during the execution of the shell.
+
+        Args:
+            intro (str, optional): Intro text when starting. Defaults to None.
+        """
+        try:
+            super().cmdloop(intro=self.intro)
+        except KeyboardInterrupt:
+            print("Execution Interrupted\n")
+            print("Exiting shell...\n")
+            self.handle_exit()
+            return
+        except Exception as e:
+            print("An error occured: ", e, " caused by: ", e.__cause__)
+            print("Exiting shell...\n")
+            self.handle_exit()
+            return
 
 
 def run():

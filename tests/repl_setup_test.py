@@ -8,7 +8,7 @@ import shutil
 
 @pytest.fixture()
 def clean_up_test_installation():
-    yield 
+    yield
 
     cfg = utils.read_yaml(Path(__file__).parent / "test_install_config" / "install.yml")
     for _, path in cfg["Directories"].items():
@@ -59,7 +59,7 @@ def test_do_set_up(clean_up_test_installation, patch_functions):
         ),
         (
             "--cfg=./tests/test_configs --stuff=superfluous",
-            "Expected 1 blocks of the form --name=<arg>\n",
+            "Expected 1 blocks of the form --name=<arg> with names ['--cfg']\n",
         ),
         ("", "No config file provided, falling back to default"),
     ],

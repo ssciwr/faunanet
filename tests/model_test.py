@@ -21,7 +21,7 @@ def test_default_model_construction(model_fx):
     assert model.labels_path == str(
         mfx.models_folder / Path("birdnet_default") / "labels.txt"
     )
-    assert model.sensitivity == pytest.approx(1.0)
+    assert model.sigmoid_sensitivity == pytest.approx(1.0)
     assert model.input_layer_index == 0
     assert model.output_layer_index == 546  # last
     assert model.name == "birdnet_default"
@@ -48,7 +48,7 @@ def test_custom_model_construction(model_fx):
         mfx.models_folder / Path("birdnet_custom") / "labels.txt"
     )
 
-    assert model.sensitivity == pytest.approx(1.0)
+    assert model.sigmoid_sensitivity == pytest.approx(1.0)
     assert model.input_layer_index == 0
     assert model.output_layer_index == 545  # second to last
     assert model.name == "birdnet_custom"
@@ -69,7 +69,6 @@ def test_google_model_construction(model_fx):
         mfx.models_folder / Path("google_perch") / "labels.txt"
     )
 
-    assert model.sensitivity == pytest.approx(1.0)
     assert model.name == "google_perch"
 
 

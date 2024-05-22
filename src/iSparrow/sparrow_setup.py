@@ -55,7 +55,10 @@ def make_directories(base_cfg_dirs: dict):
         iscfg = Path(user_config_dir()) / "iSparrow_tests"
         iscache = Path(user_cache_dir()) / "iSparrow_tests"
 
-    for p in [ish, ism, iso, ise, iscfg, iscache]:
+    for p in [ish, ism, iso, ise]:
+        p.mkdir(parents=True, exist_ok=False)
+
+    for p in [iscfg, iscache]:
         p.mkdir(parents=True, exist_ok=True)
 
     return ish, ism, iso, ise, iscfg, iscache
@@ -259,8 +262,18 @@ def set_up_sparrow(custom_config: str = None):
     )
 
     if Path(config, "install.yml").exists():
+
+        with open(Path(config) / "install.yml", "r") as yfile:
+            old_cfg = yaml.safe_load(yfile)["Directories"]
+
         for dir in [home, models, output, examples, config, cache]:
-            if Path(dir).exists():
+
+            # avoid compromising existing installations
+            if (
+                Path(dir).exists()
+                and Path(dir).expanduser().resolve()
+                != Path(old_cfg[dir]).expanduser().resolve()
+            ):
                 shutil.rmtree(dir)
 
         raise FileExistsError(
