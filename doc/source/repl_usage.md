@@ -4,7 +4,7 @@ To get a list of available commands you can run `help` in a running REPL:
 ```bash 
 faunanet-lab
 (faunanet-lab) help 
-set_up: set up iSparrow for usage...
+set_up: set up faunanet-lab for usage...
 start: start a watcher for analyzing incoming files in a directory ...
 stop: stop a previously started watcher ...
 pause: pause a running watcher
@@ -13,6 +13,7 @@ restart: restart an existing watcher
 change_analyzer: change the analyzer of a running watcher ...
 cleanup: cleanup the output directory of the watcher, assuring data consistency
 status: get the current status of the watcher process
+get_setup_info: get ifnormation about the current setup of faunanet-lab
 exit: leave this shell.
 Commands can have optional arguments. Use 'help <command>' to get more information on a specific command.
 ```

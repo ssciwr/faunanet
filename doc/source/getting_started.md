@@ -78,10 +78,10 @@ Directories:
 
 The specified folders serve the following purposes: 
 
-| foldername                            | purpose                                                                                                                                                                                            | customizable |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| foldername                             | purpose                                                                                                                                                                                             | customizable |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
 | `faunanet-lab`                         | The home directory of `faunanet-lab` where all the data needed to run it are stored.                                                                                                                | Yes          |
-| `faunanet-lab`/`examples`              | Example data needed for tests is stored here                                                                                                                                                       | No           |
+| `faunanet-lab`/`examples`              | Example data needed for tests is stored here                                                                                                                                                        | No           |
 | `faunanet-lab/models`                  | Machine learning models along with the python code to use them with  `faunanet-lab` are stored here                                                                                                 | Yes          |
 | `user_cache_directory`/`faunanet-lab`  | The standard cache directory where `faunanet-lab` puts files needing to be stored for further usage, e.g., computed species lists or the default machine learning models it downloads during setup. | No           |
 | `user_config_directory`/`faunanet-lab` | The standard config directory where `faunanet-lab` stores its default configuration files.                                                                                                          | No           |
@@ -108,25 +108,20 @@ set-up --cfg=/path/to/custom/setupfile.yml
 See {doc}`basic_design` and {doc}`using_configuration_files` to learn more about how configuration files are used in `faunanet-lab`. 
 
 #### Removing a `faunanet-lab` setup 
-There can only be one `faunanet-lab` setup on any machine at any given time. There is currently no dedicated `uninstall` method, so you have to remove a setup by hand if you want a new one. In order to remove an existing setup: 
-- Check the standard user config directory of your system for a folder `faunanet-lab`. Therein, open the `install.yml` file.
-You can have a look [here](https://pypi.org/project/platformdirs/) to see the standard user config paths for your platform, or use 
-```python 
-from platformdirs import user_config_dir, user_cache_dir 
-
-user_config_dir() 
-
-user_cache_dir() 
-``` 
-to get the user config and user cache directories directly. 
-- Delete all folders listed in it under `Directories`. Per default, the file looks like shown above and the relevant folders are the one shown in the above table. 
-  Delete the `faunanet-lab` folder in the user config directory.
-- Go to the standard user cache directory and delete all folders containing `faunanet-lab` in their name. This will remove all downloaded model files and cached species lists. 
-
-in a python shell started from the `faunanet-lab` virtual environment to get their location directly.
+There can only be one `faunanet-lab` setup on any machine at any given time. There is currently no dedicated `uninstall` method, so you have to remove a setup by hand if you want a new one. 
+In `faunanet-lab`'s shell, you can use the `get_setup_info` command to get the locations of all the folders used by `faunanet-lab`. All the folders listed there need to be removed in order to remove an existing setup. The following walks you throught the process of removing an existing setup by hand. 
+- Enter the `faunanet-lab` shell and enter `get_setup_info` to get all the folders to delete.
+- Delete all folders listed in it under `Directories` in the output: Per default, the file looks like shown before and the relevant folders are the ones shown in the table above.
+- Delete all folders listed under `cache directories` to remove downloaded files.
+- Delete all folders listed under `config directories` to remove existing config files.
 After this procedure, you should be able to setup faunanet lab anew as described before. 
+If you want to delete `faunanet-lab` itself, use pip from the virtual environment you installed it in: 
+```bash
+python3 -m pip uninstall faunanet-lab 
+```
 
 #### Starting a default `faunanet-lab` instance 
+After a setup has been created, `faunanet-lab` can be started. 
 The logic for starting a `faunanet-lab` instance is the same as for the setup. There is a default set of parameters with which a `faunanet-lab` instance can be started, and which can be customized 
 via yaml files. To start a default instance, after you have completed the setup stage, run 
 ```bash 
