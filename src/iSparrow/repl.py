@@ -576,6 +576,9 @@ class SparrowCmd(cmd.Cmd):
         elif self.watcher is None:
             print("No watcher present, cannot check status", flush=True)
         else:
+            print("model name", self.watcher.model_name, flush=True)
+            print("current input directory", self.watcher.input_directory, flush=True)
+            print("current output directory", self.watcher.output_directory, flush=True)
             print("is running:", self.watcher.is_running, flush=True)
             print("is sleeping:", self.watcher.is_sleeping, flush=True)
             print("may do work:", self.watcher.may_do_work.is_set(), flush=True)
@@ -648,6 +651,7 @@ class SparrowCmd(cmd.Cmd):
 
         # add a closure to encapsulate analyzer change logic
         def run_analyzer_change(cfg: str = ""):
+            config = None
             try:
                 config = self.update_parameters(cfg)
             except Exception as e:

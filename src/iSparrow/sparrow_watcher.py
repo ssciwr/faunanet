@@ -793,5 +793,4 @@ class SparrowWatcher:
             raise RuntimeError("No output folders found to clean up")
         else:
             for i in range(1, len(folders)):
-                print("clean_up: ", folders[i - 1], folders[i], "/", len(folders))
                 self._clean_up_between(folders[i - 1], folders[i])
