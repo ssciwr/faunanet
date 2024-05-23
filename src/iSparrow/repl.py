@@ -694,7 +694,7 @@ class SparrowCmd(cmd.Cmd):
                 ),
             ),
             do_else=lambda _: print("Cannot change analyzer, watcher is not running\n"),
-            do_failure=lambda _: self.print_error(
+            do_failure=lambda _, e: self.print_error(
                 f"An error occured when changing analyzer: {e}, caused by {e.__cause__}\n"
             ),
         )
