@@ -143,7 +143,7 @@ def test_dispatch_on_watcher(mocker, capsys):
     assert "Watcher is in an unknown state" in out
 
     def raise_exception(s):
-        raise Exception("RuntimeError")
+        raise RuntimeError("RuntimeError")
 
     type(sparrow_cmd.watcher).is_sleeping = mocker.PropertyMock(return_value=False)
 
@@ -826,7 +826,7 @@ def test_cmdloop_exception(mocker, capsys):
 
     def except_set_false():
         sparrow_cmd.running = False
-        raise Exception("dummy exception")
+        raise RuntimeError("dummy exception")
 
     mocker.patch.object(repl.cmd.Cmd, "cmdloop", side_effect=except_set_false)
     capsys.readouterr()

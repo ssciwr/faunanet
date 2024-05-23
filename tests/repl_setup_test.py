@@ -4,13 +4,15 @@ import iSparrow.repl as repl
 import iSparrow.sparrow_setup as sps
 import shutil
 
+INSTALL_FILE = "install.yml"
+
 
 @pytest.fixture()
 def clean_up_test_installation():
     yield
 
     cfg = sps.utils.read_yaml(
-        Path(__file__).parent / "test_install_config" / "install.yml"
+        Path(__file__).parent / "test_install_config" / INSTALL_FILE
     )
     for _, path in cfg["Directories"].items():
         if Path(path).expanduser().exists():
@@ -28,7 +30,7 @@ def clean_up_test_installation():
 def test_do_set_up(clean_up_test_installation, patch_functions):
     tmpdir = patch_functions
 
-    filepath = Path(__file__).parent / "test_install_config" / "install.yml"
+    filepath = Path(__file__).parent / "test_install_config" / INSTALL_FILE
     cfg = sps.utils.read_yaml(filepath)["Directories"]
 
     assert Path(cfg["home"].replace("~", str(tmpdir))).exists() is False
@@ -94,7 +96,7 @@ def test_do_set_up_setup_exception(mocker, capsys, clean_up_test_installation):
 
 def test_do_get_setup_info(patch_functions, capsys, clean_up_test_installation):
 
-    filepath = Path(__file__).parent / "test_install_config" / "install.yml"
+    filepath = Path(__file__).parent / "test_install_config" / INSTALL_FILE
     cfg = sps.utils.read_yaml(filepath)
 
     sparrow_cmd = repl.SparrowCmd()
@@ -103,7 +105,7 @@ def test_do_get_setup_info(patch_functions, capsys, clean_up_test_installation):
     dummy_path = Path(sps.user_config_dir()) / "iSparrow"
     dummy_path.mkdir(parents=True, exist_ok=True)
 
-    shutil.copy(filepath, dummy_path / "install.yml")
+    shutil.copy(filepath, dummy_path / INSTALL_FILE)
 
     capsys.readouterr()
     sparrow_cmd.do_get_setup_info("")
@@ -135,9 +137,6 @@ def test_do_get_setup_info(patch_functions, capsys, clean_up_test_installation):
 
 def test_do_get_setup_info_failure(patch_functions, capsys):
 
-    filepath = Path(__file__).parent / "test_install_config" / "install.yml"
-    cfg = sps.utils.read_yaml(filepath)
-
     sparrow_cmd = repl.SparrowCmd()
     Path(sps.user_config_dir(), "iSparrow").mkdir(parents=True, exist_ok=True)
     Path(sps.user_cache_dir(), "iSparrow").mkdir(parents=True, exist_ok=True)
@@ -163,7 +162,7 @@ def test_do_get_setup_info_failure(patch_functions, capsys):
         )
         in out
     )
-    assert "No further setup information found"
+    assert "No further setup information found" in out
 
     shutil.rmtree(Path(sps.user_config_dir()))
     shutil.rmtree(Path(sps.user_cache_dir()))
