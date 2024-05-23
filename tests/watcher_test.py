@@ -968,7 +968,7 @@ def test_cleanup_many_folders(watch_fx):
 
         wfx.wait_for_event_then_do(
             condition=lambda: watcher.is_running is False,
-            todo_event=lambda: watcher.stop(),
+            todo_event=lambda: None,
             todo_else=lambda: time.sleep(0.2),
         )
 
