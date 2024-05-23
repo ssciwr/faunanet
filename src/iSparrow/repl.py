@@ -9,6 +9,45 @@ import iSparrow.sparrow_setup as sps
 from iSparrow.utils import read_yaml, update_dict_leafs_recursive
 
 
+def process_line_into_kwargs(line: str, keywords: list = None) -> dict:
+    """
+    process_line_into_kwargs Process string into keyword argument dictionary
+
+    Args:
+        line (str): raw string input that contains keyword arguments
+        keywords (list, optional): list of kwargs to look for in the input line. Defaults to None.
+
+    Raises:
+        ValueError: When the input does not adhere to the --name=<arg> structure
+        ValueError: When the keywords are not provided in the input line
+        ValueError: When an expected keyword is not found in the input line
+
+    Returns:
+        dcit: dictionary with keyword: value pairs, where the values are strings
+    """
+    if line == "":
+        return {}
+
+    if "=" not in line:
+        raise ValueError("Invalid input. Expected options structure is --name=<arg>")
+
+    if keywords is None or len(keywords) == 0:
+        raise ValueError("Keywords must be provided with passed line")
+
+    for k in keywords:
+        if k not in line:
+            raise ValueError(f"Keyword {k} not found in passed line")
+
+    kwargs = {
+        name.lstrip("-"): key
+        for part in line.split(" ")
+        if "=" in part
+        for name, key in [part.split("=")]
+    }
+
+    return kwargs
+
+
 class SparrowCmd(cmd.Cmd):
     """
     SparrowCmd is a command-line interface for interacting with a SparrowWatcher instance.
@@ -33,32 +72,6 @@ class SparrowCmd(cmd.Cmd):
         super().__init__()
         self.watcher = None
         self.running = True
-
-    def process_line_into_kwargs(self, line: str, keywords: list = None):
-
-        if line == "":
-            return {}
-
-        if "=" not in line:
-            raise ValueError(
-                "Invalid input. Expected options structure is --name=<arg>"
-            )
-
-        if keywords is None or len(keywords) == 0:
-            raise ValueError("Keywords must be provided with passed line")
-
-        for k in keywords:
-            if k not in line:
-                raise ValueError(f"Keyword {k} not found in passed line")
-
-        kwargs = {
-            name.lstrip("-"): key
-            for part in line.split(" ")
-            if "=" in part
-            for name, key in [part.split("=")]
-        }
-
-        return kwargs
 
     def update_parameters(self, cfgpath: str = None):
         """
@@ -123,7 +136,7 @@ class SparrowCmd(cmd.Cmd):
         """
         inputs = None
         try:
-            inputs = self.process_line_into_kwargs(line, keywords)
+            inputs = process_line_into_kwargs(line, keywords)
         except Exception as e:
             do_with_failure(self, inputs, e)
             return inputs, True
@@ -307,7 +320,8 @@ class SparrowCmd(cmd.Cmd):
             line (str): optional argument --cfg=<path> to provide a custom configuration file.
         """
 
-        # helper closures to use with self.dispatch_on_watcher
+        # helper closures to use with self.dispatch_on_watcher. No exception handling is necesssary in the functions below,
+        # since this is handled by the dispatch_on_watcher method.
         def build_watcher(cfg: dict):
             self.watcher = SparrowWatcher(
                 indir=Path(cfg["Data"]["input"]).expanduser().resolve(),
@@ -329,7 +343,7 @@ class SparrowCmd(cmd.Cmd):
                 lambda s: s.watcher.is_running, limit=20, waiting_time=3
             )
 
-        # actual build process
+        # actual build and start process
         if Path(user_config_dir(), "iSparrow").exists() is False:
             print("No installation found - please run the setup command first")
             return
@@ -368,11 +382,11 @@ class SparrowCmd(cmd.Cmd):
         self.dispatch_on_watcher(
             do_is_none=lambda _: build_watcher(cfg),
             do_is_sleeping=lambda _: lambda _: print(
-                f"The watcher is running. Cannot be started again with different parameters. Try 'change_analyzer' to use different parameters.",
+                "The watcher is running. Cannot be started again with different parameters. Try 'change_analyzer' to use different parameters.",
                 flush=True,
             ),
             do_is_running=lambda _: print(
-                f"The watcher is running. Cannot be started again with different parameters. Try 'change_analyzer' to use different parameters.",
+                "The watcher is running. Cannot be started again with different parameters. Try 'change_analyzer' to use different parameters.",
                 flush=True,
             ),
             do_else=lambda _: print(
@@ -397,6 +411,7 @@ class SparrowCmd(cmd.Cmd):
                 "The watcher is running. Cannot be started again with different parameters. Try 'change_analyzer' to use different parameters.",
                 flush=True,
             ),
+            do_else=lambda _: start_watcher(),
             do_failure=lambda _, e: self.print_error(
                 f"Something went wrong while trying to start the watcher: {e} caused by  {e.__cause__}. A new start attempt can be made when the error has been addressed."
             ),
@@ -451,7 +466,7 @@ class SparrowCmd(cmd.Cmd):
             do_is_running=lambda self: self.watcher.clean_up(),
             do_else=lambda self: self.watcher.clean_up(),
             do_failure=lambda s, e: self.print_error(
-                "Error while running cleanup: ", e, flush=True
+                f"Error while running cleanup: {e}"
             ),
         )
 
@@ -490,7 +505,7 @@ class SparrowCmd(cmd.Cmd):
                 "Cannot pause watcher, is not running", flush=True
             ),
             do_failure=lambda _, e: self.print_error(
-                f"Could not pause watcher: {e} caused by {e.__cause__}", flush=True
+                f"Could not pause watcher: {e} caused by {e.__cause__}",
             ),
         )
 
@@ -657,6 +672,7 @@ class SparrowCmd(cmd.Cmd):
                 lambda s: s.watcher.is_running, limit=20, waiting_time=3
             )
 
+        # apply the above closure to the watcher
         self.dispatch_on_watcher(
             do_is_none=lambda _: print("No watcher present, cannot change analyzer\n"),
             do_is_sleeping=lambda _: print(

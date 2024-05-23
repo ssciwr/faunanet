@@ -163,15 +163,14 @@ def test_dispatch_on_watcher(mocker, capsys):
 
 
 def test_process_line_into_kwargs():
-    cmd = repl.SparrowCmd()
-    assert cmd.process_line_into_kwargs(
+    assert repl.process_line_into_kwargs(
         "--cfg=./tests/test_configs --stuff=other", keywords=["cfg", "stuff"]
     ) == {"cfg": "./tests/test_configs", "stuff": "other"}
 
     with pytest.raises(
         ValueError, match="Invalid input. Expected options structure is --name=<arg>"
     ):
-        cmd.process_line_into_kwargs(
+        repl.process_line_into_kwargs(
             "./tests/test_configs",
             keywords=[
                 "cfg",
@@ -179,9 +178,9 @@ def test_process_line_into_kwargs():
         )
 
     with pytest.raises(ValueError, match="Keywords must be provided with passed line"):
-        cmd.process_line_into_kwargs("--cfg=./tests/test_configs")
+        repl.process_line_into_kwargs("--cfg=./tests/test_configs")
 
-    assert cmd.process_line_into_kwargs("") == {}
+    assert repl.process_line_into_kwargs("") == {}
 
 
 @pytest.mark.parametrize(
@@ -214,9 +213,8 @@ def test_process_line_into_kwargs():
     ],
 )
 def test_process_line_into_kwargs_failures(input, keywords, message):
-    cmd = repl.SparrowCmd()
     with pytest.raises(ValueError, match=message):
-        cmd.process_line_into_kwargs(input, keywords=keywords)
+        repl.process_line_into_kwargs(input, keywords=keywords)
 
 
 def test_do_start_custom(make_mock_install, capsys):
