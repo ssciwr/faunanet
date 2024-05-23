@@ -965,6 +965,13 @@ def test_cleanup_many_folders(watch_fx):
             todo_event=lambda: watcher.stop(),
             todo_else=lambda: time.sleep(0.2),
         )
+
+        wfx.wait_for_event_then_do(
+            condition=watcher.is_running is False,
+            todo_event=lambda: watcher.stop(),
+            todo_else=lambda: time.sleep(0.2),
+        )
+
         recorder_process.join()
         recorder_process.close()
 
@@ -974,6 +981,8 @@ def test_cleanup_many_folders(watch_fx):
     new_input.mkdir(exist_ok=True, parents=True)
 
     create_dummy_output(watcher, new_input)
+
+    assert watcher.is_running is False
 
     num_wav_files = sum(
         1
