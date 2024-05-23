@@ -204,16 +204,28 @@ class SparrowWatcher:
                     "An error occured during species range predictor creation. Does you model provide a model file called 'species_presence_model'?"
                 ) from e
 
+        # make sure the date is set correctly
+        if "date" in recording_config:
+            if recording_config["date"] == "today":
+                recording_config["date"] = datetime.now()
+            elif isinstance(recording_config["date"], str):
+                recording_config["date"] = datetime.strptime(
+                    recording_config["date"], "%d/%m/%Y"
+                )
+            else:
+                # nothing to do here
+                pass
+
         # create recording object
         # species predictor is applied here once and then used for all the analysis calls that may follow
         return SparrowRecording(preprocessor, model, "", **recording_config)
 
     def _restore_old_state(self, old_state: dict):
         """
-        _restore_old_state _summary_
+        _restore_old_state Restore state of the watcher instance to the state it had before a change was made.
 
         Args:
-            old_state (dict): _description_
+            old_state (dict):  Dictionary containing the old state of the calling object
         """
         self.model_name = old_state["model_name"]
         self.preprocessor_config = old_state["preprocessor_config"]
@@ -297,6 +309,17 @@ class SparrowWatcher:
             ValueError: When the model_dir parameter is not an existing directory.
             ValueError: When the model name does not correspond to a directory in the 'model_dir' directory in which available models are stored.
         """
+        if preprocessor_config is None:
+            preprocessor_config = {}
+
+        if model_config is None:
+            model_config = {}
+
+        if recording_config is None:
+            recording_config = {}
+
+        if species_predictor_config is None:
+            species_predictor_config = {}
 
         # set up data to use
         self.input = Path(indir)
@@ -304,7 +327,7 @@ class SparrowWatcher:
         if self.input.is_dir() is False:
             raise ValueError("Input directory does not exist")
 
-        self.outdir = outdir
+        self.outdir = Path(outdir)
 
         if self.outdir.is_dir() is False:
             raise ValueError("Output directory does not exist")
@@ -338,19 +361,8 @@ class SparrowWatcher:
         self.delete_recordings = delete_recordings
 
         self.first_analyzed = multiprocessing.Value("i", 0)
+
         self.last_analyzed = multiprocessing.Value("i", 0)
-
-        if preprocessor_config is None:
-            preprocessor_config = {}
-
-        if model_config is None:
-            model_config = {}
-
-        if recording_config is None:
-            recording_config = {}
-
-        if species_predictor_config is None:
-            species_predictor_config = {}
 
         self.preprocessor_config = deepcopy(preprocessor_config)
 
@@ -374,6 +386,13 @@ class SparrowWatcher:
     def is_running(self):
         if self.watcher_process is not None:
             return self.watcher_process.is_alive()
+        else:
+            return False
+
+    @property
+    def is_sleeping(self):
+        if self.watcher_process is not None:
+            return self.may_do_work.is_set() is False
         else:
             return False
 
@@ -446,9 +465,6 @@ class SparrowWatcher:
         self.output.mkdir(exist_ok=True, parents=True)
         self.first_analyzed.value = 0
         self.last_analyzed.value = 0
-
-        if self.old_output is None:
-            self.old_output = self.output
 
         self._write_config()
 

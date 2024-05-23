@@ -1,6 +1,4 @@
 import multiprocessing
-
-multiprocessing.set_start_method("spawn", True)
 import pytest
 import shutil
 
@@ -8,17 +6,60 @@ from pathlib import Path
 import os
 import tempfile
 from platformdirs import user_cache_dir, user_config_dir
-import pooch
 import yaml
 
-from iSparrow.utils import read_yaml, load_module
+from iSparrow.utils import load_module
 from iSparrow.sparrow_setup import download_example_data, download_model_files
 from .fixtures.recording_fixtures import RecordingFixture
 from .fixtures.model_fixtures import ModelFixture
 from .fixtures.watcher_fixtures import WatchFixture
 
+multiprocessing.set_start_method("spawn", True)
+
 # set test mode
 os.environ["SPARROW_TEST_MODE"] = "True"
+
+
+def read_yaml_with_replacement(path, dir):
+
+    with open(Path(path)) as file:
+        cfg = yaml.safe_load(file)
+
+    def update_recursive(d):
+        for k, v in d.items():
+            if isinstance(v, dict):
+                update_recursive(v)
+            else:
+                if isinstance(v, str):
+                    d[k] = v.replace("~", str(dir))
+
+    update_recursive(cfg)
+
+    if "Data" in cfg.keys():
+        cfg["Data"]["input"] = str(Path(dir, "iSparrow_tests_data"))
+        cfg["Data"]["output"] = str(Path(dir, "iSparrow_tests_output"))
+
+    return cfg
+
+
+@pytest.fixture()
+def patch_functions(mocker, tmpdir):
+    mocker.patch("iSparrow.repl.user_cache_dir", new=lambda: Path(tmpdir) / "cache")
+    mocker.patch("iSparrow.repl.user_config_dir", new=lambda: Path(tmpdir) / "config")
+    mocker.patch(
+        "iSparrow.repl.read_yaml", new=lambda f: read_yaml_with_replacement(f, tmpdir)
+    )
+    mocker.patch(
+        "iSparrow.sparrow_setup.user_cache_dir", new=lambda: Path(tmpdir) / "cache"
+    )
+    mocker.patch(
+        "iSparrow.sparrow_setup.user_config_dir", new=lambda: Path(tmpdir) / "config"
+    )
+    mocker.patch(
+        "iSparrow.sparrow_setup.utils.read_yaml",
+        new=lambda f: read_yaml_with_replacement(f, tmpdir),
+    )
+    yield tmpdir
 
 
 # set up the test directories and download the example files
@@ -107,6 +148,25 @@ def install(load_files, make_folders):
 
     # remove the dummy data directory
     shutil.rmtree(data)
+
+
+@pytest.fixture()
+def clean_up_test_installation():
+    yield  # This is where the test runs
+
+    # clean up stuff
+    for path in [
+        Path("~/iSparrow_tests").expanduser(),
+        Path("~/iSparrow_tests_data").expanduser(),
+        Path("~/iSparrow_tests/models").expanduser(),
+        Path("~/iSparrow_tests/example").expanduser(),
+        Path("~/iSparrow_tests_output").expanduser(),
+        Path(user_cache_dir()) / "iSparrow_tests",
+        Path(user_config_dir()) / "iSparrow_tests",
+    ]:
+        print("deleting folder @", path)
+        if path.exists():
+            shutil.rmtree(path)
 
 
 # the model fixture is just a thin wrapper around the ModelFixture class

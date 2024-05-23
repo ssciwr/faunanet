@@ -1,0 +1,11 @@
+Analysis: 
+  Recording:
+    species_presence_threshold: 0.05
+    min_conf: 0.35
+
+  pattern: ".mp3"
+  delete_recordings: "always"
+  model_dir: ~/iSparrow/models  
+Data: 
+  input: ~/iSparrow_tests_data
+  output: ~/iSparrow_tests_output

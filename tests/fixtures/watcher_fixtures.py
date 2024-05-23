@@ -141,11 +141,6 @@ class WatchFixture:
         for f in files:
             if (watcher.output / f).exists():
                 (watcher.output / f).unlink()
-
-    def delete_in_input(self, watcher, files: list):
-        for f in files:
-            if (watcher.input / f).exists():
-                (watcher.input / f).unlink()
                 
     def read_csv(self, filepath):
         rows = []

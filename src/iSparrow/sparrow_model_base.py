@@ -22,7 +22,6 @@ class ModelBase(ABC):
         model_path: str,
         labels_path: str,
         num_threads: int = 1,
-        sensitivity: float = 1.0,
     ):
         self.num_threads = num_threads
 
@@ -38,26 +37,24 @@ class ModelBase(ABC):
 
         self.labels_path = labels_path
 
-        self.sensitivity = sensitivity
-
         self.results = None
 
         self.load_model()
 
         self.load_labels()
 
-    def _sigmoid(self, logits: np.array, sensitivity: float = -1):
+    def _sigmoid(self, logits: np.array, sigmoid_sensitivity: float = -1):
         """
         _sigmoid Apply a simple sigmoid to output logits to map them to probabilities
 
         Args:
             logits (np.array): Raw output from a the inference function of the loaded model.
-            sensitivity (float, optional): Sigmoid parameter. Defaults to -1.
+            sigmoid_sensitivity (float, optional): Sigmoid parameter. Defaults to -1.
 
         Returns:
             np.array: Model output mapped to [0,1] to get interpretable probability
         """
-        return 1 / (1.0 + np.exp(sensitivity * np.clip(logits, -15, 15)))
+        return 1 / (1.0 + np.exp(sigmoid_sensitivity * np.clip(logits, -15, 15)))
 
     def load_labels(self):
         """

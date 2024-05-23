@@ -10,7 +10,9 @@ tflite_file = "model.tflite"
 
 @pytest.fixture()
 def temp_dir():
-    yield tempfile.mkdtemp()
+    tmp = tempfile.mkdtemp()
+    yield tmp
+    shutil.rmtree(tmp)
 
 
 @pytest.fixture()
@@ -29,26 +31,6 @@ def cleanup_after_test(temp_dir):
         if Path(temp_dir, path).exists():
             shutil.rmtree(Path(temp_dir, path))
 
-
-@pytest.fixture()
-def clean_up_test_installation():
-    yield  # This is where the test runs
-
-    # clean up stuff
-    for path in [
-        Path("~/iSparrow_tests").expanduser(),
-        Path("~/iSparrow_tests_data").expanduser(),
-        Path("~/iSparrow_tests/models").expanduser(),
-        Path("~/iSparrow_tests/example").expanduser(),
-        Path("~/iSparrow_tests_output").expanduser(),
-        Path(user_cache_dir()) / "iSparrow_tests",
-        Path(user_config_dir()) / "iSparrow_tests",
-    ]:
-        print("deleting folder @", path)
-        if path.exists():
-            shutil.rmtree(path)
-
-
 @pytest.fixture()
 def make_folders(temp_dir):
     for path in [
@@ -61,6 +43,24 @@ def make_folders(temp_dir):
     yield
 
 
+@pytest.fixture()
+def clean_up_test_installation():
+    yield
+
+    cfg = sps.utils.read_yaml(
+        Path(__file__).parent / "test_install_config" / "install.yml"
+    )
+    for _, path in cfg["Directories"].items():
+        if Path(path).expanduser().exists():
+            shutil.rmtree(Path(path).expanduser(), ignore_errors=True)
+
+    if (Path(user_config_dir()) / "iSparrow_tests").exists():
+        shutil.rmtree(Path(user_config_dir()) / "iSparrow_tests", ignore_errors=True)
+
+    if (Path(user_cache_dir()) / "iSparrow_tests").exists():
+        shutil.rmtree(Path(user_cache_dir()) / "iSparrow_tests", ignore_errors=True)
+
+
 def test_make_directories(temp_dir, cleanup_after_test):
     base_cfg_dirs = {
         "home": str(Path(temp_dir, "test_home")),
@@ -68,7 +68,7 @@ def test_make_directories(temp_dir, cleanup_after_test):
         "output": str(Path(temp_dir, "test_output")),
     }
     ish, ism, iso, ise, iscfg, iscache = sps.make_directories(base_cfg_dirs)
-    print(ish, ism, iso, ise, iscfg, iscache)
+
     assert ish.exists()
     assert ism.exists()
     assert iso.exists()
@@ -143,7 +143,7 @@ def test_download_model_files_exceptions(make_folders, cleanup_after_test):
 
 
 def test_setup(clean_up_test_installation):
-    filepath = Path(__file__).parent / "test_configs" / "install.yml"
+    filepath = Path(__file__).parent / "test_install_config" / "install.yml"
 
     sps.set_up_sparrow(filepath)
 
