@@ -637,7 +637,7 @@ class SparrowCmd(cmd.Cmd):
             )
             print(
                 "Current setup: ",
-                read_yaml(Path(user_config_dir(), "iSparrow", "install.yml")),
+                read_yaml(str(Path(user_config_dir(), "iSparrow", "install.yml"))),
                 flush=True,
             )
 
