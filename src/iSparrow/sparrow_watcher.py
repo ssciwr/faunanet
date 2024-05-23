@@ -117,10 +117,7 @@ class SparrowWatcher:
     save_results: Save the results to the output directory as a csv file.
     stop: Pause the watcher thread.
     go_on: Continue the watcher thread
-    check_analysis: Go over the input and output directory and repeat analysis for
-                    all files for which there is not corresponding file in the output
-                    directory.
-
+    check_analysis: Go over the input and output directory and repeat analysis for all files for which there is not corresponding file in the output directory.
     """
 
     def _write_config(
