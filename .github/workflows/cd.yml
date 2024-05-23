@@ -1,0 +1,98 @@
+name: PyPI_release
+
+# run only when a push into master occurs on a tag that specifies a semantic version
+on:
+    # trigger on tagged push to master branch
+    push:
+        branches:
+          - master
+        tags:
+          - "*.*.*"
+
+    #allow manual trigger
+    workflow_dispatch:
+
+jobs:
+    build_for_pypi:
+      name: Build distribution 
+      runs-on: ubuntu-latest
+      steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Install pypa/build
+        run: python3 -m pip install build --user
+
+      - name: Build package
+        run: python3 -m build
+
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+    publish-to-pypi:
+      name: Publish python distribution to pypi 
+      needs: build_for_pypi
+      if: startsWith(github.ref, 'refs/tags/')  # only publish to PyPI on tag pushes
+      runs-on: ubuntu-latest
+      environment: 
+        name: pypi_release
+        url: https://pypi.org/p/faunanet-lab
+      permissions: 
+        id-token: write 
+
+      steps:
+        - name: Download all the dists
+          uses: actions/download-artifact@v4
+          with:
+            name: python-package-distributions
+            path: dist/
+
+        - name: Publish distribution to PyPI
+          uses: pypa/gh-action-pypi-publish@release/v1
+
+    github-release:
+      name: sign and upload
+      needs:
+      - publish-to-pypi
+      runs-on: ubuntu-latest
+
+      permissions:
+        contents: write  # IMPORTANT: mandatory for making GitHub Releases
+        id-token: write  # IMPORTANT: mandatory for sigstore
+
+      steps: 
+      - name: Download dists
+        uses: actions/download-artifact@v3
+        with: 
+          name: python-package-distributions
+          path: dist/
+
+      - name: Sign dists
+        uses: sigstore/gh-action-sigstore-python@v1.2.3
+        with:
+          inputs: >-
+            ./dist/*.tar.gz 
+            ./dists/*.whl
+        
+      - name: Create release
+        env: 
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+            gh release create 
+            '${{ github.ref_name }}'
+            --repo '${{ github.repository }}'
+            --notes ""
+      - name: Upload artifact signatures to release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >- 
+          gh release upload
+          '${{ github.ref_name }}' dist/**
+          --repo '${{ github.repository }}'
