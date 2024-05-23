@@ -92,7 +92,7 @@ class SparrowCmd(cmd.Cmd):
         model_dir = Path(folders["models"]).expanduser()
 
         if cfgpath is not None:
-            custom_config = read_yaml(cfgpath)
+            custom_config = read_yaml(Path(cfgpath).expanduser())
         else:
             custom_config = read_yaml(
                 model_dir / Path("birdnet_default") / "default.yml"
