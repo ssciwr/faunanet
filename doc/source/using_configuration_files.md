@@ -13,7 +13,7 @@ As  a general rule, the nodes for Recording, Model, SpeciesPresence and Preproce
 The Analysis-node as a whole provides the defaults for the FaunanetWatcher class.
 ```
 ### Description of the default configuration to be supplied with models
-Therefore, `faunanet-lab` expects a `run_config` to have two top-level nodes: `Analysis` and `Data`. The former parameterized the model application, the latter the data preprocessing. 
+Therefore, `faunanet-lab` expects a `run_config` to have two top-level nodes: `Analysis` and `Data`. The former parametrizes the model application, the latter the data preprocessing. 
 
 The `Data` node needs a subnode `Preprocessor` which gives values for the instantiation of the used preprocessor. Secondly, it must have `input` and `output` nodes for `faunanet-lab` to know where it should look for data and where is should put the results. In total the structure of the `Data` node must be as follows: 
 
@@ -39,7 +39,7 @@ The following additional nodes must be provided:
 If the `SpeciesPredictor` system shall be used, we need an additional Node `SpeciesPresence` that contains: 
 - **threshold**: Above this output value, a species is considered to be possibly present at the locale at the given time. Below, it is not.
 - **num_thread**: Number of threads to use for prediction.
-- **use_cache**: Boolean flag that tells whether the predicted species precense should be cached or not.
+- **use_cache**: Boolean flag that tells whether the predicted species presence should be cached or not.
 The minimum structure of a **any** default config file supplied with a model therefore **must** be: 
 ```yaml
 Analysis:

@@ -27,7 +27,7 @@ Please refer to the 'Getting faunanet-lab up and running' section in the documen
 Please use the [issue tab of the github page](https://github.com/ssciwr/iSparrow/issues) to report any bugs or feature requests. 
 
 ## Contributions 
-Feel free to contribute tot this project by opening a pull request [here](https://github.com/ssciwr/iSparrow/pulls). 
+Feel free to contribute to this project by opening a pull request [here](https://github.com/ssciwr/iSparrow/pulls). 
 
 ## Usage
 ### Installation

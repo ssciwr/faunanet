@@ -9,6 +9,7 @@ Welcome to faunanet-lab's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   readme_doc
    getting_started
    repl_usage
    basic_design

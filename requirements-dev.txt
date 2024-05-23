@@ -4,3 +4,4 @@ coverage
 pre-commit
 pytest-mock
 pandas
+sphinx-rtd-theme

@@ -1,7 +1,7 @@
 # Using the Faunanet REPL
 The `faunanet-lab` REPL (Read-Evaluate-Print loop) has been encountered already in {doc}`getting_started`. It's the main way to interact with a running `faunanet-lab` instance.
 To get a list of available commands you can run `help` in a running REPL: 
-```bash 
+```text 
 faunanet-lab
 (faunanet-lab) help 
 set_up: set up faunanet-lab for usage...
@@ -19,13 +19,13 @@ Commands can have optional arguments. Use 'help <command>' to get more informati
 ```
 
 Using a command with wrong arguments will print an explanatory error message, e.g. 
-```bash
+```text
 (faunanet-lab) start --cfg=~/path/to/some/config.yml 
 Something in the start command parsing went wrong. Check your passed commands. Caused by:  Invalid input. Expected options structure is --name=<arg> with names [--cfg]
 (faunanet-lab)
 ```
 or 
-```bash
+```text
 (faunanet-lab) stop
 Cannot stop watcher, no watcher present
 ``` 
