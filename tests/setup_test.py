@@ -55,7 +55,9 @@ def clean_up_test_installation():
             shutil.rmtree(Path(path).expanduser(), ignore_errors=True)
 
     if (Path(sps.user_config_dir()) / "faunanet_tests").exists():
-        shutil.rmtree(Path(user_config_dir()) / "faunanet_tests", ignore_errors=True)
+        shutil.rmtree(
+            Path(sps.user_config_dir()) / "faunanet_tests", ignore_errors=True
+        )
 
     if (Path(sps.user_cache_dir()) / "faunanet_tests").exists():
         shutil.rmtree(Path(sps.user_cache_dir()) / "faunanet_tests", ignore_errors=True)

@@ -110,24 +110,11 @@ def test_do_get_setup_info(patch_functions, capsys, clean_up_test_installation):
     capsys.readouterr()
     faunanet_cmd.do_get_setup_info("")
     out, _ = capsys.readouterr()
-    assert (
-        "config directories:  "
-        + str(
-            [
-                Path(sps.user_config_dir()) / "faunanet",
-            ]
-        )
-        in out
-    )
-    assert (
-        "cache directories:  "
-        + str(
-            [
-                Path(sps.user_cache_dir()) / "faunanet",
-            ]
-        )
-        in out
-    )
+    assert "config directories:  " in out
+    assert str(Path(sps.user_config_dir()) / "faunanet_tests") in out
+    assert "cache directories:  " in out
+    assert str(Path(sps.user_cache_dir()) / "faunanet_tests") in out
+
     assert "Current setup: " in out
     for key in cfg["Directories"]:
         assert key in out
