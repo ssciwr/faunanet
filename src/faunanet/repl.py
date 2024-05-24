@@ -4,7 +4,7 @@ import cmd
 import time
 import traceback
 
-from faunanet import SparrowWatcher
+from faunanet import Watcher
 import faunanet.faunanet_setup as sps
 from faunanet.utils import read_yaml, update_dict_leafs_recursive, get_method_docstring
 
@@ -342,7 +342,7 @@ class FaunanetCmd(cmd.Cmd):
         # helper closures to use with self.dispatch_on_watcher. No exception handling is necesssary in the functions below,
         # since this is handled by the dispatch_on_watcher method.
         def build_watcher(cfg: dict):
-            self.watcher = SparrowWatcher(
+            self.watcher = Watcher(
                 indir=Path(cfg["Data"]["input"]).expanduser().resolve(),
                 outdir=Path(cfg["Data"]["output"]).expanduser().resolve(),
                 model_dir=Path(cfg["Analysis"]["model_dir"]).expanduser().resolve(),

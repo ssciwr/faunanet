@@ -4,7 +4,7 @@ import shutil
 import time
 from datetime import datetime
 from faunanet.utils import wait_for_file_completion
-from faunanet import SparrowWatcher
+from faunanet import Watcher
 from copy import deepcopy
 import csv
 
@@ -110,7 +110,7 @@ class WatchFixture:
 
     def make_watcher(self, **kwargs):
         # README: the only reason this exists is because SonarCloud is complaining about code repetition
-        return SparrowWatcher(
+        return Watcher(
             self.data,
             self.output,
             self.home / "models",

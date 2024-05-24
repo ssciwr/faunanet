@@ -40,7 +40,7 @@ class AnalysisEventHandler(FileSystemEventHandler):
         Args:
             callback (callable): Callback functionw hen
             pattern (str, optional): file apttern. Defaults to ".wav".
-            watcher: (SparrowWatcher): Watcher this Handler is used with
+            watcher: (Watcher): Watcher this Handler is used with
         """
         self.pattern = watcher.pattern
         self.recording = watcher._set_up_recording(
@@ -75,7 +75,7 @@ def watchertask(watcher):
     analyze the file with a sound classifier model.
 
     Args:
-        watcher (SparrowWatcher): Watcher class to run this task with
+        watcher (Watcher): Watcher class to run this task with
 
     Raises:
         RuntimeError: When something goes wrong inside the analyzer process.
@@ -107,7 +107,7 @@ def watchertask(watcher):
     observer.join()
 
 
-class SparrowWatcher:
+class Watcher:
     """
     Class that watches a directory and applies a classifier model to each new file that is created in it.
     Supports model exchange on the fly.
