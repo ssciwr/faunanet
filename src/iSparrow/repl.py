@@ -6,7 +6,7 @@ import traceback
 
 from iSparrow import SparrowWatcher
 import iSparrow.sparrow_setup as sps
-from iSparrow.utils import read_yaml, update_dict_leafs_recursive
+from iSparrow.utils import read_yaml, update_dict_leafs_recursive, get_method_docstring
 
 
 def process_line_into_kwargs(line: str, keywords: list = None) -> dict:
@@ -261,32 +261,51 @@ class SparrowCmd(cmd.Cmd):
 
     def do_help(self, line: str):
         """
-        do_help Print help strings for available commands
+        do_help Print help strings for available commands. The argument string is optional and can be the name of a command to get more info about.
 
         Args:
-            line (str): dummy, no arguments expected
+            line (str): name of a command to get more info about.
         """
-        print("Commands: ")
-        print(
-            "set_up: set up iSparrow for usage. Usage: 'set_up --cfg=<path>'. When no argumnet is provided, the default is used."
-        )
-        print(
-            "start: start a watcher for analyzing incoming files in a directory. Usage: 'start --cfg=<path>'. When no argumnet is provided, the default from birdnetlib is used."
-        )
-        print("stop: stop a previously started watcher")
-        print("pause: pause a running watcher")
-        print("continue: continue a paused watcher")
-        print("restart: restart an existing watcher")
-        print("change analyzer: change the analyzer of a running watcher")
-        print(
-            "cleanup: cleanup the output directory of the watcher, assuring data consistency"
-        )
-        print("status: get the current status of the watcher process")
-        print("get_setup_info: get information about the current setup of iSparrow")
-        print("exit: leave this shell.")
-        print(
-            "Commands can have optional arguments. Use 'help <command>' to get more information on a specific command."
-        )
+        if line == "":
+            print("Commands: ")
+            print(
+                "set_up: set up iSparrow for usage. Usage: 'set_up --cfg=<path>' with <path> being a path to a custom yaml configuration file. When no argumnet is provided, the birdnet default is used."
+            )
+            print(
+                "start: start a watcher for analyzing incoming files in a directory. Usage: 'start --cfg=<path>'. When no argumnet is provided, the default from birdnetlib is used."
+            )
+            print(
+                "stop: stop a previously started watcher. This command is used without any further arguments"
+            )
+            print(
+                "pause: pause a running watcher. This command is used without any further arguments"
+            )
+            print(
+                "continue: continue a paused watcher. This command is used without any further arguments"
+            )
+            print(
+                "restart: restart an existing watcher. This command is used without any further arguments"
+            )
+            print(
+                "change analyzer: change the analyzer of a running watcher. Usage: 'change_analyzer --cfg=<path>' with <path> being a path to a custom yaml configuration file"
+            )
+            print(
+                "cleanup: cleanup the output directory of the watcher, assuring data consistency. This command is used without any further arguments"
+            )
+            print(
+                "status: get the current status of the watcher process. This command is used without any further arguments"
+            )
+            print(
+                "get_setup_info: get information about the current setup of iSparrow. This command is used without any further arguments"
+            )
+            print(
+                "exit: leave this shell. This command is used without any further arguments"
+            )
+            print(
+                "For further information on specific commands, type 'help <command>' or '? <command>'."
+            )
+        else:
+            print(get_method_docstring(self, "do_" + line), flush=True)
 
     def do_set_up(self, line: str):
         """
@@ -720,7 +739,10 @@ class SparrowCmd(cmd.Cmd):
             try:
                 super().cmdloop()
 
-                while not self.watcher.exception_queue.empty():
+                while (
+                    self.watcher is not None
+                    and not self.watcher.exception_queue.empty()
+                ):
                     e, traceback_str = self.watcher.exception_queue.get()
                     print("An error occurred in the watcher subprocess: ", e)
                     print("Traceback: ", traceback_str)
