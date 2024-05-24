@@ -5,6 +5,8 @@ import shutil
 import iSparrow
 import iSparrow.repl as repl
 import time
+from copy import deepcopy
+from queue import Queue
 
 CFG_PATH = "--cfg=./tests/test_configs/watcher_custom.yml"
 
@@ -141,7 +143,7 @@ def test_dispatch_on_watcher(mocker, capsys):
     assert "Watcher is in an unknown state" in out
 
     def raise_exception(s):
-        raise Exception("RuntimeError")
+        raise RuntimeError("RuntimeError")
 
     type(sparrow_cmd.watcher).is_sleeping = mocker.PropertyMock(return_value=False)
 
@@ -263,7 +265,7 @@ def test_do_start_custom(make_mock_install, capsys):
             True,
         ),
         (
-            "--cfg=./tests/test_configs/watcher_custom.yml --stuff=superfluous",
+            CFG_PATH + " --stuff=superfluous",
             "Invalid input. Expected 1 blocks of the form --name=<arg> with names ['--cfg']\n",
             True,
         ),
@@ -388,3 +390,473 @@ def test_do_exit(capsys):
     out, _ = capsys.readouterr()
 
     assert "Exiting sparrow shell\n" in out
+
+
+def test_do_pause(make_mock_install):
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.do_start(CFG_PATH)
+    wait_for_watcher_status(sparrow_cmd)
+
+    assert sparrow_cmd.watcher.is_running is True
+    # fake work done
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.do_pause("")
+    assert sparrow_cmd.watcher.is_sleeping is True
+    assert sparrow_cmd.watcher.is_running is True
+    sparrow_cmd.watcher.go_on()
+    sparrow_cmd.watcher.stop()
+    assert sparrow_cmd.watcher.is_running is False
+
+
+def test_do_pause_failures(make_mock_install, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.do_start(CFG_PATH)
+    assert sparrow_cmd.watcher.is_running is True
+    time.sleep(5)
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.do_pause("cfg=wrong_argument")
+    out, _ = capsys.readouterr()
+    assert "Invalid input. Expected no arguments.\n" in out
+
+    sparrow_cmd.watcher.stop()
+    i = 0
+    while True:
+        if i > 10:
+            assert False
+        if sparrow_cmd.watcher.is_running is False:
+            break
+        else:
+            time.sleep(3)
+            i += 1
+    capsys.readouterr()
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.do_pause("")
+    out, _ = capsys.readouterr()
+    assert "Cannot pause watcher, is not running\n" in out
+
+    capsys.readouterr()
+    sparrow_cmd.watcher = None
+    sparrow_cmd.do_pause("")
+    out, _ = capsys.readouterr()
+    assert "Cannot pause watcher, no watcher present\n" in out
+
+    sparrow_cmd.do_start(CFG_PATH)
+
+    wait_for_watcher_status(sparrow_cmd)
+
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.watcher.pause()
+
+    capsys.readouterr()
+    sparrow_cmd.do_pause("")
+    out, _ = capsys.readouterr()
+    assert "Cannot pause watcher, is already sleeping\n" in out
+
+
+def test_do_pause_exception(make_mock_install, capsys, mocker):
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.do_start(CFG_PATH)
+    assert sparrow_cmd.watcher.is_running is True
+    wait_for_watcher_status(sparrow_cmd)
+
+    mocker.patch("iSparrow.SparrowWatcher.pause", side_effect=Exception("RuntimeError"))
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    capsys.readouterr()
+    sparrow_cmd.do_pause("")
+    out, _ = capsys.readouterr()
+    assert "Could not pause watcher: RuntimeError caused by None\n" in out
+    assert sparrow_cmd.watcher is not None
+    assert sparrow_cmd.watcher.is_running is True
+
+    sparrow_cmd.watcher.stop()
+    assert sparrow_cmd.watcher.is_running is False
+
+
+def test_do_continue(make_mock_install):
+
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.do_start(CFG_PATH)
+    assert sparrow_cmd.watcher.is_running is True
+    wait_for_watcher_status(sparrow_cmd)
+
+    # fake work done
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.do_pause("")
+    assert sparrow_cmd.watcher.is_sleeping is True
+    assert sparrow_cmd.watcher.is_running is True
+    sparrow_cmd.do_continue("")
+    assert sparrow_cmd.watcher.is_sleeping is False
+    assert sparrow_cmd.watcher.is_running is True
+    sparrow_cmd.watcher.stop()
+    assert sparrow_cmd.watcher.is_running is False
+
+
+def test_do_continue_failure(make_mock_install, capsys):
+
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.do_start(CFG_PATH)
+    wait_for_watcher_status(sparrow_cmd)
+    assert sparrow_cmd.watcher.is_running is True
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.do_pause("")
+    assert sparrow_cmd.watcher.is_sleeping is True
+    assert sparrow_cmd.watcher.is_running is True
+
+    capsys.readouterr()
+    sparrow_cmd.do_continue("cfg=wrong_argument")
+    out, _ = capsys.readouterr()
+    assert "Invalid input. Expected no arguments.\n" in out
+
+    sparrow_cmd.do_stop("")
+    wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_running is False)
+    sparrow_cmd.watcher = None
+
+    capsys.readouterr()
+    assert sparrow_cmd.watcher is None
+
+    sparrow_cmd.do_continue("")
+
+    out, _ = capsys.readouterr()
+    assert "Cannot continue watcher, no watcher present\n" in out
+
+    sparrow_cmd.do_start(CFG_PATH)
+
+    wait_for_watcher_status(sparrow_cmd)
+
+    capsys.readouterr()
+    sparrow_cmd.do_continue("")
+    out, _ = capsys.readouterr()
+
+    assert "Cannot continue watcher, is not sleeping\n" in out
+
+    sparrow_cmd.watcher.stop()
+
+    capsys.readouterr()
+    sparrow_cmd.do_continue("")
+    out, _ = capsys.readouterr()
+
+    assert "Cannot continue watcher, is not running\n" in out
+
+
+def test_do_continue_exception(make_mock_install, capsys, mocker):
+
+    mocker.patch("iSparrow.SparrowWatcher.go_on", side_effect=Exception("RuntimeError"))
+
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.do_start(CFG_PATH)
+    wait_for_watcher_status(sparrow_cmd)
+
+    assert sparrow_cmd.watcher.is_running is True
+
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.do_pause("")
+    assert sparrow_cmd.watcher.is_sleeping is True
+    assert sparrow_cmd.watcher.is_running is True
+
+    capsys.readouterr()
+    sparrow_cmd.do_continue("")
+    out, _ = capsys.readouterr()
+    assert "Could not continue watcher: RuntimeError caused by None\n" in out
+
+
+def test_do_restart(make_mock_install):
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.do_start(CFG_PATH)
+    wait_for_watcher_status(sparrow_cmd)
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
+    old_output = deepcopy(sparrow_cmd.watcher.output)
+    sparrow_cmd.do_restart("")
+    wait_for_watcher_status(sparrow_cmd)
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
+    assert old_output != sparrow_cmd.watcher.output
+    sparrow_cmd.watcher.stop()
+    wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_running is False)
+    assert sparrow_cmd.watcher.is_running is False
+
+
+def test_do_restart_failure(make_mock_install, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+
+    sparrow_cmd.do_start(CFG_PATH)
+
+    wait_for_watcher_status(sparrow_cmd)
+
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
+
+    capsys.readouterr()
+    sparrow_cmd.do_restart("wrong input")
+    out, _ = capsys.readouterr()
+    assert "Invalid input. Expected no arguments.\n" in out
+
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.watcher.pause()
+    wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_sleeping is True)
+
+    capsys.readouterr()
+    sparrow_cmd.do_restart("")
+    out, _ = capsys.readouterr()
+    assert "Cannot restart watcher, is sleeping and must be continued first\n" in out
+
+    sparrow_cmd.watcher.stop()
+    wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_running is False)
+
+    capsys.readouterr()
+    sparrow_cmd.do_restart("")
+    out, _ = capsys.readouterr()
+    assert "Cannot restart watcher, is not running\n" in out
+
+
+def test_do_restart_exceptions(make_mock_install, capsys, mocker):
+    mocker.patch.object(
+        iSparrow.SparrowWatcher, "stop", side_effect=Exception("RuntimeError")
+    )
+    sparrow_cmd = repl.SparrowCmd()
+
+    sparrow_cmd.do_start(CFG_PATH)
+
+    wait_for_watcher_status(sparrow_cmd)
+
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
+
+    capsys.readouterr()
+    sparrow_cmd.do_restart("")
+    out, _ = capsys.readouterr()
+    assert (
+        "trying to restart the watcher process\nCould not restart watcher: RuntimeError caused by None\n"
+        in out
+    )
+
+
+def test_do_change_analyzer(make_mock_install):
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.do_start("")
+
+    wait_for_watcher_status(sparrow_cmd)
+
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
+
+    old_out = deepcopy(sparrow_cmd.watcher.output)
+    sparrow_cmd.do_change_analyzer(CFG_PATH)
+    wait_for_watcher_status(sparrow_cmd)
+
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
+    assert sparrow_cmd.watcher.delete_recordings == "always"
+    assert sparrow_cmd.watcher.pattern == ".mp3"
+    assert old_out != sparrow_cmd.watcher.output
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.watcher.may_do_work.clear()
+
+    sparrow_cmd.watcher.stop()
+    wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_running is False)
+    assert sparrow_cmd.watcher.is_running is False
+
+
+def test_change_analyzer_exception(make_mock_install, capsys, mocker):
+    mocker.patch.object(
+        iSparrow.SparrowWatcher,
+        "change_analyzer",
+        side_effect=Exception("RuntimeError"),
+    )
+
+    sparrow_cmd = repl.SparrowCmd()
+
+    capsys.readouterr()
+    sparrow_cmd.do_change_analyzer("")
+    out, _ = capsys.readouterr()
+    assert "No watcher present, cannot change analyzer\n" in out
+
+    sparrow_cmd.do_start(CFG_PATH)
+
+    wait_for_watcher_status(sparrow_cmd)
+
+    sparrow_cmd.watcher.is_done_analyzing.set()
+
+    capsys.readouterr()
+    sparrow_cmd.do_change_analyzer(CFG_PATH)
+
+    out, _ = capsys.readouterr()
+
+    assert (
+        "An error occured when changing analyzer: RuntimeError, caused by None\n" in out
+    )
+
+    if sparrow_cmd.watcher is not None and sparrow_cmd.watcher.is_running is True:
+        sparrow_cmd.watcher.stop()
+
+
+def test_change_analyzer_failure(make_mock_install, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+    capsys.readouterr()
+    sparrow_cmd.do_change_analyzer("")
+    out, _ = capsys.readouterr()
+    assert "No watcher present, cannot change analyzer\n" in out
+
+    sparrow_cmd.do_start(CFG_PATH)
+
+    wait_for_watcher_status(sparrow_cmd)
+
+    sparrow_cmd.watcher.is_done_analyzing.set()
+    sparrow_cmd.watcher.pause()
+    wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_sleeping is True)
+
+    capsys.readouterr()
+    sparrow_cmd.do_change_analyzer(CFG_PATH)
+    out, _ = capsys.readouterr()
+    assert "Cannot change analyzer, watcher is sleeping\n" in out
+
+    sparrow_cmd.watcher.go_on()
+
+    wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_sleeping is False)
+
+    capsys.readouterr()
+    sparrow_cmd.do_change_analyzer(CFG_PATH + " --other=superfluous")
+    out, _ = capsys.readouterr()
+    assert (
+        "Invalid input. Expected 1 blocks of the form --name=<arg> with names ['--cfg']\n"
+        in out
+    )
+
+    sparrow_cmd.watcher.stop()
+    wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_running is False)
+    capsys.readouterr()
+    sparrow_cmd.do_change_analyzer(CFG_PATH)
+    out, _ = capsys.readouterr()
+    assert "Cannot change analyzer, watcher is not running\n" in out
+
+    sparrow_cmd.watcher = None
+    capsys.readouterr()
+    sparrow_cmd.do_change_analyzer(CFG_PATH)
+    out, _ = capsys.readouterr()
+    assert "No watcher present, cannot change analyzer\n" in out
+
+
+def test_do_status(make_mock_install, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.do_start(CFG_PATH)
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
+
+    wait_for_watcher_status(sparrow_cmd)
+
+    capsys.readouterr()
+    sparrow_cmd.do_status("")
+    out, _ = capsys.readouterr()
+    assert "is running: True\nis sleeping: False\nmay do work: True\n" in out
+    assert sparrow_cmd.watcher.is_running is True
+    assert sparrow_cmd.watcher.is_sleeping is False
+    sparrow_cmd.watcher.stop()
+    assert sparrow_cmd.watcher.is_running is False
+
+    capsys.readouterr()
+    sparrow_cmd.do_status("wrong input")
+    out, _ = capsys.readouterr()
+    assert "Invalid input. Expected no arguments.\n" in out
+
+    sparrow_cmd.watcher = None
+
+    capsys.readouterr()
+    sparrow_cmd.do_status("")
+    out, _ = capsys.readouterr()
+    assert "No watcher present, cannot check status\n" in out
+
+
+def test_do_cleanup_no_watcher(mocker, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+
+    sparrow_cmd.do_cleanup("")
+    captured = capsys.readouterr()
+    assert "Cannot run cleanup, no watcher present" in captured.out
+
+
+def test_do_cleanup_with_arguments(mocker, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.watcher = mocker.Mock()
+    sparrow_cmd.do_cleanup("some arguments")
+    captured = capsys.readouterr()
+    assert "Invalid input. Expected no arguments." in captured.out
+
+
+def test_do_cleanup_watcher_sleeping(mocker):
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.watcher = mocker.Mock()
+    mocker.patch.object(sparrow_cmd.watcher, "is_sleeping", return_value=True)
+    mocker.patch.object(sparrow_cmd.watcher, "is_running", return_value=False)
+    sparrow_cmd.do_cleanup("")
+    sparrow_cmd.watcher.clean_up.assert_called_once()
+
+
+def test_do_cleanup_watcher_failure(mocker, capsys, make_mock_install):
+    sparrow_cmd = repl.SparrowCmd()
+    sparrow_cmd.watcher = mocker.Mock()
+    mocker.patch.object(
+        sparrow_cmd.watcher, "clean_up", side_effect=Exception("RuntimeError")
+    )
+
+    capsys.readouterr()
+    sparrow_cmd.do_cleanup("")
+    captured = capsys.readouterr()
+    assert "Error while running cleanup: " in captured.out
+
+    sparrow_cmd.watcher.stop()
+
+
+def test_cmdloop_keyboard_interrupt(mocker, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+    assert sparrow_cmd.running
+    mocker.patch.object(repl.cmd.Cmd, "cmdloop", side_effect=KeyboardInterrupt)
+    capsys.readouterr()
+    sparrow_cmd.cmdloop()
+    out, _ = capsys.readouterr()
+    assert not sparrow_cmd.running
+    assert "Execution Interrupted\n" in out
+    assert "Exiting shell...\n" in out
+
+
+def test_cmdloop_exception(mocker, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+    assert sparrow_cmd.running
+
+    def except_set_false():
+        sparrow_cmd.running = False
+        raise RuntimeError("dummy exception")
+
+    mocker.patch.object(repl.cmd.Cmd, "cmdloop", side_effect=except_set_false)
+    capsys.readouterr()
+    sparrow_cmd.cmdloop()
+    out, _ = capsys.readouterr()
+    assert "An error occured:  dummy exception  caused by:  None\n" in out
+    assert (
+        "If you tried to modify the watcher, make sure to restart it or exit and start a new session"
+        in out
+    )
+
+
+def test_cmdloop_exception_queue(mocker, capsys):
+    sparrow_cmd = repl.SparrowCmd()
+
+    def set_false():
+        sparrow_cmd.running = False
+
+    mocker.patch.object(repl.cmd.Cmd, "cmdloop", side_effect=set_false)
+
+    watcher_mock = mocker.Mock()
+    watcher_mock.exception_queue = Queue()
+    sparrow_cmd.watcher = watcher_mock
+
+    sparrow_cmd.watcher.exception_queue.put((Exception("Test"), "Traceback"))
+
+    # Now, you can assign this mock to the watcher member of the SparrowCmd instance
+    sparrow_cmd.watcher = watcher_mock
+
+    sparrow_cmd.running = True
+    capsys.readouterr()
+    sparrow_cmd.cmdloop()
+    out, _ = capsys.readouterr()
+    assert "An error occurred in the watcher subprocess: " in out
+    assert "Traceback: " in out

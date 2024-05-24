@@ -1,14 +1,33 @@
 [![tests](https://github.com/ssciwr/iSparrow/actions/workflows/main.yml/badge.svg?event=push)](https://github.com/ssciwr/iSparrow/actions/workflows/main.yml)
 [![codecov](https://codecov.io/gh/ssciwr/iSparrow/graph/badge.svg?token=FwyE0PNiOk)](https://codecov.io/gh/ssciwr/iSparrow)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ssciwr_iSparrow&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ssciwr_iSparrow)
+[![Supported OS: Linux | macOS | Windows](https://img.shields.io/badge/OS-Linux%20%7C%20macOS%20%7C%20Windows-green.svg)](https://www.linux.org/)
+[![Documentation](https://readthedocs.org/projects/isparrow/badge/?version=latest)](https://isparrow.readthedocs.io/en/latest/?badge=latest)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-# iSparrow - Smart-IoT-based Passive bioAcoustic monitoRing of site-specific co-pResence of zOonotic Wildlife hosts and humans
+# Faunanet-lab
+## What is it? 
+`faunanet-lab` is an extension of [*Birdnet-Analyzer*](https://github.com/kahst/BirdNET-Analyzer), and uses [*birdnetlib*](https://github.com/joeweiss/birdnetlib) as its basis. 
+`faunanet-lab` was developed with the goal to provide a platform for bioacoustics research projects, started at the Interdisciplinary center for scientific computing at the University of Heidelberg. 
 
-iSparrow provides a flexible software for running bioacoustic classification machine learning systems on raspberry-Pi. By default, it uses the models provided by [Birdnet-Analyzer](https://github.com/kahst/BirdNET-Analyzer/tree/main), but can also use other models the user provides.
+## Features
+Using the birdnetv2.4 model by default, `faunanet-lab` provides three core features: 
 
-It achieves this by extending [birdnetlib](https://github.com/joeweiss/birdnetlib). 
+- Easily and arbitrarily exchange the underlying maching learning model for bioacoustics.
+- Easy configuration using YAML files which are stored alongside the analysis results. 
+- Integrated, extendible REPL with which to interact with which to interact with a running instance.
 
-## Features 
-tbd 
+The main element of `faunanet-lab` is a 'watcher' system that continuously monitors a folder for incoming data files and allows for on-the-fly model- or parameter-change via the REPL. It can also be used as a library in your python project.
+By extending elements of bridnetlib rather, `faunanet-lab` conserves the latter's capabilities while still adding its own functionality on top of it. 
+
+## Getting started 
+Please refer to the 'Getting faunanet-lab up and running' section in the documentation for an introduction. 
+
+## Bugs, issues and feature requests
+Please use the [issue tab of the github page](https://github.com/ssciwr/iSparrow/issues) to report any bugs or feature requests. 
+
+## Contributions 
+Feel free to contribute to this project by opening a pull request [here](https://github.com/ssciwr/iSparrow/pulls). 
 
 ## Usage
 ### Installation
@@ -30,7 +49,7 @@ On windows, the line ```source ./path/to/isparrow/venv/bin/activate``` must be r
 ```python3 ./path/to/isparrow/venv/scripts/activate```. You can also select which installation options you want in the last line, either ```tensorflow``` or ```tensorflow-lite```. Additionally, 
 if you want to do further development, the installation must be modified by replacing the install command: 
 ```
-    python3 -m pip install  -e .[tensorflow,tensorflow-lite]
+    python3 -m pip install  -e .[tensorflow]
     python3 -m pip install -r requirements-dev.txt
 ```
 

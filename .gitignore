@@ -135,3 +135,6 @@ cython_debug/
 # ide specifics 
 .vscode 
 .idea
+
+# sonarcloud 
+.sonarlint

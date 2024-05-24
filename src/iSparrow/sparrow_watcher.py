@@ -13,6 +13,7 @@ import multiprocessing
 import warnings
 import csv
 from contextlib import contextmanager
+import traceback
 
 
 class AnalysisEventHandler(FileSystemEventHandler):
@@ -81,13 +82,17 @@ def watchertask(watcher):
     """
 
     # build the recorder
-    observer = Observer()
+    try:
+        observer = Observer()
 
-    event_handler = AnalysisEventHandler(
-        watcher,
-    )
-    observer.schedule(event_handler, watcher.input, recursive=True)
-    observer.start()
+        event_handler = AnalysisEventHandler(
+            watcher,
+        )
+        observer.schedule(event_handler, watcher.input, recursive=True)
+        observer.start()
+    except Exception as e:
+        tb = traceback.format_exc()
+        watcher.exception_queue.put((e, tb))
 
     try:
         while True:
@@ -96,9 +101,8 @@ def watchertask(watcher):
         observer.stop()
     except Exception as e:
         observer.stop()
-        raise RuntimeError(
-            "Something went wrong in the watcher/analysis process"
-        ) from e
+        tb = traceback.format_exc()
+        watcher.exception_queue.put((e, tb))
 
     observer.join()
 
@@ -117,10 +121,7 @@ class SparrowWatcher:
     save_results: Save the results to the output directory as a csv file.
     stop: Pause the watcher thread.
     go_on: Continue the watcher thread
-    check_analysis: Go over the input and output directory and repeat analysis for
-                    all files for which there is not corresponding file in the output
-                    directory.
-
+    check_analysis: Go over the input and output directory and repeat analysis for all files for which there is not corresponding file in the output directory.
     """
 
     def _write_config(
@@ -240,7 +241,7 @@ class SparrowWatcher:
         self.delete_recordings = old_state["delete_recordings"]
 
     @contextmanager
-    def _backup_and_restore_state(self) -> dict:
+    def _backup_and_restore_state(self):
         """
         _backup_and_restore_state Helper context manager that creates a backup of the current object state and restores it in case of an error.
 
@@ -351,6 +352,8 @@ class SparrowWatcher:
         self.model_name = model_name
 
         self.watcher_process = None
+
+        self.exception_queue = multiprocessing.Queue()
 
         self.may_do_work = multiprocessing.Event()
 
@@ -514,7 +517,15 @@ class SparrowWatcher:
             RuntimeError: When the watcher process is not running.
         """
         if self.watcher_process is not None and self.watcher_process.is_alive():
-            self.is_done_analyzing.wait()  # wait for the finish event
+            is_flag_set = self.is_done_analyzing.wait(
+                timeout=30
+            )  # wait for the analysis finish event
+
+            if is_flag_set is False:
+                warnings.warn(
+                    "pause timeout expired, setting on pause without regard for status"
+                )
+
             self.may_do_work.clear()
         else:
             raise RuntimeError("Cannot pause watcher process, is not alive anymore.")
@@ -639,8 +650,15 @@ class SparrowWatcher:
             self.restart()
 
             try:
+                i = 0
                 while self.last_analyzed.value <= self.first_analyzed.value:
-                    sleep(5)
+                    sleep(3)
+                    if i > 10:
+                        break
+                    i += 1
+                warnings.warn(
+                    "No data was incoming in 30s, trying to clean up data anyway."
+                )
                 self.clean_up()
 
             except Exception as e:
@@ -758,6 +776,7 @@ class SparrowWatcher:
         clean_up Run cleanup on the all the output directories of the watcher process that reside in the current output base directory.
 
         """
+
         folders = sorted(
             filter(lambda f: f.is_file() is False, list(self.outdir.iterdir())),
             key=lambda x: x.stat().st_ctime,
