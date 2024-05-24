@@ -114,10 +114,22 @@ def download_model_files(model_dir: str = "models"):
         "google_bird_classification/preprocessor.py": None,
     }
 
+    config_files = {
+        "birdnet_default_v2.4/default.yml": None,
+        "birdnet_custom_v2.4/default.yml": None,
+        "google_bird_classification/default.yml": None,
+    }
+
     models_data = pooch.create(
         path=pooch.os_cache("iSparrow_downloads"),
         base_url="https://huggingface.co/MaHaWo/iSparrow_test_models/resolve/main",
-        registry=(model_file_names | label_file_names | model_code | preprocessor_code),
+        registry=(
+            model_file_names
+            | label_file_names
+            | model_code
+            | preprocessor_code
+            | config_files
+        ),
     )
 
     for name in [
@@ -126,6 +138,7 @@ def download_model_files(model_dir: str = "models"):
         "species_presence_model.tflite",
         "model.py",
         "preprocessor.py",
+        "default.yml",
     ]:
         (ism / Path("birdnet_default")).mkdir(parents=True, exist_ok=True)
         shutil.copy(
@@ -133,7 +146,13 @@ def download_model_files(model_dir: str = "models"):
             ism / Path("birdnet_default"),
         )
 
-    for name in ["model.tflite", "labels.txt", "model.py", "preprocessor.py"]:
+    for name in [
+        "model.tflite",
+        "labels.txt",
+        "model.py",
+        "preprocessor.py",
+        "default.yml",
+    ]:
         (ism / Path("birdnet_custom")).mkdir(parents=True, exist_ok=True)
 
         shutil.copy(
@@ -147,6 +166,7 @@ def download_model_files(model_dir: str = "models"):
         "train_metadata.csv",
         "model.py",
         "preprocessor.py",
+        "default.yml",
     ]:
         (ism / Path("google_perch")).mkdir(parents=True, exist_ok=True)
 
@@ -265,19 +285,16 @@ def set_up_sparrow(custom_config: str = None):
 
         with open(Path(config) / "install.yml", "r") as yfile:
             old_cfg = yaml.safe_load(yfile)["Directories"]
+            old_dirs = [Path(p).expanduser().resolve() for p in old_cfg.values()]
 
         for dir in [home, models, output, examples, config, cache]:
 
             # avoid compromising existing installations
-            if (
-                Path(dir).exists()
-                and Path(dir).expanduser().resolve()
-                != Path(old_cfg[dir]).expanduser().resolve()
-            ):
+            if Path(dir).exists() and Path(dir).expanduser().resolve() not in old_dirs:
                 shutil.rmtree(dir)
-
+        p = Path(config, "install.yml")
         raise FileExistsError(
-            "An iSparrow installation already exists. Please remove it before running the installation."
+            f"An iSparrow installation already exists at {p}. Please remove it before running the installation."
         )
 
     with open(Path(config) / "install.yml", "w") as yfile:

@@ -3,7 +3,6 @@ from pathlib import Path
 import pytest
 import shutil
 import tempfile
-from platformdirs import user_cache_dir, user_config_dir
 
 tflite_file = "model.tflite"
 
@@ -31,6 +30,7 @@ def cleanup_after_test(temp_dir):
         if Path(temp_dir, path).exists():
             shutil.rmtree(Path(temp_dir, path))
 
+
 @pytest.fixture()
 def make_folders(temp_dir):
     for path in [
@@ -54,11 +54,11 @@ def clean_up_test_installation():
         if Path(path).expanduser().exists():
             shutil.rmtree(Path(path).expanduser(), ignore_errors=True)
 
-    if (Path(user_config_dir()) / "iSparrow_tests").exists():
+    if (Path(sps.user_config_dir()) / "iSparrow_tests").exists():
         shutil.rmtree(Path(user_config_dir()) / "iSparrow_tests", ignore_errors=True)
 
-    if (Path(user_cache_dir()) / "iSparrow_tests").exists():
-        shutil.rmtree(Path(user_cache_dir()) / "iSparrow_tests", ignore_errors=True)
+    if (Path(sps.user_cache_dir()) / "iSparrow_tests").exists():
+        shutil.rmtree(Path(sps.user_cache_dir()) / "iSparrow_tests", ignore_errors=True)
 
 
 def test_make_directories(temp_dir, cleanup_after_test):
@@ -77,7 +77,7 @@ def test_make_directories(temp_dir, cleanup_after_test):
     assert iscache.exists()
 
 
-def test_make_directories_exceptions(cleanup_after_test):
+def test_make_directories_exceptions(cleanup_after_test, patch_functions):
     base_cfg_dirs = {"models": "test_models", "output": "test_output"}
 
     with pytest.raises(
@@ -105,7 +105,9 @@ def test_make_directories_exceptions(cleanup_after_test):
         sps.make_directories(base_cfg_dirs)
 
 
-def test_download_example_data(temp_dir, make_folders, cleanup_after_test):
+def test_download_example_data(
+    temp_dir, make_folders, cleanup_after_test, patch_functions
+):
     example_dir = str(Path(temp_dir, "test_examples"))
 
     sps.download_example_data(example_dir)
@@ -117,7 +119,9 @@ def test_download_example_data(temp_dir, make_folders, cleanup_after_test):
     assert Path(example_dir, "species_list.txt").is_file()
 
 
-def test_download_example_data_exceptions(make_folders, cleanup_after_test):
+def test_download_example_data_exceptions(
+    make_folders, cleanup_after_test, patch_functions
+):
     example_dir = "test_examples_nonexistent"
     with pytest.raises(
         FileNotFoundError, match="The folder test_examples_nonexistent does not exist"
@@ -125,7 +129,7 @@ def test_download_example_data_exceptions(make_folders, cleanup_after_test):
         sps.download_example_data(example_dir)
 
 
-def test_download_model_files(temp_dir, make_folders):
+def test_download_model_files(temp_dir, make_folders, patch_functions):
     model_dir = str(Path(temp_dir, "test_models"))
     sps.download_model_files(model_dir)
     assert Path(model_dir).exists()
@@ -134,7 +138,9 @@ def test_download_model_files(temp_dir, make_folders):
     assert Path(model_dir, "google_perch", "saved_model.pb").is_file()
 
 
-def test_download_model_files_exceptions(make_folders, cleanup_after_test):
+def test_download_model_files_exceptions(
+    make_folders, cleanup_after_test, patch_functions
+):
     model_dir = "test_models_nonexistent"
     with pytest.raises(
         FileNotFoundError, match="The folder test_models_nonexistent does not exist"
@@ -142,7 +148,7 @@ def test_download_model_files_exceptions(make_folders, cleanup_after_test):
         sps.download_model_files(model_dir)
 
 
-def test_setup(clean_up_test_installation):
+def test_setup(clean_up_test_installation, patch_functions):
     filepath = Path(__file__).parent / "test_install_config" / "install.yml"
 
     sps.set_up_sparrow(filepath)

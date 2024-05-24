@@ -22,6 +22,7 @@ class ModelBase(ABC):
         model_path: str,
         labels_path: str,
         num_threads: int = 1,
+        **kwargs,
     ):
         self.num_threads = num_threads
 
