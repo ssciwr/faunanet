@@ -16,6 +16,9 @@ from .fixtures.watcher_fixtures import WatchFixture
 
 multiprocessing.set_start_method("spawn", True)
 
+# set test mode
+os.environ["FAUNANET_TEST_MODE"] = "True"
+
 
 def read_yaml_with_replacement(path, dir):
 
