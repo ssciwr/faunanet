@@ -252,9 +252,9 @@ def download_example_data(example_dir: str = "examples"):
         )
 
 
-def set_up_sparrow(custom_config: str = None):
+def set_up(custom_config: str = None):
     """
-    set_up_sparrow Set up the faunanet directories and download the necessary data. This is required to run before anything else is done with iSparrow.
+    set_up Set up the faunanet directories and download the necessary data. This is required to run before anything else is done with iSparrow.
 
     Args:
         custom_config (str, optional): Path to a custom installation file. See the 'install.yml' file provided with this package for possible customization options. Defaults to None.

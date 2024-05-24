@@ -48,9 +48,9 @@ def process_line_into_kwargs(line: str, keywords: list = None) -> dict:
     return kwargs
 
 
-class SparrowCmd(cmd.Cmd):
+class FaunanetCmd(cmd.Cmd):
     """
-    SparrowCmd is a command-line interface for interacting with a SparrowWatcher instance.
+    FaunanetCmd is a command-line interface for interacting with a FaunanetWatcher instance.
 
     This class provides a set of commands for setting up, starting, stopping, and managing a watcher process that analyzes incoming files in a directory. It also provides commands for getting the status of the watcher process and the current setup of faunanet.
 
@@ -66,7 +66,7 @@ class SparrowCmd(cmd.Cmd):
 
     def __init__(self):
         """
-        __init__ Create a new SparrowCmd instance.
+        __init__ Create a new FaunanetCmd instance.
 
         """
         super().__init__()
@@ -317,13 +317,13 @@ class SparrowCmd(cmd.Cmd):
 
         def do_no_inputs(_, __):
             print("No config file provided, falling back to default\n")
-            sps.set_up_sparrow(None)
+            sps.set_up(None)
 
         self.process_arguments(
             line,
             ["--cfg"],
             do_no_inputs=lambda self, inputs: do_no_inputs(self, inputs),
-            do_with_inputs=lambda self, inputs: sps.set_up_sparrow(
+            do_with_inputs=lambda self, inputs: sps.set_up(
                 Path(inputs["cfg"]).expanduser().resolve()
             ),
             do_with_failure=lambda self, inputs, e: print(
@@ -333,7 +333,7 @@ class SparrowCmd(cmd.Cmd):
 
     def do_start(self, line: str):
         """
-        do_start Start a new sparrow watcher process. Only can be started if no other watcher is currently running.
+        do_start Start a new faunanet watcher process. Only can be started if no other watcher is currently running.
 
         Args:
             line (str): optional argument --cfg=<path> to provide a custom configuration file.
@@ -438,7 +438,7 @@ class SparrowCmd(cmd.Cmd):
 
     def do_stop(self, line: str):
         """
-        do_stop Stop a running sparrow watcher process.
+        do_stop Stop a running faunanet watcher process.
         """
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
@@ -491,14 +491,14 @@ class SparrowCmd(cmd.Cmd):
 
     def do_exit(self, line: str):
         """
-        do_exit Leave the sparrow shell
+        do_exit Leave the faunanet shell
         """
         self.running = False
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
 
-        print("Exiting sparrow shell")
+        print("Exiting faunanet shell")
         return True
 
     def do_pause(self, line: str):

@@ -74,10 +74,10 @@ You can copy the above into a .yml file and customize the paths to whatever you 
 The method can be used as follows in python code
 
 ```python 
-    from faunanet import sparrow_setup as sps 
+    from faunanet import faunanet_setup as sps 
     filepath = Path("path", "to", "the", "install_config.yml")
 
-    sps.set_up_sparrow(filepath)
+    sps.set_up(filepath)
 ```
 It is important to have an outermost node called  `Directories`. Aside from creating the directories named in the installation config file, the installation method will download the default tensorflow models from [hugginface](https://huggingface.co/MaHaWo/iSparrow_test_models/tree/main) and will create `faunanet` directories in you OS default config and cache folders. On Linux, these would be `~/.config` and `~/.cache`, respectively.
 
@@ -87,7 +87,7 @@ In the repl, this would work like this:
 
    set_up --cfg=./path/to/custom/install_config.yml 
 ``` 
-This does the same as the call to ```sps.set_up_sparrow``` call above, so you can refer to the documentation of that function for further information, too. 
+This does the same as the call to ```sps.set_up``` call above, so you can refer to the documentation of that function for further information, too. 
 
 ### Using faunanet as a library 
 faunanet can be used as a library in your own application. Just add  

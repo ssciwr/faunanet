@@ -151,7 +151,7 @@ def test_download_model_files_exceptions(
 def test_setup(clean_up_test_installation, patch_functions):
     filepath = Path(__file__).parent / "test_install_config" / "install.yml"
 
-    sps.set_up_sparrow(filepath)
+    sps.set_up(filepath)
 
     assert sps.SPARROW_HOME.exists()
     assert sps.SPARROW_EXAMPLES.exists()
