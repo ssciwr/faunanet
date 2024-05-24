@@ -122,7 +122,7 @@ def download_model_files(model_dir: str = "models"):
 
     models_data = pooch.create(
         path=pooch.os_cache("faunanet_downloads"),
-        base_url="https://huggingface.co/MaHaWo/iSparrow_test_models/resolve/main",
+        base_url="https://huggingface.co/MaHaWo/faunanet_test_models/resolve/main",
         registry=(
             model_file_names
             | label_file_names
