@@ -35,8 +35,8 @@ def make_mock_install(patch_functions):
     ism.mkdir(parents=True, exist_ok=True)
     ise.mkdir(parents=True, exist_ok=True)
 
-    faunanet.sparrow_setup.download_model_files(ism)
-    faunanet.sparrow_setup.download_example_data(ise)
+    faunanet.faunanet_setup.download_model_files(ism)
+    faunanet.faunanet_setup.download_example_data(ise)
 
     shutil.copy(Path(packagebase, "install.yml"), iscfg)
     shutil.copy(Path(packagebase, "default.yml"), iscfg)

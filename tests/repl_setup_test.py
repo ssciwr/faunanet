@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
 import faunanet.repl as repl
-import faunanet.sparrow_setup as sps
+import faunanet.faunanet_setup as sps
 import shutil
 
 INSTALL_FILE = "install.yml"
@@ -85,7 +85,7 @@ def test_do_set_up_failure(input, expected, mocker, capsys, patch_functions):
 
 def test_do_set_up_setup_exception(mocker, capsys, clean_up_test_installation):
     mocker.patch(
-        "faunanet.sparrow_setup.set_up_sparrow", side_effect=Exception("RuntimeError")
+        "faunanet.faunanet_setup.set_up_sparrow", side_effect=Exception("RuntimeError")
     )
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_set_up("--cfg=./tests/test_configs")

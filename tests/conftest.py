@@ -9,7 +9,7 @@ from platformdirs import user_cache_dir, user_config_dir
 import yaml
 
 from faunanet.utils import load_module
-from faunanet.sparrow_setup import download_example_data, download_model_files
+from faunanet.faunanet_setup import download_example_data, download_model_files
 from .fixtures.recording_fixtures import RecordingFixture
 from .fixtures.model_fixtures import ModelFixture
 from .fixtures.watcher_fixtures import WatchFixture
@@ -47,13 +47,13 @@ def patch_functions(mocker, tmpdir):
         "faunanet.repl.read_yaml", new=lambda f: read_yaml_with_replacement(f, tmpdir)
     )
     mocker.patch(
-        "faunanet.sparrow_setup.user_cache_dir", new=lambda: Path(tmpdir) / "cache"
+        "faunanet.faunanet_setup.user_cache_dir", new=lambda: Path(tmpdir) / "cache"
     )
     mocker.patch(
-        "faunanet.sparrow_setup.user_config_dir", new=lambda: Path(tmpdir) / "config"
+        "faunanet.faunanet_setup.user_config_dir", new=lambda: Path(tmpdir) / "config"
     )
     mocker.patch(
-        "faunanet.sparrow_setup.utils.read_yaml",
+        "faunanet.faunanet_setup.utils.read_yaml",
         new=lambda f: read_yaml_with_replacement(f, tmpdir),
     )
     yield tmpdir

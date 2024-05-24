@@ -5,7 +5,7 @@ import time
 import traceback
 
 from faunanet import SparrowWatcher
-import faunanet.sparrow_setup as sps
+import faunanet.faunanet_setup as sps
 from faunanet.utils import read_yaml, update_dict_leafs_recursive, get_method_docstring
 
 
