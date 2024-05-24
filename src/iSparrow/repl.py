@@ -277,7 +277,7 @@ class SparrowCmd(cmd.Cmd):
         print("pause: pause a running watcher")
         print("continue: continue a paused watcher")
         print("restart: restart an existing watcher")
-        print("change analyzer: change the analyzer of a running watcher")
+        print("change_analyzer: change the analyzer of a running watcher")
         print(
             "cleanup: cleanup the output directory of the watcher, assuring data consistency"
         )

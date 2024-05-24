@@ -244,7 +244,7 @@ class SparrowWatcher:
         self.delete_recordings = old_state["delete_recordings"]
 
     @contextmanager
-    def _backup_and_restore_state(self) -> dict:
+    def _backup_and_restore_state(self):
         """
         _backup_and_restore_state Helper context manager that creates a backup of the current object state and restores it in case of an error.
 

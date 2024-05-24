@@ -265,7 +265,7 @@ def test_do_start_custom(make_mock_install, capsys):
             True,
         ),
         (
-            "--cfg=./tests/test_configs/watcher_custom.yml --stuff=superfluous",
+            CFG_PATH + " --stuff=superfluous",
             "Invalid input. Expected 1 blocks of the form --name=<arg> with names ['--cfg']\n",
             True,
         ),
@@ -394,7 +394,7 @@ def test_do_exit(capsys):
 
 def test_do_pause(make_mock_install):
     sparrow_cmd = repl.SparrowCmd()
-    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_start(CFG_PATH)
     wait_for_watcher_status(sparrow_cmd)
 
     assert sparrow_cmd.watcher.is_running is True
@@ -410,7 +410,7 @@ def test_do_pause(make_mock_install):
 
 def test_do_pause_failures(make_mock_install, capsys):
     sparrow_cmd = repl.SparrowCmd()
-    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_start(CFG_PATH)
     assert sparrow_cmd.watcher.is_running is True
     time.sleep(5)
     sparrow_cmd.watcher.is_done_analyzing.set()
@@ -440,7 +440,7 @@ def test_do_pause_failures(make_mock_install, capsys):
     out, _ = capsys.readouterr()
     assert "Cannot pause watcher, no watcher present\n" in out
 
-    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_start(CFG_PATH)
 
     wait_for_watcher_status(sparrow_cmd)
 
@@ -455,7 +455,7 @@ def test_do_pause_failures(make_mock_install, capsys):
 
 def test_do_pause_exception(make_mock_install, capsys, mocker):
     sparrow_cmd = repl.SparrowCmd()
-    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_start(CFG_PATH)
     assert sparrow_cmd.watcher.is_running is True
     wait_for_watcher_status(sparrow_cmd)
 
@@ -475,7 +475,7 @@ def test_do_pause_exception(make_mock_install, capsys, mocker):
 def test_do_continue(make_mock_install):
 
     sparrow_cmd = repl.SparrowCmd()
-    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_start(CFG_PATH)
     assert sparrow_cmd.watcher.is_running is True
     wait_for_watcher_status(sparrow_cmd)
 
@@ -494,7 +494,7 @@ def test_do_continue(make_mock_install):
 def test_do_continue_failure(make_mock_install, capsys):
 
     sparrow_cmd = repl.SparrowCmd()
-    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_start(CFG_PATH)
     wait_for_watcher_status(sparrow_cmd)
     assert sparrow_cmd.watcher.is_running is True
     sparrow_cmd.watcher.is_done_analyzing.set()
@@ -519,7 +519,7 @@ def test_do_continue_failure(make_mock_install, capsys):
     out, _ = capsys.readouterr()
     assert "Cannot continue watcher, no watcher present\n" in out
 
-    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_start(CFG_PATH)
 
     wait_for_watcher_status(sparrow_cmd)
 
@@ -543,7 +543,7 @@ def test_do_continue_exception(make_mock_install, capsys, mocker):
     mocker.patch("iSparrow.SparrowWatcher.go_on", side_effect=Exception("RuntimeError"))
 
     sparrow_cmd = repl.SparrowCmd()
-    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_start(CFG_PATH)
     wait_for_watcher_status(sparrow_cmd)
 
     assert sparrow_cmd.watcher.is_running is True
@@ -561,7 +561,7 @@ def test_do_continue_exception(make_mock_install, capsys, mocker):
 
 def test_do_restart(make_mock_install):
     sparrow_cmd = repl.SparrowCmd()
-    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_start(CFG_PATH)
     wait_for_watcher_status(sparrow_cmd)
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
@@ -579,7 +579,7 @@ def test_do_restart(make_mock_install):
 def test_do_restart_failure(make_mock_install, capsys):
     sparrow_cmd = repl.SparrowCmd()
 
-    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_start(CFG_PATH)
 
     wait_for_watcher_status(sparrow_cmd)
 
@@ -615,7 +615,7 @@ def test_do_restart_exceptions(make_mock_install, capsys, mocker):
     )
     sparrow_cmd = repl.SparrowCmd()
 
-    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_start(CFG_PATH)
 
     wait_for_watcher_status(sparrow_cmd)
 
@@ -641,7 +641,7 @@ def test_do_change_analyzer(make_mock_install):
     assert sparrow_cmd.watcher.is_sleeping is False
 
     old_out = deepcopy(sparrow_cmd.watcher.output)
-    sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_change_analyzer(CFG_PATH)
     wait_for_watcher_status(sparrow_cmd)
 
     assert sparrow_cmd.watcher.is_running is True
@@ -671,14 +671,14 @@ def test_change_analyzer_exception(make_mock_install, capsys, mocker):
     out, _ = capsys.readouterr()
     assert "No watcher present, cannot change analyzer\n" in out
 
-    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_start(CFG_PATH)
 
     wait_for_watcher_status(sparrow_cmd)
 
     sparrow_cmd.watcher.is_done_analyzing.set()
 
     capsys.readouterr()
-    sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_change_analyzer(CFG_PATH)
 
     out, _ = capsys.readouterr()
 
@@ -697,7 +697,7 @@ def test_change_analyzer_failure(make_mock_install, capsys):
     out, _ = capsys.readouterr()
     assert "No watcher present, cannot change analyzer\n" in out
 
-    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_start(CFG_PATH)
 
     wait_for_watcher_status(sparrow_cmd)
 
@@ -706,7 +706,7 @@ def test_change_analyzer_failure(make_mock_install, capsys):
     wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_sleeping is True)
 
     capsys.readouterr()
-    sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_change_analyzer(CFG_PATH)
     out, _ = capsys.readouterr()
     assert "Cannot change analyzer, watcher is sleeping\n" in out
 
@@ -715,9 +715,7 @@ def test_change_analyzer_failure(make_mock_install, capsys):
     wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_sleeping is False)
 
     capsys.readouterr()
-    sparrow_cmd.do_change_analyzer(
-        "--cfg=./tests/test_configs/watcher_custom.yml --other=superfluous"
-    )
+    sparrow_cmd.do_change_analyzer(CFG_PATH + " --other=superfluous")
     out, _ = capsys.readouterr()
     assert (
         "Invalid input. Expected 1 blocks of the form --name=<arg> with names ['--cfg']\n"
@@ -727,20 +725,20 @@ def test_change_analyzer_failure(make_mock_install, capsys):
     sparrow_cmd.watcher.stop()
     wait_for_watcher_status(sparrow_cmd, status=lambda w: w.is_running is False)
     capsys.readouterr()
-    sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_change_analyzer(CFG_PATH)
     out, _ = capsys.readouterr()
     assert "Cannot change analyzer, watcher is not running\n" in out
 
     sparrow_cmd.watcher = None
     capsys.readouterr()
-    sparrow_cmd.do_change_analyzer("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_change_analyzer(CFG_PATH)
     out, _ = capsys.readouterr()
     assert "No watcher present, cannot change analyzer\n" in out
 
 
 def test_do_status(make_mock_install, capsys):
     sparrow_cmd = repl.SparrowCmd()
-    sparrow_cmd.do_start("--cfg=./tests/test_configs/watcher_custom.yml")
+    sparrow_cmd.do_start(CFG_PATH)
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.is_sleeping is False
 
