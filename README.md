@@ -66,9 +66,9 @@ Below is an example of the structure faunanet demands:
 ```yaml 
 Directories: 
   home: ~/faunanet
-  data: ~/iSparrow_data
+  data: ~/faunanet_data
   models: ~/faunanet/models 
-  output: ~/iSparrow_output
+  output: ~/faunanet_output
 ```
 You can copy the above into a .yml file and customize the paths to whatever you want them to be. The `~` will be automatically expanded to the path to your home directory.
 The method can be used as follows in python code
