@@ -766,4 +766,4 @@ def run():
     import multiprocessing
 
     multiprocessing.set_start_method("spawn", True)
-    SparrowCmd().cmdloop()
+    FaunanetCmd().cmdloop()

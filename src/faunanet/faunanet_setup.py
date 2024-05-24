@@ -8,17 +8,17 @@ from faunanet import utils
 from importlib.resources import files
 import faunanet
 
-SPARROW_HOME = None
-SPARROW_MODELS = None
-SPARROW_OUTPUT = None
-SPARROW_EXAMPLES = None
-SPARROW_CONFIG = None
-SPARROW_CACHE = None
+FAUNANET_HOME = None
+FAUNANET_MODELS = None
+FAUNANET_OUTPUT = None
+FAUNANET_EXAMPLES = None
+FAUNANET_CONFIG = None
+FAUNANET_CACHE = None
 
 
 def make_directories(base_cfg_dirs: dict):
     """
-    make_directories Make all the directories for sparrow.
+    make_directories Make all the directories for faunanet.
 
 
     Args:
@@ -51,7 +51,7 @@ def make_directories(base_cfg_dirs: dict):
     iscfg = Path(user_config_dir()) / "faunanet"
     iscache = Path(user_cache_dir()) / "faunanet"
 
-    if os.getenv("SPARROW_TEST_MODE") == "True":
+    if os.getenv("FAUNANET_TEST_MODE") == "True":
         iscfg = Path(user_config_dir()) / "faunanet_tests"
         iscache = Path(user_cache_dir()) / "faunanet_tests"
 
@@ -239,7 +239,7 @@ def download_example_data(example_dir: str = "examples"):
     }
 
     example_data = pooch.create(
-        path=pooch.os_cache("iSparrow_downloads"),
+        path=pooch.os_cache("faunanet_downloads"),
         base_url="https://huggingface.co/datasets/MaHaWo/iSparrow_test_data/resolve/main",
         registry=example_data_file_names,
     )
@@ -254,7 +254,7 @@ def download_example_data(example_dir: str = "examples"):
 
 def set_up(custom_config: str = None):
     """
-    set_up Set up the faunanet directories and download the necessary data. This is required to run before anything else is done with iSparrow.
+    set_up Set up the faunanet directories and download the necessary data. This is required to run before anything else is done with faunanet.
 
     Args:
         custom_config (str, optional): Path to a custom installation file. See the 'install.yml' file provided with this package for possible customization options. Defaults to None.
@@ -305,13 +305,13 @@ def set_up(custom_config: str = None):
 
     download_example_data(example_dir=examples.resolve())
 
-    global SPARROW_HOME, SPARROW_MODELS, SPARROW_OUTPUT, SPARROW_EXAMPLES, SPARROW_CACHE, SPARROW_CONFIG
+    global FAUNANET_HOME, FAUNANET_MODELS, FAUNANET_OUTPUT, FAUNANET_EXAMPLES, FAUNANET_CACHE, FAUNANET_CONFIG
 
-    SPARROW_HOME = home
-    SPARROW_MODELS = models
-    SPARROW_OUTPUT = output
-    SPARROW_EXAMPLES = examples
-    SPARROW_CACHE = cache
-    SPARROW_CONFIG = config
+    FAUNANET_HOME = home
+    FAUNANET_MODELS = models
+    FAUNANET_OUTPUT = output
+    FAUNANET_EXAMPLES = examples
+    FAUNANET_CACHE = cache
+    FAUNANET_CONFIG = config
 
     print("Installation finished")

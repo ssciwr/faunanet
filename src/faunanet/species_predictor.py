@@ -8,7 +8,7 @@ import os
 from . import utils
 
 
-# README: Would be more logically consistent to have this inherit from Sparrow's `ModelBase` class,
+# README: Would be more logically consistent to have this inherit from faunanet's `ModelBase` class,
 # but that would require a lot of copy-cat code from birdnetlib.
 
 
@@ -62,7 +62,7 @@ class SpeciesPredictorBase(SpeciesList):
 
         self.name = "birdnet_default"
 
-        if os.getenv("SPARROW_TEST_MODE") == "True":
+        if os.getenv("FAUNANET_TEST_MODE") == "True":
             self.cache_dir = (
                 user_cache_dir() / Path("faunanet_tests") / Path("species_lists")
             )

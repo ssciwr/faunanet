@@ -111,7 +111,7 @@ class Recording(RecordingBase):
             sensitivity=1.0,
             min_conf=min_conf,
             overlap=0.0,
-            return_all_detections=False,  # not used in Sparrow. Set min_conf to 0 for the same effect
+            return_all_detections=False,  # not used in faunanet. Set min_conf to 0 for the same effect
         )
 
     @property
@@ -209,24 +209,24 @@ class Recording(RecordingBase):
         return self.process_audio_data(rawdata)
 
     @classmethod
-    def from_cfg(cls, sparrow_path: str, cfg: dict):
+    def from_cfg(cls, faunanet_path: str, cfg: dict):
         """
         from_cfg Create a new Recording from a dictionary containing all keyword arguments. Usually, this is obtained by reading in a YAML config.
 
         Args:
-            sparrow_path (str): Path to the sparrow installation
+            faunanet_path (str): Path to the faunanet installation
             cfg (dict): keyword arguments for the Recording and its 'preprocessor' and 'model' attributes.
 
         Returns:
             Recording: New instance build with supplied kwargs.
         """
-        # README: sparrow path needed still -> can we get rid of it in some way?
+        # README: faunanet path needed still -> can we get rid of it in some way?
         # config.py/.yml written upon install or something....
         # future PR when installing/packaging is done
 
         # load appropriate modules: preprocessor, model
 
-        module_path = Path(sparrow_path) / Path("models") / cfg["Model"]["model_path"]
+        module_path = Path(faunanet_path) / Path("models") / cfg["Model"]["model_path"]
 
         preproc_m = utils.load_module("pp", str(module_path / "preprocessor.py"))
 

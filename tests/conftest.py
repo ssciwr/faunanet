@@ -61,9 +61,9 @@ def patch_functions(mocker, tmpdir):
 
 # set up the test directories and download the example files
 @pytest.fixture(scope="session")
-def make_sparrow_home():
+def make_faunanet_home():
     """
-    make_sparrow_home Make simulated sparrow setup in a temporary directory
+    make_faunanet_home Make simulated faunanet setup in a temporary directory
 
 
     Yields:
@@ -90,11 +90,11 @@ def make_sparrow_home():
 
 
 @pytest.fixture()
-def make_folders(make_sparrow_home):
+def make_folders(make_faunanet_home):
     """
-    make_folders set up and dipose of a mock sparrow installation in a temporary directory
+    make_folders set up and dipose of a mock faunanet installation in a temporary directory
     """
-    tmpdir, directories = make_sparrow_home
+    tmpdir, directories = make_faunanet_home
 
     # create directories
 
@@ -112,12 +112,12 @@ def make_folders(make_sparrow_home):
 
 
 @pytest.fixture(scope="session")
-def load_files(make_sparrow_home):
+def load_files(make_faunanet_home):
     """
     load_files download all the data files needed for faunanet to run, but without going via the setup routine.
     """
 
-    tmpdir, directories = make_sparrow_home
+    tmpdir, directories = make_faunanet_home
     ise = directories["example"]
     ism = directories["models"]
 

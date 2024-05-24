@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from faunanet.sparrow_watcher import AnalysisEventHandler, Watcher
+from faunanet.watcher import AnalysisEventHandler, Watcher
 from faunanet.utils import wait_for_file_completion, read_yaml
 import faunanet
 from copy import deepcopy

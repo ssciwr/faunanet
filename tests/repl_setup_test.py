@@ -37,8 +37,8 @@ def test_do_set_up(clean_up_test_installation, patch_functions):
     assert Path(cfg["models"].replace("~", str(tmpdir))).exists() is False
     assert Path(cfg["output"].replace("~", str(tmpdir))).exists() is False
 
-    sparrow_cmd = repl.SparrowCmd()
-    sparrow_cmd.do_set_up("--cfg=" + str(filepath))
+    faunanet_cmd = repl.FaunanetCmd()
+    faunanet_cmd.do_set_up("--cfg=" + str(filepath))
 
     tflite_file = "model.tflite"
 
@@ -76,8 +76,8 @@ def test_do_set_up(clean_up_test_installation, patch_functions):
 def test_do_set_up_failure(input, expected, mocker, capsys, patch_functions):
     capsys.readouterr()
 
-    sparrow_cmd = repl.SparrowCmd()
-    sparrow_cmd.do_set_up(input)
+    faunanet_cmd = repl.FaunanetCmd()
+    faunanet_cmd.do_set_up(input)
     out, _ = capsys.readouterr()
     assert expected in out
     capsys.readouterr()
@@ -87,8 +87,8 @@ def test_do_set_up_setup_exception(mocker, capsys, clean_up_test_installation):
     mocker.patch(
         "faunanet.faunanet_setup.set_up", side_effect=Exception("RuntimeError")
     )
-    sparrow_cmd = repl.SparrowCmd()
-    sparrow_cmd.do_set_up("--cfg=./tests/test_configs")
+    faunanet_cmd = repl.FaunanetCmd()
+    faunanet_cmd.do_set_up("--cfg=./tests/test_configs")
     out, _ = capsys.readouterr()
     assert "Could not set up faunanet RuntimeError caused by:  None\n" in out
     capsys.readouterr()
@@ -99,8 +99,8 @@ def test_do_get_setup_info(patch_functions, capsys, clean_up_test_installation):
     filepath = Path(__file__).parent / "test_install_config" / INSTALL_FILE
     cfg = sps.utils.read_yaml(filepath)
 
-    sparrow_cmd = repl.SparrowCmd()
-    sparrow_cmd.do_set_up("--cfg=" + str(filepath))
+    faunanet_cmd = repl.FaunanetCmd()
+    faunanet_cmd.do_set_up("--cfg=" + str(filepath))
 
     dummy_path = Path(sps.user_config_dir()) / "faunanet"
     dummy_path.mkdir(parents=True, exist_ok=True)
@@ -108,7 +108,7 @@ def test_do_get_setup_info(patch_functions, capsys, clean_up_test_installation):
     shutil.copy(filepath, dummy_path / INSTALL_FILE)
 
     capsys.readouterr()
-    sparrow_cmd.do_get_setup_info("")
+    faunanet_cmd.do_get_setup_info("")
     out, _ = capsys.readouterr()
     assert (
         "config directories:  "
@@ -137,17 +137,17 @@ def test_do_get_setup_info(patch_functions, capsys, clean_up_test_installation):
 
 def test_do_get_setup_info_failure(patch_functions, capsys):
 
-    sparrow_cmd = repl.SparrowCmd()
+    faunanet_cmd = repl.FaunanetCmd()
     Path(sps.user_config_dir(), "faunanet").mkdir(parents=True, exist_ok=True)
     Path(sps.user_cache_dir(), "faunanet").mkdir(parents=True, exist_ok=True)
 
-    sparrow_cmd.do_get_setup_info("input not allowed")
+    faunanet_cmd.do_get_setup_info("input not allowed")
     out, _ = capsys.readouterr()
     assert "Invalid input. Expected no arguments." in out
 
     # no setup, hence no installation info
     capsys.readouterr()
-    sparrow_cmd.do_get_setup_info("")
+    faunanet_cmd.do_get_setup_info("")
     out, _ = capsys.readouterr()
 
     assert (
