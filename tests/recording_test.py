@@ -3,13 +3,13 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 from pathlib import Path
 from datetime import datetime
-from src.faunanet import sparrow_recording as spc
+from src.faunanet import recording as spc
 from src.faunanet import species_predictor as spp
 
 
 def test_recording_construction_default(recording_fx):
 
-    recording = spc.SparrowRecording(
+    recording = spc.Recording(
         recording_fx.default_preprocessor,
         recording_fx.default_model,
         recording_fx.good_file,
@@ -26,7 +26,7 @@ def test_recording_construction_default(recording_fx):
 
 def test_recording_construction_custom(recording_fx):
 
-    recording = spc.SparrowRecording(
+    recording = spc.Recording(
         recording_fx.custom_preprocessor,
         recording_fx.custom_model,
         recording_fx.good_file,
@@ -43,7 +43,7 @@ def test_recording_construction_custom(recording_fx):
 
 def test_recording_construction_google(recording_fx):
 
-    recording = spc.SparrowRecording(
+    recording = spc.Recording(
         recording_fx.google_preprocessor,
         recording_fx.google_model,
         recording_fx.good_file,
@@ -64,7 +64,7 @@ def test_recording_construction_inconsistent(recording_fx):
 
     # this is an ugly attempt to make sonarcloud happy, the pytest 'with' statement was not accepted
     try:  # will definitely throw
-        spc.SparrowRecording(
+        spc.Recording(
             recording_fx.default_preprocessor,
             recording_fx.google_model,
             recording_fx.good_file,
@@ -78,7 +78,7 @@ def test_recording_construction_inconsistent(recording_fx):
 
 def test_analysis_custom(recording_fx):
 
-    recording = spc.SparrowRecording(
+    recording = spc.Recording(
         recording_fx.custom_preprocessor,
         recording_fx.custom_model,
         recording_fx.good_file,
@@ -129,7 +129,7 @@ def test_analysis_custom(recording_fx):
 
 def test_analysis_default(recording_fx):
 
-    recording = spc.SparrowRecording(
+    recording = spc.Recording(
         recording_fx.default_preprocessor,
         recording_fx.default_model,
         recording_fx.good_file,
@@ -158,7 +158,7 @@ def test_analysis_default(recording_fx):
 
 def test_analysis_google(recording_fx):
 
-    recording = spc.SparrowRecording(
+    recording = spc.Recording(
         recording_fx.google_preprocessor,
         recording_fx.google_model,
         recording_fx.good_file,
@@ -192,7 +192,7 @@ def test_analysis_google(recording_fx):
 def test_model_exchange(recording_fx):
 
     # do analysis with google model and check it's ok again...
-    recording = spc.SparrowRecording(
+    recording = spc.Recording(
         recording_fx.google_preprocessor,
         recording_fx.google_model,
         recording_fx.good_file,
@@ -251,7 +251,7 @@ def test_species_list_restriction(recording_fx):
         recording_fx.default_cfg["Analysis"]["Model"]["model_path"]
     )
 
-    recording = spc.SparrowRecording(
+    recording = spc.Recording(
         recording_fx.default_preprocessor,
         recording_fx.default_model,
         recording_fx.good_file,

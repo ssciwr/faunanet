@@ -11,11 +11,11 @@ import faunanet.utils as utils
 from faunanet.species_predictor import SpeciesPredictorBase
 
 
-class SparrowRecording(RecordingBase):
+class Recording(RecordingBase):
     """
-    SparrowRecording A SparrowRecording represents an audio recoding of arbitrary length and date associated with a preprocessor and analyzer object.
+    Recording A Recording represents an audio recoding of arbitrary length and date associated with a preprocessor and analyzer object.
 
-    SparrowRecordings read and preprocess audio data using the supplied preprocessor object and can use the 'analyzer' object to analyze and classify the contained animal sounds
+    Recordings read and preprocess audio data using the supplied preprocessor object and can use the 'analyzer' object to analyze and classify the contained animal sounds
 
     Args:
         RecordingBase (birdnetlib.RecordingBase): See documentation of the birdnetlib.RecordingBase class
@@ -45,7 +45,7 @@ class SparrowRecording(RecordingBase):
     ):
         # README: The arguments lon, lat, species_presence_threshold and week_48, date should be moved out of the __init__ at some point, at some point perhaps?
         """
-        Create a new SparrowRecording.
+        Create a new Recording.
 
         Args:
             analyzer (Analyzer): Analyzer object to use. Contains model to use for analysis as well as result post processing.
@@ -211,14 +211,14 @@ class SparrowRecording(RecordingBase):
     @classmethod
     def from_cfg(cls, sparrow_path: str, cfg: dict):
         """
-        from_cfg Create a new SparrowRecording from a dictionary containing all keyword arguments. Usually, this is obtained by reading in a YAML config.
+        from_cfg Create a new Recording from a dictionary containing all keyword arguments. Usually, this is obtained by reading in a YAML config.
 
         Args:
             sparrow_path (str): Path to the sparrow installation
             cfg (dict): keyword arguments for the Recording and its 'preprocessor' and 'model' attributes.
 
         Returns:
-            SparrowRecording: New instance build with supplied kwargs.
+            Recording: New instance build with supplied kwargs.
         """
         # README: sparrow path needed still -> can we get rid of it in some way?
         # config.py/.yml written upon install or something....

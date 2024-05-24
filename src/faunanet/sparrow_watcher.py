@@ -1,4 +1,4 @@
-from faunanet import SparrowRecording
+from faunanet import Recording
 from faunanet import SpeciesPredictorBase
 import faunanet.utils as utils
 
@@ -160,7 +160,7 @@ class SparrowWatcher:
         species_predictor_config: dict,
         model_config: dict,
         preprocessor_config: dict,
-    ) -> SparrowRecording:
+    ) -> Recording:
         """
         _set_up_recording Build a new recording from configs
 
@@ -175,7 +175,7 @@ class SparrowWatcher:
             ValueError: In case the species presence predictor is used. When the an error occurs during the creation of the species predictor model.
 
         Returns:
-            SparrowRecording: New instance of SpeciesRecording created with config dictionaries held by the caller.
+            Recording: New instance of SpeciesRecording created with config dictionaries held by the caller.
         """
         recording_config = deepcopy(recording_config)
 
@@ -222,7 +222,7 @@ class SparrowWatcher:
 
         # create recording object
         # species predictor is applied here once and then used for all the analysis calls that may follow
-        return SparrowRecording(preprocessor, model, "", **recording_config)
+        return Recording(preprocessor, model, "", **recording_config)
 
     def _restore_old_state(self, old_state: dict):
         """
@@ -300,7 +300,7 @@ class SparrowWatcher:
             model_name (str): name of the model to use. Must match the directory name it is stored in, e.g., 'birdnet_default'.
             preprocessor_config (dict, optional): Keyword arguments for the preprocessor of the model. Defaults to {}.
             model_config (dict, optional): Keyword arguments for the model instance. Defaults to {}.
-            recording_config (dict, optional): Keyword arguments for the internal SparrowRecording. Defaults to {}.
+            recording_config (dict, optional): Keyword arguments for the internal Recording. Defaults to {}.
             species_predictor_config (dict, optional): Keyword arguments for a species presence predictor model. Defaults to {}.
             pattern (str, optional): filename pattern to look for. defaults to '.wav'.
             check_time(int, optional): Sleep time of the watcher between checks for new files in seconds. Defaults to 1.
@@ -402,13 +402,13 @@ class SparrowWatcher:
         else:
             return False
 
-    def analyze(self, filename: str, recording: SparrowRecording):
+    def analyze(self, filename: str, recording: Recording):
         """
         analyze Analyze a file pointed to by 'filename' and save the results as csv file to 'output'.
 
         Args:
             filename (str): path to the file to analyze.
-            recording (SparrowRecording): recording object to use
+            recording (Recording): recording object to use
         """
         self.may_do_work.wait()  # wait until parent process allows the worker to pick up work
 
@@ -603,7 +603,7 @@ class SparrowWatcher:
             model_name (str): Name of the model to be used
             preprocessor_config (dict, optional): Parameters for preprocessor given as key(str): value. If empty, default parameters of the preprocessor will be used. Defaults to {}.
             model_config (dict, optional): Parameters for the model given as key(str): value. If empty, default parameters of the model will be used. Defaults to {}.
-            recording_config (dict, optional): Parameters for the underlyin SparrowRecording object. If empty, default parameters of the recording will be used. Defaults to {}.
+            recording_config (dict, optional): Parameters for the underlyin Recording object. If empty, default parameters of the recording will be used. Defaults to {}.
             species_predictor_config (dict, optional): _description_. If empty, default parameters of the species predictor will be used. Defaults to {}.
             Make sure the model you use is compatible with a species predictor before supplying these.
             pattern (str, optional): filename pattern to look for. defaults to '.wav'.
