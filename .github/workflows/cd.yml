@@ -43,7 +43,7 @@ jobs:
       runs-on: ubuntu-latest
       environment: 
         name: pypi_release
-        url: https://pypi.org/p/faunanet-lab
+        url: https://pypi.org/p/faunanet
       permissions: 
         id-token: write 
 
