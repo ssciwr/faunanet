@@ -6,7 +6,7 @@ import warnings
 
 from birdnetlib.main import RecordingBase
 from faunanet.preprocessor_base import PreprocessorBase
-from faunanet.sparrow_model_base import ModelBase
+from faunanet.model_base import ModelBase
 import faunanet.utils as utils
 from faunanet.species_predictor import SpeciesPredictorBase
 
