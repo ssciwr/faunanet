@@ -5,10 +5,10 @@ import datetime
 import warnings
 
 from birdnetlib.main import RecordingBase
-from iSparrow.preprocessor_base import PreprocessorBase
-from iSparrow.sparrow_model_base import ModelBase
-import iSparrow.utils as utils
-from iSparrow.species_predictor import SpeciesPredictorBase
+from faunanet.preprocessor_base import PreprocessorBase
+from faunanet.sparrow_model_base import ModelBase
+import faunanet.utils as utils
+from faunanet.species_predictor import SpeciesPredictorBase
 
 
 class SparrowRecording(RecordingBase):
@@ -49,7 +49,7 @@ class SparrowRecording(RecordingBase):
 
         Args:
             analyzer (Analyzer): Analyzer object to use. Contains model to use for analysis as well as result post processing.
-            preprocessor (PreprocessorBase): Preprocessor object to use. Must adhere to the interface defined in iSparrow.preprocessor_base.
+            preprocessor (PreprocessorBase): Preprocessor object to use. Must adhere to the interface defined in faunanet.preprocessor_base.
             path (str): Path to the audio file to be analyzed
             date (datetime, optional): Date of recording. Alternative to 'week'. Defaults to None. Only applied if `model` is the birdnet default model.
             sensitivity (float, optional): Detection sensitivity. Defaults to 1.0.

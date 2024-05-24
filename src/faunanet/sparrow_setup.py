@@ -4,9 +4,9 @@ import yaml
 import os
 from pathlib import Path
 from platformdirs import user_config_dir, user_cache_dir
-from iSparrow import utils
+from faunanet import utils
 from importlib.resources import files
-import iSparrow
+import faunanet
 
 SPARROW_HOME = None
 SPARROW_MODELS = None
@@ -29,31 +29,31 @@ def make_directories(base_cfg_dirs: dict):
         KeyError: A folder given in the config does not exist
 
     Returns:
-        tuple: created folders: (isparrow-homefolder, modelsfolder, datafolder, outputfolder, examplefolder)
+        tuple: created folders: (faunanet-homefolder, modelsfolder, datafolder, outputfolder, examplefolder)
     """
     if "home" not in base_cfg_dirs:
-        raise KeyError("The home folder for iSparrow must be given in the base config")
+        raise KeyError("The home folder for faunanet must be given in the base config")
 
     if "models" not in base_cfg_dirs:
         raise KeyError(
-            "The models folder for iSparrow must be given in the base config"
+            "The models folder for faunanet must be given in the base config"
         )
 
     if "output" not in base_cfg_dirs:
         raise KeyError(
-            "The output folder for iSparrow must be given in the base config"
+            "The output folder for faunanet must be given in the base config"
         )
 
     ish = Path(base_cfg_dirs["home"]).expanduser().resolve()
     ism = Path(base_cfg_dirs["models"]).expanduser().resolve()
     iso = Path(base_cfg_dirs["output"]).expanduser().resolve()
     ise = (Path(base_cfg_dirs["home"]).expanduser() / Path("example")).resolve()
-    iscfg = Path(user_config_dir()) / "iSparrow"
-    iscache = Path(user_cache_dir()) / "iSparrow"
+    iscfg = Path(user_config_dir()) / "faunanet"
+    iscache = Path(user_cache_dir()) / "faunanet"
 
     if os.getenv("SPARROW_TEST_MODE") == "True":
-        iscfg = Path(user_config_dir()) / "iSparrow_tests"
-        iscache = Path(user_cache_dir()) / "iSparrow_tests"
+        iscfg = Path(user_config_dir()) / "faunanet_tests"
+        iscache = Path(user_cache_dir()) / "faunanet_tests"
 
     for p in [ish, ism, iso, ise]:
         p.mkdir(parents=True, exist_ok=False)
@@ -66,7 +66,7 @@ def make_directories(base_cfg_dirs: dict):
 
 def download_model_files(model_dir: str = "models"):
     """
-    download_model_files Download default model files for iSparrow. This is required to run before anything else is done with iSparrow.
+    download_model_files Download default model files for faunanet. This is required to run before anything else is done with faunanet.
 
     Args:
         model_dir (str, optional): Path to put the model files at. Defaults to "models".
@@ -121,7 +121,7 @@ def download_model_files(model_dir: str = "models"):
     }
 
     models_data = pooch.create(
-        path=pooch.os_cache("iSparrow_downloads"),
+        path=pooch.os_cache("faunanet_downloads"),
         base_url="https://huggingface.co/MaHaWo/iSparrow_test_models/resolve/main",
         registry=(
             model_file_names
@@ -217,10 +217,10 @@ def download_model_files(model_dir: str = "models"):
 
 def download_example_data(example_dir: str = "examples"):
     """
-    download_example_data Download the example audio files used by iSparrow for its tests and examples.
+    download_example_data Download the example audio files used by faunanet for its tests and examples.
 
     Args:
-        example_dir (str, optional): Path to the iSparrow example directory. Defaults to 'examples'.
+        example_dir (str, optional): Path to the faunanet example directory. Defaults to 'examples'.
     """
 
     print("... Downloading example files...")
@@ -254,17 +254,17 @@ def download_example_data(example_dir: str = "examples"):
 
 def set_up_sparrow(custom_config: str = None):
     """
-    set_up_sparrow Set up the iSparrow directories and download the necessary data. This is required to run before anything else is done with iSparrow.
+    set_up_sparrow Set up the faunanet directories and download the necessary data. This is required to run before anything else is done with iSparrow.
 
     Args:
         custom_config (str, optional): Path to a custom installation file. See the 'install.yml' file provided with this package for possible customization options. Defaults to None.
 
     Raises:
-        FileExistsError: When there is an existing iSparrow installation.
+        FileExistsError: When there is an existing faunanet installation.
     """
-    print("Creating iSparrow folders and downloading data... ")
+    print("Creating faunanet folders and downloading data... ")
 
-    packagebase = files(iSparrow)
+    packagebase = files(faunanet)
     install_cfg = utils.read_yaml(packagebase / "install.yml")
 
     if custom_config is not None:
@@ -294,7 +294,7 @@ def set_up_sparrow(custom_config: str = None):
                 shutil.rmtree(dir)
         p = Path(config, "install.yml")
         raise FileExistsError(
-            f"An iSparrow installation already exists at {p}. Please remove it before running the installation."
+            f"An faunanet installation already exists at {p}. Please remove it before running the installation."
         )
 
     with open(Path(config) / "install.yml", "w") as yfile:

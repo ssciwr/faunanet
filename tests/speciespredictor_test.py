@@ -1,4 +1,4 @@
-from iSparrow import species_predictor as sp
+from faunanet import species_predictor as sp
 
 from pathlib import Path
 import yaml

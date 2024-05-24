@@ -3,8 +3,8 @@ from pathlib import Path
 import shutil
 import time
 from datetime import datetime
-from iSparrow.utils import wait_for_file_completion
-from iSparrow import SparrowWatcher
+from faunanet.utils import wait_for_file_completion
+from faunanet import SparrowWatcher
 from copy import deepcopy
 import csv
 
@@ -141,7 +141,7 @@ class WatchFixture:
         for f in files:
             if (watcher.output / f).exists():
                 (watcher.output / f).unlink()
-                
+
     def read_csv(self, filepath):
         rows = []
 

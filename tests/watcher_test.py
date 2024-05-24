@@ -1,8 +1,8 @@
 import pytest
 from pathlib import Path
-from iSparrow.sparrow_watcher import AnalysisEventHandler, SparrowWatcher
-from iSparrow.utils import wait_for_file_completion, read_yaml
-import iSparrow
+from faunanet.sparrow_watcher import AnalysisEventHandler, SparrowWatcher
+from faunanet.utils import wait_for_file_completion, read_yaml
+import faunanet
 from copy import deepcopy
 import yaml
 from math import isclose
@@ -95,7 +95,7 @@ def test_watcher_construction(watch_fx, mocker):
     # give wrong paths and check that appropriate exceptions are raised
     with pytest.raises(ValueError, match="Input directory does not exist"):
         SparrowWatcher(
-            Path.home() / "iSparrow_data_not_there",
+            Path.home() / "faunanet_data_not_there",
             wfx.output,
             wfx.models,
             "birdnet_default",
@@ -104,7 +104,7 @@ def test_watcher_construction(watch_fx, mocker):
     with pytest.raises(ValueError, match="Output directory does not exist"):
         SparrowWatcher(
             wfx.data,
-            Path.home() / "iSparrow_output_not_there",
+            Path.home() / "faunanet_output_not_there",
             wfx.models,
             "birdnet_default",
         )
@@ -128,7 +128,7 @@ def test_watcher_construction(watch_fx, mocker):
         )
 
     mocker.patch.object(
-        iSparrow.SpeciesPredictorBase,
+        faunanet.SpeciesPredictorBase,
         "__init__",
         raise_exception=ValueError("Simulated error occurred"),
     )
@@ -627,7 +627,7 @@ def test_change_analyzer_recovery(watch_fx, mocker):
 
     # patch the start method so we get a mock exception that is propagated through the system
     mocker.patch(
-        "iSparrow.SparrowWatcher.restart",
+        "faunanet.SparrowWatcher.restart",
         side_effect=ValueError("Simulated error occurred"),
     )
     try:
@@ -673,7 +673,7 @@ def test_change_analyzer_recovery(watch_fx, mocker):
     recorder_process.close()
 
     mocker.patch(
-        "iSparrow.SparrowWatcher.clean_up",
+        "faunanet.SparrowWatcher.clean_up",
         side_effect=ValueError("Simulated error occurred"),
     )
     try:
@@ -760,7 +760,7 @@ def test_change_analyzer_exception(watch_fx, mocker):
     assert watcher.species_predictor_config == old_species_predictor_cfg
 
     mocker.patch(
-        "iSparrow.SparrowWatcher.clean_up",
+        "faunanet.SparrowWatcher.clean_up",
         side_effect=ValueError("Simulated error occurred"),
     )
 

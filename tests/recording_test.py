@@ -3,8 +3,8 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 from pathlib import Path
 from datetime import datetime
-from src.iSparrow import sparrow_recording as spc
-from src.iSparrow import species_predictor as spp
+from src.faunanet import sparrow_recording as spc
+from src.faunanet import species_predictor as spp
 
 
 def test_recording_construction_default(recording_fx):

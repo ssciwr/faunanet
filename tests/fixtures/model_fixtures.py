@@ -1,4 +1,4 @@
-from iSparrow import utils
+from faunanet import utils
 from pathlib import Path
 import yaml
 import pytest

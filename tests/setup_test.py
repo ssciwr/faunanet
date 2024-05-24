@@ -1,4 +1,4 @@
-import iSparrow.sparrow_setup as sps
+import faunanet.sparrow_setup as sps
 from pathlib import Path
 import pytest
 import shutil
@@ -54,11 +54,11 @@ def clean_up_test_installation():
         if Path(path).expanduser().exists():
             shutil.rmtree(Path(path).expanduser(), ignore_errors=True)
 
-    if (Path(sps.user_config_dir()) / "iSparrow_tests").exists():
-        shutil.rmtree(Path(user_config_dir()) / "iSparrow_tests", ignore_errors=True)
+    if (Path(sps.user_config_dir()) / "faunanet_tests").exists():
+        shutil.rmtree(Path(user_config_dir()) / "faunanet_tests", ignore_errors=True)
 
-    if (Path(sps.user_cache_dir()) / "iSparrow_tests").exists():
-        shutil.rmtree(Path(sps.user_cache_dir()) / "iSparrow_tests", ignore_errors=True)
+    if (Path(sps.user_cache_dir()) / "faunanet_tests").exists():
+        shutil.rmtree(Path(sps.user_cache_dir()) / "faunanet_tests", ignore_errors=True)
 
 
 def test_make_directories(temp_dir, cleanup_after_test):
@@ -81,7 +81,7 @@ def test_make_directories_exceptions(cleanup_after_test, patch_functions):
     base_cfg_dirs = {"models": "test_models", "output": "test_output"}
 
     with pytest.raises(
-        KeyError, match="The home folder for iSparrow must be given in the base config"
+        KeyError, match="The home folder for faunanet must be given in the base config"
     ):
         sps.make_directories(base_cfg_dirs)
 
@@ -89,7 +89,7 @@ def test_make_directories_exceptions(cleanup_after_test, patch_functions):
 
     with pytest.raises(
         KeyError,
-        match="The models folder for iSparrow must be given in the base config",
+        match="The models folder for faunanet must be given in the base config",
     ):
         sps.make_directories(base_cfg_dirs)
 
@@ -100,7 +100,7 @@ def test_make_directories_exceptions(cleanup_after_test, patch_functions):
 
     with pytest.raises(
         KeyError,
-        match="The output folder for iSparrow must be given in the base config",
+        match="The output folder for faunanet must be given in the base config",
     ):
         sps.make_directories(base_cfg_dirs)
 

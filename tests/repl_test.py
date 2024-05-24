@@ -2,8 +2,8 @@ import pytest
 from pathlib import Path
 from importlib.resources import files
 import shutil
-import iSparrow
-import iSparrow.repl as repl
+import faunanet
+import faunanet.repl as repl
 import time
 from copy import deepcopy
 from queue import Queue
@@ -15,17 +15,17 @@ CFG_PATH = "--cfg=./tests/test_configs/watcher_custom.yml"
 def make_mock_install(patch_functions):
     tmpdir = patch_functions
 
-    packagebase = files(iSparrow)
+    packagebase = files(faunanet)
     cfg = repl.read_yaml(packagebase / "install.yml")["Directories"]
 
     for name, path in cfg.items():
         Path(path).mkdir(parents=True, exist_ok=True)
 
-    Path(tmpdir, "iSparrow_tests_data").mkdir(parents=True, exist_ok=True)
-    Path(tmpdir, "iSparrow_tests_output").mkdir(parents=True, exist_ok=True)
+    Path(tmpdir, "faunanet_tests_data").mkdir(parents=True, exist_ok=True)
+    Path(tmpdir, "faunanet_tests_output").mkdir(parents=True, exist_ok=True)
 
-    iscfg = Path(repl.user_config_dir()) / "iSparrow"
-    iscache = Path(repl.user_cache_dir()) / "iSparrow"
+    iscfg = Path(repl.user_config_dir()) / "faunanet"
+    iscache = Path(repl.user_cache_dir()) / "faunanet"
 
     iscfg.mkdir(parents=True, exist_ok=True)
     iscache.mkdir(parents=True, exist_ok=True)
@@ -35,8 +35,8 @@ def make_mock_install(patch_functions):
     ism.mkdir(parents=True, exist_ok=True)
     ise.mkdir(parents=True, exist_ok=True)
 
-    iSparrow.sparrow_setup.download_model_files(ism)
-    iSparrow.sparrow_setup.download_example_data(ise)
+    faunanet.sparrow_setup.download_model_files(ism)
+    faunanet.sparrow_setup.download_example_data(ise)
 
     shutil.copy(Path(packagebase, "install.yml"), iscfg)
     shutil.copy(Path(packagebase, "default.yml"), iscfg)
@@ -47,8 +47,8 @@ def make_mock_install(patch_functions):
     for name, path in cfg.items():
         if Path(path).exists():
             shutil.rmtree(Path(path).expanduser())
-    shutil.rmtree(Path(tmpdir, "iSparrow_tests_data"))
-    shutil.rmtree(Path(tmpdir, "iSparrow_tests_output"))
+    shutil.rmtree(Path(tmpdir, "faunanet_tests_data"))
+    shutil.rmtree(Path(tmpdir, "faunanet_tests_output"))
     shutil.rmtree(tmpdir)
 
 
@@ -96,7 +96,7 @@ def test_dispatch_on_watcher(mocker, capsys):
     out, _ = capsys.readouterr()
     assert "Watcher is None" in out
 
-    sparrow_cmd.watcher = mocker.patch("iSparrow.repl.SparrowWatcher", autospec=True)
+    sparrow_cmd.watcher = mocker.patch("faunanet.repl.SparrowWatcher", autospec=True)
 
     type(sparrow_cmd.watcher).is_running = mocker.PropertyMock(return_value=True)
     type(sparrow_cmd.watcher).is_sleeping = mocker.PropertyMock(return_value=False)
@@ -225,9 +225,9 @@ def test_do_start_custom(make_mock_install, capsys):
     wait_for_watcher_status(sparrow_cmd)
 
     assert sparrow_cmd.watcher is not None
-    assert sparrow_cmd.watcher.outdir == tmpdir / "iSparrow_tests_output"
-    assert sparrow_cmd.watcher.input_directory == str(tmpdir / "iSparrow_tests_data")
-    assert sparrow_cmd.watcher.model_dir == tmpdir / "iSparrow/models"
+    assert sparrow_cmd.watcher.outdir == tmpdir / "faunanet_tests_output"
+    assert sparrow_cmd.watcher.input_directory == str(tmpdir / "faunanet_tests_data")
+    assert sparrow_cmd.watcher.model_dir == tmpdir / "faunanet/models"
     assert sparrow_cmd.watcher.is_running is True
     assert sparrow_cmd.watcher.delete_recordings == "always"
     assert sparrow_cmd.watcher.pattern == ".mp3"
@@ -286,7 +286,7 @@ def test_do_start_failure(input, expected, status, make_mock_install, capsys):
 
 def test_do_start_exception_in_watcher_start(make_mock_install, mocker, capsys):
     mocker.patch.object(
-        iSparrow.SparrowWatcher, "start", side_effect=Exception("RuntimeError")
+        faunanet.SparrowWatcher, "start", side_effect=Exception("RuntimeError")
     )
     sparrow_cmd = repl.SparrowCmd()
 
@@ -304,7 +304,7 @@ def test_do_start_exception_in_watcher_start(make_mock_install, mocker, capsys):
 
 def test_do_start_exception_in_watcher_build(make_mock_install, mocker, capsys):
     mocker.patch.object(
-        iSparrow.SparrowWatcher, "__init__", side_effect=Exception("RuntimeError")
+        faunanet.SparrowWatcher, "__init__", side_effect=Exception("RuntimeError")
     )
     sparrow_cmd = repl.SparrowCmd()
     capsys.readouterr()
@@ -351,7 +351,7 @@ def test_do_stop_failure(make_mock_install, capsys):
 
 
 def test_do_stop_exceptions(make_mock_install, capsys, mocker):
-    mocker.patch("iSparrow.SparrowWatcher.stop", side_effect=Exception("RuntimeError"))
+    mocker.patch("faunanet.SparrowWatcher.stop", side_effect=Exception("RuntimeError"))
 
     sparrow_cmd = repl.SparrowCmd()
 
@@ -459,7 +459,7 @@ def test_do_pause_exception(make_mock_install, capsys, mocker):
     assert sparrow_cmd.watcher.is_running is True
     wait_for_watcher_status(sparrow_cmd)
 
-    mocker.patch("iSparrow.SparrowWatcher.pause", side_effect=Exception("RuntimeError"))
+    mocker.patch("faunanet.SparrowWatcher.pause", side_effect=Exception("RuntimeError"))
     sparrow_cmd.watcher.is_done_analyzing.set()
     capsys.readouterr()
     sparrow_cmd.do_pause("")
@@ -540,7 +540,7 @@ def test_do_continue_failure(make_mock_install, capsys):
 
 def test_do_continue_exception(make_mock_install, capsys, mocker):
 
-    mocker.patch("iSparrow.SparrowWatcher.go_on", side_effect=Exception("RuntimeError"))
+    mocker.patch("faunanet.SparrowWatcher.go_on", side_effect=Exception("RuntimeError"))
 
     sparrow_cmd = repl.SparrowCmd()
     sparrow_cmd.do_start(CFG_PATH)
@@ -611,7 +611,7 @@ def test_do_restart_failure(make_mock_install, capsys):
 
 def test_do_restart_exceptions(make_mock_install, capsys, mocker):
     mocker.patch.object(
-        iSparrow.SparrowWatcher, "stop", side_effect=Exception("RuntimeError")
+        faunanet.SparrowWatcher, "stop", side_effect=Exception("RuntimeError")
     )
     sparrow_cmd = repl.SparrowCmd()
 
@@ -659,7 +659,7 @@ def test_do_change_analyzer(make_mock_install):
 
 def test_change_analyzer_exception(make_mock_install, capsys, mocker):
     mocker.patch.object(
-        iSparrow.SparrowWatcher,
+        faunanet.SparrowWatcher,
         "change_analyzer",
         side_effect=Exception("RuntimeError"),
     )

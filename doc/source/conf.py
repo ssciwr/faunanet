@@ -13,7 +13,7 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath("../../src/iSparrow"))
+sys.path.insert(0, os.path.abspath("../../src/faunanet"))
 
 
 # -- Project information -----------------------------------------------------

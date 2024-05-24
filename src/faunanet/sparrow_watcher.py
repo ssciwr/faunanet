@@ -1,6 +1,6 @@
-from iSparrow import SparrowRecording
-from iSparrow import SpeciesPredictorBase
-import iSparrow.utils as utils
+from faunanet import SparrowRecording
+from faunanet import SpeciesPredictorBase
+import faunanet.utils as utils
 
 from pathlib import Path
 from watchdog.events import FileSystemEventHandler
@@ -594,7 +594,7 @@ class SparrowWatcher:
         """
         change_analyzer Change classifier model to the one indicated by name.
         The given model name must correspond to the name of a folder in the
-        iSparrow models directory created upon install. A clean-up method is
+        faunanet models directory created upon install. A clean-up method is
         run after model change to compensate any loss of analysis data that
         may occur during the restart of the watcher process with a different
         model.

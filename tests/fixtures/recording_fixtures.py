@@ -3,7 +3,7 @@ from pathlib import Path
 import yaml
 import pandas as pd
 
-from iSparrow import utils
+from faunanet import utils
 
 
 class RecordingFixture:

@@ -2,7 +2,7 @@
 [![codecov](https://codecov.io/gh/ssciwr/iSparrow/graph/badge.svg?token=FwyE0PNiOk)](https://codecov.io/gh/ssciwr/iSparrow)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ssciwr_iSparrow&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ssciwr_iSparrow)
 [![Supported OS: Linux | macOS | Windows](https://img.shields.io/badge/OS-Linux%20%7C%20macOS%20%7C%20Windows-green.svg)](https://www.linux.org/)
-[![Documentation](https://readthedocs.org/projects/iSparrow/badge/?version=latest)](https://iSparrow.readthedocs.io/en/latest/?badge=latest)
+[![Documentation](https://readthedocs.org/projects/isparrow/badge/?version=latest)](https://isparrow.readthedocs.io/en/latest/?badge=latest)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 # Faunanet
@@ -17,7 +17,7 @@ Using the birdnetv2.4 model by default, `faunanet` provides three core features:
 - Easy configuration using YAML files which are stored alongside the analysis results. 
 - Integrated, extendible REPL with which to interact with which to interact with a running instance.
 
-The main element of `faunanet` is a 'watcher' system that continuously monitors a folder for incoming data files and allows for on-the-fly model- or parameter-change via the REPL. It can also be used as a library in your python project.
+The main element of `faunanet` is a 'watcher' class that continuously monitors a folder for incoming data files and allows for on-the-fly model- or parameter-change via the REPL. It can also be used as a library in your python project.
 By extending elements of bridnetlib rather, `faunanet` conserves the latter's capabilities while still adding its own functionality on top of it. 
 
 ## Getting started 
