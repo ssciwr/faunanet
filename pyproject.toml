@@ -35,10 +35,8 @@ dev = [
     "pre-commit", 
     "pytest-mock", 
     "pandas", 
-    "sphinx-rtd-theme"
 ]
 doc = [
-    "sphinx",
     "sphinx",
     "myst-parser",
     "sphinxcontrib-napoleon",
