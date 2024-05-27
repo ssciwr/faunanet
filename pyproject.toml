@@ -1,16 +1,19 @@
 [project]
 name = "iSparrow"
-version = "0.1"
 requires-python = ">= 3.9"
-authors=[{name = "Inga Ulusoy", email = "inga.ulusoy@uni-heidelberg.de"}, {name = "Harald Mack", email = "harald.mack@uni-heidelberg.de"}]
-description = "Smart-IoT-based Passive bioAcoustic monitoRing of site-specific co-pResence of zOonotic Wildlife hosts and humans"
+authors=[{name = "Harald Mack", email = "harald.mack@uni-heidelberg.de"}, {name = "Inga Ulusoy", email = "inga.ulusoy@uni-heidelberg.de"}]
+description = "iSparrow - A bioacoustics platform for the analysis of animal sounds with neural networks based on birdnetlib"
 readme ="README.md"
 license={file = "LICENSE"}
 classifiers = [
-    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
     "Operating System :: OS Independent",
-    "License :: OSI Approved :: Apache License",
+    "License :: OSI Approved :: Apache Software License",
+    "Development Status :: 4 - Beta",
+    "Topic :: Multimedia :: Sound/Audio :: Analysis",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence", 
 ]
+dynamic = ["version"]
 dependencies = [
     "numpy", 
     "librosa", 
@@ -23,14 +26,33 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-tensorflow   = ["tensorflow",]
-tensorflow-lite =["tflite-runtime",]
+tensorflow   = ["tensorflow"]
+tensorflow-lite =["tflite-runtime"]
+dev = [
+    "pytest", 
+    "pytest-cov", 
+    "coverage", 
+    "pre-commit", 
+    "pytest-mock", 
+    "pandas", 
+    "sphinx-rtd-theme"
+]
+doc = [
+    "sphinx",
+    "sphinx",
+    "myst-parser",
+    "sphinxcontrib-napoleon",
+    "sphinx-rtd-theme"
+
+]
 
 [project.urls]
 Repository = "https://github.com/ssciwr/iSparrow"
+Issues = "https://github.com/ssciwr/iSparrow/issues"
+Documentation = "https://isparrow.readthedocs.io/en/latest/"
 
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 # Tools 
@@ -44,6 +66,9 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.dynamic]
+version = { attr = "iSparrow.__version__" }
 
 [tool.coverage.run]
 branch = true
