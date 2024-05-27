@@ -20,11 +20,11 @@ Analysis:
   pattern: ".wav"
   check_time: 1
   delete_recordings: "never"
-  model_dir: ~/iSparrow/models 
+  model_dir: ~/faunanet/models 
 
 Data: 
-  input: ~/iSparrow_data
-  output: ~/iSparrow_output
+  input: ~/faunanet_data
+  output: ~/faunanet_output
   Preprocessor:
     sample_rate: 48000
     overlap: 0.0

@@ -1,8 +1,8 @@
 import pytest
 from pathlib import Path
-from iSparrow.sparrow_watcher import AnalysisEventHandler, SparrowWatcher
-from iSparrow.utils import wait_for_file_completion, read_yaml
-import iSparrow
+from faunanet.watcher import AnalysisEventHandler, Watcher
+from faunanet.utils import wait_for_file_completion, read_yaml
+import faunanet
 from copy import deepcopy
 import yaml
 from math import isclose
@@ -15,7 +15,7 @@ import shutil
 def test_watcher_construction(watch_fx, mocker):
     directories, wfx = watch_fx
 
-    watcher = SparrowWatcher(
+    watcher = Watcher(
         wfx.data,
         wfx.output,
         wfx.models,
@@ -42,7 +42,7 @@ def test_watcher_construction(watch_fx, mocker):
     assert watcher.check_time == 1
     assert watcher.delete_recordings == "never"
 
-    default_watcher = SparrowWatcher(
+    default_watcher = Watcher(
         wfx.data,
         wfx.output,
         wfx.models,
@@ -94,23 +94,23 @@ def test_watcher_construction(watch_fx, mocker):
 
     # give wrong paths and check that appropriate exceptions are raised
     with pytest.raises(ValueError, match="Input directory does not exist"):
-        SparrowWatcher(
-            Path.home() / "iSparrow_data_not_there",
+        Watcher(
+            Path.home() / "faunanet_data_not_there",
             wfx.output,
             wfx.models,
             "birdnet_default",
         )
 
     with pytest.raises(ValueError, match="Output directory does not exist"):
-        SparrowWatcher(
+        Watcher(
             wfx.data,
-            Path.home() / "iSparrow_output_not_there",
+            Path.home() / "faunanet_output_not_there",
             wfx.models,
             "birdnet_default",
         )
 
     with pytest.raises(ValueError, match="Model directory does not exist"):
-        SparrowWatcher(
+        Watcher(
             wfx.data,
             wfx.output,
             wfx.home / "models_not_there",
@@ -120,7 +120,7 @@ def test_watcher_construction(watch_fx, mocker):
     with pytest.raises(
         ValueError, match="Given model name does not exist in model directory"
     ):
-        SparrowWatcher(
+        Watcher(
             wfx.data,
             wfx.output,
             wfx.models,
@@ -128,7 +128,7 @@ def test_watcher_construction(watch_fx, mocker):
         )
 
     mocker.patch.object(
-        iSparrow.SpeciesPredictorBase,
+        faunanet.SpeciesPredictorBase,
         "__init__",
         raise_exception=ValueError("Simulated error occurred"),
     )
@@ -136,7 +136,7 @@ def test_watcher_construction(watch_fx, mocker):
         ValueError,
         match="An error occured during species range predictor creation. Does you model provide a model file called 'species_presence_model'?",
     ):
-        sp = SparrowWatcher(
+        sp = Watcher(
             wfx.data,
             wfx.output,
             wfx.models,
@@ -158,7 +158,7 @@ def test_watcher_construction(watch_fx, mocker):
         ValueError,
         match="'delete_recordings' must be in 'never', 'always'",
     ):
-        SparrowWatcher(
+        Watcher(
             wfx.data,
             wfx.output,
             wfx.home / "models",
@@ -627,7 +627,7 @@ def test_change_analyzer_recovery(watch_fx, mocker):
 
     # patch the start method so we get a mock exception that is propagated through the system
     mocker.patch(
-        "iSparrow.SparrowWatcher.restart",
+        "faunanet.Watcher.restart",
         side_effect=ValueError("Simulated error occurred"),
     )
     try:
@@ -673,7 +673,7 @@ def test_change_analyzer_recovery(watch_fx, mocker):
     recorder_process.close()
 
     mocker.patch(
-        "iSparrow.SparrowWatcher.clean_up",
+        "faunanet.Watcher.clean_up",
         side_effect=ValueError("Simulated error occurred"),
     )
     try:
@@ -760,7 +760,7 @@ def test_change_analyzer_exception(watch_fx, mocker):
     assert watcher.species_predictor_config == old_species_predictor_cfg
 
     mocker.patch(
-        "iSparrow.SparrowWatcher.clean_up",
+        "faunanet.Watcher.clean_up",
         side_effect=ValueError("Simulated error occurred"),
     )
 
@@ -923,7 +923,7 @@ def test_cleanup_many_folders(watch_fx):
     old_input = watcher.input
 
     # function to create multiple folders of input data and puts the results into multiple output folders in which data is missing
-    def create_dummy_output(watcher: SparrowWatcher, input: Path):
+    def create_dummy_output(watcher: Watcher, input: Path):
         recorder_process = multiprocessing.Process(
             target=wfx.mock_recorder,
             args=(wfx.home, input, number_of_files, sleep_for),

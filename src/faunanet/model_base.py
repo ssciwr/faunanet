@@ -7,7 +7,7 @@ from . import utils
 
 class ModelBase(ABC):
     """
-    ModelBase Base model class for iSparrow. Every model that iSparrow can use must derive from this class.
+    ModelBase Base model class for faunanet. Every model that faunanet can use must derive from this class.
 
     Attributes:
         model_path (str): path to the model file used, or the url used to load it

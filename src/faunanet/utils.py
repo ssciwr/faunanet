@@ -62,9 +62,9 @@ def update_dict_leafs_recursive(base, update):
 def read_yaml(path: str):
     print(f"...reading config from {path}")
     """
-        read_yaml Read the yaml basic config file for iSparrow from path.
+        read_yaml Read the yaml basic config file for faunanet from path.
                 It contains the install directory, data directory and other things used
-                by iSparrow internally.
+                by faunanet internally.
 
         Args:
             path (str): Path to the yaml base config.

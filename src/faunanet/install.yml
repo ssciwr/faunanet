@@ -1,0 +1,5 @@
+Directories: 
+  home: ~/faunanet 
+  models: ~/faunanet/models 
+  example: ~/faunanet/example
+  output: ~/faunanet_output

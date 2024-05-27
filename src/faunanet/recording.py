@@ -5,17 +5,17 @@ import datetime
 import warnings
 
 from birdnetlib.main import RecordingBase
-from iSparrow.preprocessor_base import PreprocessorBase
-from iSparrow.sparrow_model_base import ModelBase
-import iSparrow.utils as utils
-from iSparrow.species_predictor import SpeciesPredictorBase
+from faunanet.preprocessor_base import PreprocessorBase
+from faunanet.model_base import ModelBase
+import faunanet.utils as utils
+from faunanet.species_predictor import SpeciesPredictorBase
 
 
-class SparrowRecording(RecordingBase):
+class Recording(RecordingBase):
     """
-    SparrowRecording A SparrowRecording represents an audio recoding of arbitrary length and date associated with a preprocessor and analyzer object.
+    Recording A Recording represents an audio recoding of arbitrary length and date associated with a preprocessor and analyzer object.
 
-    SparrowRecordings read and preprocess audio data using the supplied preprocessor object and can use the 'analyzer' object to analyze and classify the contained animal sounds
+    Recordings read and preprocess audio data using the supplied preprocessor object and can use the 'analyzer' object to analyze and classify the contained animal sounds
 
     Args:
         RecordingBase (birdnetlib.RecordingBase): See documentation of the birdnetlib.RecordingBase class
@@ -45,11 +45,11 @@ class SparrowRecording(RecordingBase):
     ):
         # README: The arguments lon, lat, species_presence_threshold and week_48, date should be moved out of the __init__ at some point, at some point perhaps?
         """
-        Create a new SparrowRecording.
+        Create a new Recording.
 
         Args:
             analyzer (Analyzer): Analyzer object to use. Contains model to use for analysis as well as result post processing.
-            preprocessor (PreprocessorBase): Preprocessor object to use. Must adhere to the interface defined in iSparrow.preprocessor_base.
+            preprocessor (PreprocessorBase): Preprocessor object to use. Must adhere to the interface defined in faunanet.preprocessor_base.
             path (str): Path to the audio file to be analyzed
             date (datetime, optional): Date of recording. Alternative to 'week'. Defaults to None. Only applied if `model` is the birdnet default model.
             sensitivity (float, optional): Detection sensitivity. Defaults to 1.0.
@@ -111,7 +111,7 @@ class SparrowRecording(RecordingBase):
             sensitivity=1.0,
             min_conf=min_conf,
             overlap=0.0,
-            return_all_detections=False,  # not used in Sparrow. Set min_conf to 0 for the same effect
+            return_all_detections=False,  # not used in faunanet. Set min_conf to 0 for the same effect
         )
 
     @property
@@ -209,24 +209,24 @@ class SparrowRecording(RecordingBase):
         return self.process_audio_data(rawdata)
 
     @classmethod
-    def from_cfg(cls, sparrow_path: str, cfg: dict):
+    def from_cfg(cls, faunanet_path: str, cfg: dict):
         """
-        from_cfg Create a new SparrowRecording from a dictionary containing all keyword arguments. Usually, this is obtained by reading in a YAML config.
+        from_cfg Create a new Recording from a dictionary containing all keyword arguments. Usually, this is obtained by reading in a YAML config.
 
         Args:
-            sparrow_path (str): Path to the sparrow installation
+            faunanet_path (str): Path to the faunanet installation
             cfg (dict): keyword arguments for the Recording and its 'preprocessor' and 'model' attributes.
 
         Returns:
-            SparrowRecording: New instance build with supplied kwargs.
+            Recording: New instance build with supplied kwargs.
         """
-        # README: sparrow path needed still -> can we get rid of it in some way?
+        # README: faunanet path needed still -> can we get rid of it in some way?
         # config.py/.yml written upon install or something....
         # future PR when installing/packaging is done
 
         # load appropriate modules: preprocessor, model
 
-        module_path = Path(sparrow_path) / Path("models") / cfg["Model"]["model_path"]
+        module_path = Path(faunanet_path) / Path("models") / cfg["Model"]["model_path"]
 
         preproc_m = utils.load_module("pp", str(module_path / "preprocessor.py"))
 

@@ -1,21 +1,21 @@
 # Using configuration files
-Configuration files in `faunanet-lab` are used to centralize where and how parameters are passed 
+Configuration files in `faunanet` are used to centralize where and how parameters are passed 
 to the system. They are stored in yaml files which allows for ease of use and extendibility.
-Configuration files are always in the `yaml` format. `faunanet-lab` uses configuration files for its setup and for the usage of machine learning models for audio classification. 
+Configuration files are always in the `yaml` format. `faunanet` uses configuration files for its setup and for the usage of machine learning models for audio classification. 
 
-## Default configuration structure for instantiating `faunanet-lab` with a given model
+## Default configuration structure for instantiating `faunanet` with a given model
 ### Basic concepts
-The configuration file with which to start a `faunanet-lab` instance is called `run_config` here.
-Using a machine learning model with `faunanet-lab` for analyzing audio data proceeds always in two steps, data preprocessing and the application of the model to the preprocessed data. These steps need to be parameterized by the config files. Additionally, 
+The configuration file with which to start a `faunanet` instance is called `run_config` here.
+Using a machine learning model with `faunanet` for analyzing audio data proceeds always in two steps, data preprocessing and the application of the model to the preprocessed data. These steps need to be parameterized by the config files. Additionally, 
 we can have parameters that tell us about geographic location or time, confidence thresholds for the classification results and many more.
 ```{important}
 As  a general rule, the nodes for Recording, Model, SpeciesPresence and Preprocessor contain default arguments for the parameters of the `FauanentRecording, ModelBase, SpeciesPredictorBase and PreprocessorBase` classes respectively. See their documentation for what these are. 
 The Analysis-node as a whole provides the defaults for the FaunanetWatcher class.
 ```
 ### Description of the default configuration to be supplied with models
-Therefore, `faunanet-lab` expects a `run_config` to have two top-level nodes: `Analysis` and `Data`. The former parametrizes the model application, the latter the data preprocessing. 
+Therefore, `faunanet` expects a `run_config` to have two top-level nodes: `Analysis` and `Data`. The former parametrizes the model application, the latter the data preprocessing. 
 
-The `Data` node needs a subnode `Preprocessor` which gives values for the instantiation of the used preprocessor. Secondly, it must have `input` and `output` nodes for `faunanet-lab` to know where it should look for data and where is should put the results. In total the structure of the `Data` node must be as follows: 
+The `Data` node needs a subnode `Preprocessor` which gives values for the instantiation of the used preprocessor. Secondly, it must have `input` and `output` nodes for `faunanet` to know where it should look for data and where is should put the results. In total the structure of the `Data` node must be as follows: 
 
 ```yaml
 Data: 
@@ -31,9 +31,9 @@ The `Analysis` node is more complex because it encompasses more steps. It expect
 - `Recording` The parameterization of the `FaunanetRecording` class. 
 - `Model` The parameterization of the classifier to be used, which internally is an implementation of the `ModelBase` class. 
 The following additional nodes must be provided: 
-- **modelname**: Name of the folder a model is stored in the `faunanet-lab`'s model folder. See {doc}`using_custom_models` for details. 
+- **modelname**: Name of the folder a model is stored in the `faunanet`'s model folder. See {doc}`using_custom_models` for details. 
 - **pattern**: The file extension pattern of the incoming data files, e.g., `.wav`.
-- **check_time**: How often `faunanet-lab` should poll the input folder for new data.
+- **check_time**: How often `faunanet` should poll the input folder for new data.
 - **delete_recordings**: When to delete the raw data files in the input directory. Can be 'always' (delete immediatelly) or 'never' (keep them around forever).
 
 If the `SpeciesPredictor` system shall be used, we need an additional Node `SpeciesPresence` that contains: 
@@ -79,9 +79,9 @@ Analysis:
 
 Data: 
   # input directory where the audio files to analyze land. They can be in any subdirectory of this, too.
-  input: ~/faunanet-lab_data
+  input: ~/faunanet_data
   # directory where the analysis results should be written to
-  output: ~/faunanet-lab_output
+  output: ~/faunanet_output
   # Node that parameterizes the preprocessor instance
   Preprocessor: 
     # sample rate the audio files should be resampled to
@@ -125,32 +125,32 @@ Analysis:
   delete_recordings: "never"
 
 Data: 
-  input: ~/faunanet-lab_data
-  output: ~/faunanet-lab_output
+  input: ~/faunanet_data
+  output: ~/faunanet_output
   Preprocessor:
     sample_rate: 48000
     overlap: 0.0
     sample_secs: 3.0
     resample_type: kaiser_fast
 ```
-When you run `faunanet-lab` without any arguments from the repl, it runs with this set of parameters.
+When you run `faunanet` without any arguments from the repl, it runs with this set of parameters.
 
 ## Setup configuration 
-Like the actual usage, the setup of `faunanet-lab` is also controlled via a yaml configuration file. 
+Like the actual usage, the setup of `faunanet` is also controlled via a yaml configuration file. 
 This file has a simple structure and consists currently only of a list of directories that should 
 be created. 
 ```yaml 
 Directories: 
-  home: ~/faunanet-lab 
-  models: ~/faunanet-lab/models
-  output: ~/faunanet-lab_output
+  home: ~/faunanet 
+  models: ~/faunanet/models
+  output: ~/faunanet_output
 ```
 The same customization logic as for the run configurations described above applies here, too. See {doc}`Installation <getting_started>` for how to customize a Fauanetlab installation.
-This file will be written to to the default config path of your system into a folder called `faunanet-lab`. On Linux, this would be `~/.config/faunanet-lab/install.yml`. 
+This file will be written to to the default config path of your system into a folder called `faunanet`. On Linux, this would be `~/.config/faunanet/install.yml`. 
 
 
-## Running `faunanet-lab` with custom parameters 
-For each task (setup, run), a default configuration is (or must be by the model supplier) provided. Individual elements of this can then be overridden by user supplied config files. `faunanet-lab` always uses the default config of the model as the basis. If provided, it then loads the supplied user config and replaces all the entries in the default config with the respective entries in the user config.
+## Running `faunanet` with custom parameters 
+For each task (setup, run), a default configuration is (or must be by the model supplier) provided. Individual elements of this can then be overridden by user supplied config files. `faunanet` always uses the default config of the model as the basis. If provided, it then loads the supplied user config and replaces all the entries in the default config with the respective entries in the user config.
 
 Consequently, only entries that are present in the default config can be overridden: A default config **must always be complete**, i.e., it must fully define the respective element it shall parameterize, e.g., model or preprocessor. To give an example: 
 

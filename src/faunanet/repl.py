@@ -4,9 +4,9 @@ import cmd
 import time
 import traceback
 
-from iSparrow import SparrowWatcher
-import iSparrow.sparrow_setup as sps
-from iSparrow.utils import read_yaml, update_dict_leafs_recursive, get_method_docstring
+from faunanet import Watcher
+import faunanet.faunanet_setup as sps
+from faunanet.utils import read_yaml, update_dict_leafs_recursive, get_method_docstring
 
 
 def process_line_into_kwargs(line: str, keywords: list = None) -> dict:
@@ -48,11 +48,11 @@ def process_line_into_kwargs(line: str, keywords: list = None) -> dict:
     return kwargs
 
 
-class SparrowCmd(cmd.Cmd):
+class FaunanetCmd(cmd.Cmd):
     """
-    SparrowCmd is a command-line interface for interacting with a SparrowWatcher instance.
+    FaunanetCmd is a command-line interface for interacting with a FaunanetWatcher instance.
 
-    This class provides a set of commands for setting up, starting, stopping, and managing a watcher process that analyzes incoming files in a directory. It also provides commands for getting the status of the watcher process and the current setup of iSparrow.
+    This class provides a set of commands for setting up, starting, stopping, and managing a watcher process that analyzes incoming files in a directory. It also provides commands for getting the status of the watcher process and the current setup of faunanet.
 
     Attributes:
         prompt (str): The prompt string displayed in the command-line interface.
@@ -61,12 +61,12 @@ class SparrowCmd(cmd.Cmd):
         running (bool): Indicates whether the command-line interface is currently running.
     """
 
-    prompt = "(iSparrow)"
-    intro = "Welcome to iSparrow! Type help or ? to list commands.\n"
+    prompt = "(faunanet)"
+    intro = "Welcome to faunanet! Type help or ? to list commands.\n"
 
     def __init__(self):
         """
-        __init__ Create a new SparrowCmd instance.
+        __init__ Create a new FaunanetCmd instance.
 
         """
         super().__init__()
@@ -85,7 +85,7 @@ class SparrowCmd(cmd.Cmd):
         Returns:
             _type_: _description_
         """
-        folders = read_yaml(Path(user_config_dir()) / Path("iSparrow") / "install.yml")[
+        folders = read_yaml(Path(user_config_dir()) / Path("faunanet") / "install.yml")[
             "Directories"
         ]
 
@@ -269,7 +269,7 @@ class SparrowCmd(cmd.Cmd):
         if line == "":
             print("Commands: ")
             print(
-                "set_up: set up iSparrow for usage. Usage: 'set_up --cfg=<path>' with <path> being a path to a custom yaml configuration file. When no argumnet is provided, the birdnet default is used."
+                "set_up: set up faunanet for usage. Usage: 'set_up --cfg=<path>' with <path> being a path to a custom yaml configuration file. When no argumnet is provided, the birdnet default is used."
             )
             print(
                 "start: start a watcher for analyzing incoming files in a directory. Usage: 'start --cfg=<path>'. When no argumnet is provided, the default from birdnetlib is used."
@@ -296,7 +296,7 @@ class SparrowCmd(cmd.Cmd):
                 "status: get the current status of the watcher process. This command is used without any further arguments"
             )
             print(
-                "get_setup_info: get information about the current setup of iSparrow. This command is used without any further arguments"
+                "get_setup_info: get information about the current setup of faunanet. This command is used without any further arguments"
             )
             print(
                 "exit: leave this shell. This command is used without any further arguments"
@@ -309,7 +309,7 @@ class SparrowCmd(cmd.Cmd):
 
     def do_set_up(self, line: str):
         """
-        do_set_up Setup iSparrow. This creates a `iSparrow` folder in the user's home directory and copies the default configuration files into os_standard_config_dir/iSparrow. If a custom configuration file is provided, it will be used instead of the default.
+        do_set_up Setup faunanet. This creates a `faunanet` folder in the user's home directory and copies the default configuration files into os_standard_config_dir/faunanet. If a custom configuration file is provided, it will be used instead of the default.
 
         Args:
             line (str): Optional path relative to the user's home directory to a custom configuration file. The file must be a yaml file with the same structure as the default configuration file.
@@ -317,23 +317,23 @@ class SparrowCmd(cmd.Cmd):
 
         def do_no_inputs(_, __):
             print("No config file provided, falling back to default\n")
-            sps.set_up_sparrow(None)
+            sps.set_up(None)
 
         self.process_arguments(
             line,
             ["--cfg"],
             do_no_inputs=lambda self, inputs: do_no_inputs(self, inputs),
-            do_with_inputs=lambda self, inputs: sps.set_up_sparrow(
+            do_with_inputs=lambda self, inputs: sps.set_up(
                 Path(inputs["cfg"]).expanduser().resolve()
             ),
             do_with_failure=lambda self, inputs, e: print(
-                "Could not set up iSparrow", e, "caused by: ", e.__cause__
+                "Could not set up faunanet", e, "caused by: ", e.__cause__
             ),
         )
 
     def do_start(self, line: str):
         """
-        do_start Start a new sparrow watcher process. Only can be started if no other watcher is currently running.
+        do_start Start a new faunanet watcher process. Only can be started if no other watcher is currently running.
 
         Args:
             line (str): optional argument --cfg=<path> to provide a custom configuration file.
@@ -342,7 +342,7 @@ class SparrowCmd(cmd.Cmd):
         # helper closures to use with self.dispatch_on_watcher. No exception handling is necesssary in the functions below,
         # since this is handled by the dispatch_on_watcher method.
         def build_watcher(cfg: dict):
-            self.watcher = SparrowWatcher(
+            self.watcher = Watcher(
                 indir=Path(cfg["Data"]["input"]).expanduser().resolve(),
                 outdir=Path(cfg["Data"]["output"]).expanduser().resolve(),
                 model_dir=Path(cfg["Analysis"]["model_dir"]).expanduser().resolve(),
@@ -363,7 +363,7 @@ class SparrowCmd(cmd.Cmd):
             )
 
         # actual build and start process
-        if Path(user_config_dir(), "iSparrow").exists() is False:
+        if Path(user_config_dir(), "faunanet").exists() is False:
             print("No installation found - please run the setup command first")
             return
 
@@ -438,7 +438,7 @@ class SparrowCmd(cmd.Cmd):
 
     def do_stop(self, line: str):
         """
-        do_stop Stop a running sparrow watcher process.
+        do_stop Stop a running faunanet watcher process.
         """
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
@@ -491,14 +491,14 @@ class SparrowCmd(cmd.Cmd):
 
     def do_exit(self, line: str):
         """
-        do_exit Leave the sparrow shell
+        do_exit Leave the faunanet shell
         """
         self.running = False
         if len(line) > 0:
             print("Invalid input. Expected no arguments.")
             return
 
-        print("Exiting sparrow shell")
+        print("Exiting faunanet shell")
         return True
 
     def do_pause(self, line: str):
@@ -609,19 +609,19 @@ class SparrowCmd(cmd.Cmd):
 
     def do_get_setup_info(self, line: str):
         """
-        do_get_setup_info Get information about the current setup of iSparrow. If no setup information is found, the cache and config directories are listed.
+        do_get_setup_info Get information about the current setup of faunanet. If no setup information is found, the cache and config directories are listed.
         Args:
             line (str): Empty string, no arguments expected
         """
         if len(line) > 0:
             print("Invalid input. Expected no arguments.", flush=True)
-        elif Path(user_config_dir(), "iSparrow", "install.yml").is_file() is False:
+        elif Path(user_config_dir(), "faunanet", "install.yml").is_file() is False:
             print(
                 "cache directories: ",
                 [
                     f.expanduser()
                     for f in Path(user_cache_dir()).iterdir()
-                    if "iSparrow" in str(f)
+                    if "faunanet" in str(f)
                 ],
                 flush=True,
             )
@@ -630,7 +630,7 @@ class SparrowCmd(cmd.Cmd):
                 [
                     f.expanduser()
                     for f in Path(user_config_dir()).iterdir()
-                    if "iSparrow" in str(f)
+                    if "faunanet" in str(f)
                 ],
                 flush=True,
             )
@@ -641,7 +641,7 @@ class SparrowCmd(cmd.Cmd):
                 [
                     f.expanduser()
                     for f in Path(user_cache_dir()).iterdir()
-                    if "iSparrow" in str(f)
+                    if "faunanet" in str(f)
                 ],
                 flush=True,
             )
@@ -650,13 +650,13 @@ class SparrowCmd(cmd.Cmd):
                 [
                     f.expanduser()
                     for f in Path(user_config_dir()).iterdir()
-                    if "iSparrow" in str(f)
+                    if "faunanet" in str(f)
                 ],
                 flush=True,
             )
             print(
                 "Current setup: ",
-                read_yaml(str(Path(user_config_dir(), "iSparrow", "install.yml"))),
+                read_yaml(str(Path(user_config_dir(), "faunanet", "install.yml"))),
                 flush=True,
             )
 
@@ -766,4 +766,4 @@ def run():
     import multiprocessing
 
     multiprocessing.set_start_method("spawn", True)
-    SparrowCmd().cmdloop()
+    FaunanetCmd().cmdloop()
