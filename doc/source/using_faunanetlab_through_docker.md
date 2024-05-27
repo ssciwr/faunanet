@@ -1,2 +1,2 @@
-# Using faunanet-lab through Docker 
-While docker will eventually be the main way to deploy `faunanet-lab`, this is not yet implemented. In the meantime, you can write your own dockerfiles and build your containers from this package, or help with the implementation by opening a pull request. 
+# Using faunanet through Docker 
+While docker will eventually be the main way to deploy `faunanet`, this is not yet implemented. In the meantime, you can write your own dockerfiles and build your containers from this package, or help with the implementation by opening a pull request. 

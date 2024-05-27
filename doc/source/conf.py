@@ -13,12 +13,12 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath("../../src/iSparrow"))
+sys.path.insert(0, os.path.abspath("../../src/faunanet"))
 
 
 # -- Project information -----------------------------------------------------
 
-project = "faunanet-lab"
+project = "faunanet"
 copyright = "2024, Scientific Software Center, Interdisciplinary Center for scientific computing, University of Heidelberg"
 author = "Inga Ulusoy inga.ulusoy@uni-heidelberg.de, Harald Mack, harald.mack@iwr.uni-heidelberg.de"
 

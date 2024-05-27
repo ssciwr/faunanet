@@ -8,13 +8,16 @@ import tempfile
 from platformdirs import user_cache_dir, user_config_dir
 import yaml
 
-from iSparrow.utils import load_module
-from iSparrow.sparrow_setup import download_example_data, download_model_files
+from faunanet.utils import load_module
+from faunanet.faunanet_setup import download_example_data, download_model_files
 from .fixtures.recording_fixtures import RecordingFixture
 from .fixtures.model_fixtures import ModelFixture
 from .fixtures.watcher_fixtures import WatchFixture
 
 multiprocessing.set_start_method("spawn", True)
+
+# set test mode
+os.environ["FAUNANET_TEST_MODE"] = "True"
 
 
 def read_yaml_with_replacement(path, dir):
@@ -33,27 +36,27 @@ def read_yaml_with_replacement(path, dir):
     update_recursive(cfg)
 
     if "Data" in cfg.keys():
-        cfg["Data"]["input"] = str(Path(dir, "iSparrow_tests_data"))
-        cfg["Data"]["output"] = str(Path(dir, "iSparrow_tests_output"))
+        cfg["Data"]["input"] = str(Path(dir, "faunanet_tests_data"))
+        cfg["Data"]["output"] = str(Path(dir, "faunanet_tests_output"))
 
     return cfg
 
 
 @pytest.fixture()
 def patch_functions(mocker, tmpdir):
-    mocker.patch("iSparrow.repl.user_cache_dir", new=lambda: Path(tmpdir) / "cache")
-    mocker.patch("iSparrow.repl.user_config_dir", new=lambda: Path(tmpdir) / "config")
+    mocker.patch("faunanet.repl.user_cache_dir", new=lambda: Path(tmpdir) / "cache")
+    mocker.patch("faunanet.repl.user_config_dir", new=lambda: Path(tmpdir) / "config")
     mocker.patch(
-        "iSparrow.repl.read_yaml", new=lambda f: read_yaml_with_replacement(f, tmpdir)
+        "faunanet.repl.read_yaml", new=lambda f: read_yaml_with_replacement(f, tmpdir)
     )
     mocker.patch(
-        "iSparrow.sparrow_setup.user_cache_dir", new=lambda: Path(tmpdir) / "cache"
+        "faunanet.faunanet_setup.user_cache_dir", new=lambda: Path(tmpdir) / "cache"
     )
     mocker.patch(
-        "iSparrow.sparrow_setup.user_config_dir", new=lambda: Path(tmpdir) / "config"
+        "faunanet.faunanet_setup.user_config_dir", new=lambda: Path(tmpdir) / "config"
     )
     mocker.patch(
-        "iSparrow.sparrow_setup.utils.read_yaml",
+        "faunanet.faunanet_setup.utils.read_yaml",
         new=lambda f: read_yaml_with_replacement(f, tmpdir),
     )
     yield tmpdir
@@ -61,9 +64,9 @@ def patch_functions(mocker, tmpdir):
 
 # set up the test directories and download the example files
 @pytest.fixture(scope="session")
-def make_sparrow_home():
+def make_faunanet_home():
     """
-    make_sparrow_home Make simulated sparrow setup in a temporary directory
+    make_faunanet_home Make simulated faunanet setup in a temporary directory
 
 
     Yields:
@@ -73,11 +76,11 @@ def make_sparrow_home():
 
     # create directories
     directories = {
-        "home": Path(tmpdir, "iSparrow_tests"),
-        "models": Path(tmpdir, "iSparrow_tests", "models"),
-        "example": Path(tmpdir, "iSparrow_tests", "example"),
-        "cache": Path(user_cache_dir(), "iSparrow_tests"),
-        "config": Path(user_config_dir(), "iSparrow_tests"),
+        "home": Path(tmpdir, "faunanet_tests"),
+        "models": Path(tmpdir, "faunanet_tests", "models"),
+        "example": Path(tmpdir, "faunanet_tests", "example"),
+        "cache": Path(user_cache_dir(), "faunanet_tests"),
+        "config": Path(user_config_dir(), "faunanet_tests"),
     }
 
     for name, path in directories.items():
@@ -90,16 +93,16 @@ def make_sparrow_home():
 
 
 @pytest.fixture()
-def make_folders(make_sparrow_home):
+def make_folders(make_faunanet_home):
     """
-    make_folders set up and dipose of a mock sparrow installation in a temporary directory
+    make_folders set up and dipose of a mock faunanet installation in a temporary directory
     """
-    tmpdir, directories = make_sparrow_home
+    tmpdir, directories = make_faunanet_home
 
     # create directories
 
-    directories["data"] = Path(tmpdir, "iSparrow_tests_data")
-    directories["output"] = Path(tmpdir, "iSparrow_tests_output")
+    directories["data"] = Path(tmpdir, "faunanet_tests_data")
+    directories["output"] = Path(tmpdir, "faunanet_tests_output")
 
     for name, path in directories.items():
         path.mkdir(parents=True, exist_ok=True)
@@ -112,12 +115,12 @@ def make_folders(make_sparrow_home):
 
 
 @pytest.fixture(scope="session")
-def load_files(make_sparrow_home):
+def load_files(make_faunanet_home):
     """
-    load_files download all the data files needed for iSparrow to run, but without going via the setup routine.
+    load_files download all the data files needed for faunanet to run, but without going via the setup routine.
     """
 
-    tmpdir, directories = make_sparrow_home
+    tmpdir, directories = make_faunanet_home
     ise = directories["example"]
     ism = directories["models"]
 
@@ -138,7 +141,7 @@ def install(load_files, make_folders):
     tmpdir, directories = load_files
 
     # make a dummy data directory
-    data = Path.home() / "iSparrow_tests_data"
+    data = Path.home() / "faunanet_tests_data"
     data.mkdir(parents=True, exist_ok=True)
 
     yield tmpdir, directories
@@ -153,13 +156,13 @@ def clean_up_test_installation():
 
     # clean up stuff
     for path in [
-        Path("~/iSparrow_tests").expanduser(),
-        Path("~/iSparrow_tests_data").expanduser(),
-        Path("~/iSparrow_tests/models").expanduser(),
-        Path("~/iSparrow_tests/example").expanduser(),
-        Path("~/iSparrow_tests_output").expanduser(),
-        Path(user_cache_dir()) / "iSparrow_tests",
-        Path(user_config_dir()) / "iSparrow_tests",
+        Path("~/faunanet_tests").expanduser(),
+        Path("~/faunanet_tests_data").expanduser(),
+        Path("~/faunanet_tests/models").expanduser(),
+        Path("~/faunanet_tests/example").expanduser(),
+        Path("~/faunanet_tests_output").expanduser(),
+        Path(user_cache_dir()) / "faunanet_tests",
+        Path(user_config_dir()) / "faunanet_tests",
     ]:
         print("deleting folder @", path)
         if path.exists():

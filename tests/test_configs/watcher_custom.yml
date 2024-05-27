@@ -5,7 +5,7 @@ Analysis:
 
   pattern: ".mp3"
   delete_recordings: "always"
-  model_dir: ~/iSparrow/models  
+  model_dir: ~/faunanet/models  
 Data: 
-  input: ~/iSparrow_tests_data
-  output: ~/iSparrow_tests_output
+  input: ~/faunanet_tests_data
+  output: ~/faunanet_tests_output

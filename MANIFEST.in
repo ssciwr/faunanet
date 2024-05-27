@@ -1,1 +1,1 @@
-include src/iSparrow/*.yml
+include src/faunanet/*.yml

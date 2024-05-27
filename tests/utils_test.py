@@ -1,5 +1,5 @@
 import pytest
-from iSparrow.utils import update_dict_leafs_recursive, read_yaml
+from faunanet.utils import update_dict_leafs_recursive, read_yaml
 from pathlib import Path
 import yaml
 
