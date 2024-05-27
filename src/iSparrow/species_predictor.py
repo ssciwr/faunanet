@@ -101,7 +101,7 @@ class SpeciesPredictorBase(SpeciesList):
         self,
         latitude: float,
         longitude: float,
-        date: datetime.date = None,
+        date: datetime.datetime = None,
         threshold: float = 0.03,
     ):
         """
@@ -110,7 +110,7 @@ class SpeciesPredictorBase(SpeciesList):
         Args:
             latitude (float): Latitude value for location coordinate
             longitude (float): Longitude value for location coordinate
-            date (datetime.date, optional): Date to restrict the species presence to. If both 'week' and 'date' are present, the week will be computed from the date. Defaults to None.
+            date (datetime.datetime, optional): Date to restrict the species presence to. If both 'week' and 'date' are present, the week will be computed from the date. Defaults to None.
             threshold (float, optional): Detection threshold to mark a species as being present. Defaults to 0.03.
         """
         self.results = []
@@ -133,7 +133,7 @@ class SpeciesPredictorBase(SpeciesList):
         self,
         latitude: float,
         longitude: float,
-        date: datetime.date = None,
+        date: datetime.datetime = None,
         threshold: float = 0.03,
     ) -> list:
         """
@@ -142,7 +142,7 @@ class SpeciesPredictorBase(SpeciesList):
         Args:
             latitude (float): Latitude value for location coordinate
             longitude (float): Longitude value for location coordinate
-            date (datetime.date, optional): Date to restrict the species presence to. If both 'week' and 'date' are present, the week will be computed from the date. Defaults to None.
+            date (datetime.datetime, optional): Date to restrict the species presence to. If both 'week' and 'date' are present, the week will be computed from the date. Defaults to None.
             week (int, optional): Week to restrict the species presence. If both 'week' and 'date' are present, the week will be computed from the date. Defaults to -1.
             threshold (float, optional): Detection threshold to mark a species as being present. Defaults to 0.03.
 

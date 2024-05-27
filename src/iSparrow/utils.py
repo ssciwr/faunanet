@@ -3,11 +3,32 @@ import importlib.util
 import os
 import time
 import yaml
+import inspect
 
 
 # custom exception to have some more control over what is raised
 class TFModelException(Exception):
     pass
+
+
+def get_method_docstring(cls, method_name: str) -> str:
+    """
+    get_method_docstring Retrieve the docstring of a class method.
+
+    Args:
+        method_name (_type_): Name of the method to retrieve the docstring from
+
+    Returns:
+        str: Method docstring
+    """
+    # Get the method object from the class
+    method = getattr(cls, method_name, None)
+    if method is None:
+        return None
+
+    # Get the docstring of the method
+    docstring = inspect.getdoc(method)
+    return docstring
 
 
 def update_dict_leafs_recursive(base, update):
