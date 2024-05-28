@@ -39,7 +39,6 @@ dev = [
 ]
 doc = [
     "sphinx",
-    "sphinx",
     "myst-parser",
     "sphinxcontrib-napoleon",
     "sphinx-rtd-theme"
@@ -49,7 +48,7 @@ doc = [
 [project.urls]
 Repository = "https://github.com/ssciwr/iSparrow"
 Issues = "https://github.com/ssciwr/iSparrow/issues"
-Documentation = "https://isparrow.readthedocs.io/en/latest/?badge=latest"
+Documentation = "https://isparrow.readthedocs.io/en/latest/"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
