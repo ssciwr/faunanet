@@ -5,7 +5,7 @@ WORKDIR /home
 # add install option 
 ARG INSTALL_OPTION
 
-# install tensorflow lite
+# install with the necessary option
 RUN pip install faunanet[${INSTALL_OPTION}]
 WORKDIR /home/faunanet
 
