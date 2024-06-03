@@ -31,7 +31,28 @@ Feel free to contribute to this project by opening a pull request [here](https:/
 
 ## Usage
 ### Installation
-Currently, faunanet does not have a pypi package, so you need to install it from source. To do this, clone the repository, create a python virtual environment, and install faunanet: 
+Make sure that ffmpeg is installed on your system: 
+```bash
+# for debian based linux
+sudo apt install ffmpeg
+```
+or for macOS using homebrew:
+```bash 
+brew install ffmpeg
+```
+On windows, you can use chocolatey or other package managers to the same effect: 
+```bash
+choco install ffmpeg
+```
+ffmpeg is needed for the audio preprocessing that is done by faunanet when analyzing your data.
+
+You can install `faunanet` from pip with 
+```bash 
+pip install faunanet[option]
+```
+with option being "tensorflow" for the full tensorflow suite, or "tensorflow_lite" to install only the `tflite_runtime` package which only provides restricted support for model operations, while full tensorflow supports all models built with it. Installing it from pip will install the newest release version of `faunanet`. 
+
+You can also install it from source to get the latest development chagnes. To do this, clone the repository, create a [python virtual environment](https://docs.python.org/3/library/venv.html), and install `faunanet`into it: 
 ```bash 
     cd path/to/dir/where/faunanet/should/live 
 
@@ -99,3 +120,11 @@ to have it available in your module, and make sure you use the correct virtual e
 ### Running faunanet 
 faunanet provides its own, small, REPL for interacting with a running instance. This can be used to start, stop, pause or continue it, to change classifier models or to query it's current state, input and output folders and so on. To get an overview over the available commands, you can just type  ```faunanet``` in a terminal with the virtual environment being activated that faunanet has been installed into. Alternatively, refer to the documentation.
 
+
+### Using the docker image 
+You can also run `faunanet` in docker by pulling the latest `faunanet` image from docker-hub and 
+running in a terminal: 
+```bash
+docker run -v ... # TODO
+```
+or via the docker dashboard GUI. 
