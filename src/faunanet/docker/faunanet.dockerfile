@@ -9,9 +9,8 @@ ARG INSTALL_OPTION
 
 # install with the necessary option
 RUN pip install faunanet[${INSTALL_OPTION}]
-WORKDIR /root/faunanet
+WORKDIR /root
 
-RUN mkdir /root/faunanet/faunanet_config 
-
+RUN mkdir /root/faunanet_config && mkdir /root/faunanet_data && python3 -c "import faunanet.faunanet_setup as sps; sps.set_up(None)"
 # add entrypoint
 CMD ["faunanet"]

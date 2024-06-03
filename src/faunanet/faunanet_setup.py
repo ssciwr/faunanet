@@ -304,8 +304,8 @@ def set_up(custom_config: str = None):
 
     # copy over docker files 
     Path(home, "docker").mkdir(parents=True, exist_ok=True)
-    shutil.copy(packagebase / "faunanet.dockerfile", home / "docker")
-    shutil.copy(packagebase / "docker-compose.yml", home / "docker")
+    shutil.copy(packagebase / Path("docker", "faunanet.dockerfile"), home / "docker")
+    shutil.copy(packagebase / Path("docker", "docker-compose.yml"), home / "docker")
 
     download_model_files(model_dir=models.resolve())
 
