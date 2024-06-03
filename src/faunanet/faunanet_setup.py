@@ -297,9 +297,15 @@ def set_up(custom_config: str = None):
             f"An faunanet installation already exists at {p}. Please remove it before running the installation."
         )
 
+    # copy over config files
     with open(Path(config) / "install.yml", "w") as yfile:
         yaml.safe_dump(install_cfg, yfile)
     shutil.copy(packagebase / "default.yml", config)
+
+    # copy over docker files 
+    Path(home, "docker").mkdir(parents=True, exist_ok=True)
+    shutil.copy(packagebase / "faunanet.dockerfile", home / "docker")
+    shutil.copy(packagebase / "docker-compose.yml", home / "docker")
 
     download_model_files(model_dir=models.resolve())
 
