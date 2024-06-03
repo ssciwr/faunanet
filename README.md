@@ -127,7 +127,12 @@ faunanet provides its own, small, REPL for interacting with a running instance. 
 You can also run `faunanet` in docker by pulling the latest `faunanet` image from docker-hub and 
 running it via terminal command: 
 ```bash
-docker run -p 8080:8080 -v /path/on/host/for/faunanet/configs:/root/faunanet_config -v /path/on/host/for/faunanet/output:/root/faunanet_output -v /path/on/host/for/faunanet/models:/root/faunanet/models -v /path/on/host/for/faunanet/input:/root/faunanet_data mahawo/faunanet:latest
+docker run -ti \ 
+     -v /path/on/host/for/faunanet/configs:/root/faunanet_config \
+     -v /path/on/host/for/faunanet/output:/root/faunanet_output \ 
+     -v /path/on/host/for/faunanet/models:/root/faunanet/models \ 
+     -v /path/on/host/for/faunanet/input:/root/faunanet_data \ 
+     mahawo/faunanet:latest
 ```
 Of special interest are the mounted volumes, i.e., the paths behind the `-v` arguments: 
 - first: for config files 
@@ -135,10 +140,13 @@ Of special interest are the mounted volumes, i.e., the paths behind the `-v` arg
 - third: for models 
 - forth: for incoming data. If you run the system via docker compose (see below) in conjunction with faunanet-record you do not need this, because `faunanet-record` will take care of this folder. 
 
+
 #### Built the image yourself
 To built the dockerfile that comes with the package yourself you can use the following docker command: 
 ```bash
-docker build --build-arg TENSORFLOW_OPTION -t your-dockerhub-username/your-image-name:tag -f path/to/Dockerfile .
+docker build --build-arg INSTALL_OPTION=TENSORFLOW_OPTION \
+    -t your-dockerhub-username/your-image-name:tag \
+    -f path/to/Dockerfile .
 ```
 Where the `TENSORFLOW_OPTION` has to be replaced with either `tensorflow` or `tensorflow-lite`. The dockerfile itself is very simple and can be modified to your liking.
 ```dockerfile
@@ -179,10 +187,4 @@ services:
       - /dev/snd:/dev/snd # this needs to be the microphone device used for recording
   # ... more services here
 ```
-To locate the files from an existing pip installation, use the following python script, or pull them from the `docker` directory in the repository or the source distribution:
-```python
-from importlib.resources import files
-import faunanet 
-
-print(packagebase = files(faunanet)) # get directory where the source files and docker files are stored 
-``` 
+To locate the files from an existing pip installation, use the following python script, or pull them from the `docker` directory in `faunanet` home directory after it has been set up (see [Setup](#Setup)).
