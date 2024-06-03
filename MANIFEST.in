@@ -1,1 +1,2 @@
 include src/faunanet/*.yml
+include docker/*docker*
