@@ -127,12 +127,12 @@ faunanet provides its own, small, REPL for interacting with a running instance. 
 You can also run `faunanet` in docker by pulling the latest `faunanet` image from docker-hub and 
 running it via terminal command: 
 ```bash
-docker run -ti \ 
+docker run -ti --rm \ 
      -v /path/on/host/for/faunanet/configs:/root/faunanet_config \
      -v /path/on/host/for/faunanet/output:/root/faunanet_output \ 
      -v /path/on/host/for/faunanet/models:/root/faunanet/models \ 
      -v /path/on/host/for/faunanet/input:/root/faunanet_data \ 
-     mahawo/faunanet:latest
+     mahawo/faunanet_{OPTION}:latest
 ```
 Of special interest are the mounted volumes, i.e., the paths behind the `-v` arguments: 
 - first: for config files 
@@ -140,6 +140,7 @@ Of special interest are the mounted volumes, i.e., the paths behind the `-v` arg
 - third: for models 
 - forth: for incoming data. If you run the system via docker compose (see below) in conjunction with faunanet-record you do not need this, because `faunanet-record` will take care of this folder. 
 
+`{OPTION}` corresponds ot `tf` for tensorflow or `tflite` for tensorflow_lite.
 
 #### Built the image yourself
 To built the dockerfile that comes with the package yourself you can use the following docker command: 
@@ -174,17 +175,26 @@ CMD ["faunanet"]
 ```yaml 
 services:
   faunanet:
-    image: mahawo/faunanet_record:latest
-    build: 
-      context: .
+    image: mahawo/faunanet:latest
+    tty: true 
+    stdin_open: true
     volumes:
       - ~/faunanet_config:/root/faunanet_config
+      - ~/faunanet_output:/root/faunanet_output
+      - ~/faunanet/models:/root/faunanet/models
+      - ~/faunanet_data:/root/faunanet_data
+    environment:
+      - RUN_CONFIG=analysis_config.yml
   faunanet_record:
     image: mahawo/faunanet_record:latest
+    tty: true 
+    stdin_open: true
     volumes:
-      - ./faunanet_config:/root/faunanet_config
+      - ~/faunanet_config:/root/faunanet_config
+      - ~/faunanet_data:/root/faunanet_data
     devices:
-      - /dev/snd:/dev/snd # this needs to be the microphone device used for recording
-  # ... more services here
+      - /dev/snd:/dev/snd # this needs to be the microphone device
+    environment:
+      - RUN_CONFIG=record_config.yml
 ```
-To locate the files from an existing pip installation, use the following python script, or pull them from the `docker` directory in `faunanet` home directory after it has been set up (see [Setup](#Setup)).
+To locate the files from an existing pip installation, use the following python script, or pull them from the `docker` directory in `faunanet` home directory after it has been set up (see [Setup](#Setup)). The environment variables `RUN_CONFIG` for each service here can hold the name of config files that are stored in the directory mounted into `/root/faunanet_config`.

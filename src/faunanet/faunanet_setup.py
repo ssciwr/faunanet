@@ -306,6 +306,7 @@ def set_up(custom_config: str = None):
     Path(home, "docker").mkdir(parents=True, exist_ok=True)
     shutil.copy(packagebase / Path("docker", "faunanet.dockerfile"), home / "docker")
     shutil.copy(packagebase / Path("docker", "docker-compose.yml"), home / "docker")
+    shutil.copy(packagebase / Path("docker", "startup_docker.py"), home / "docker")
 
     download_model_files(model_dir=models.resolve())
 

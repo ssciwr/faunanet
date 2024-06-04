@@ -1,2 +1,4 @@
 include src/faunanet/*.yml
-include src/faunanet/faunanet.dockerfile
+include src/faunanet/docker/faunanet.dockerfile
+include src/faunanet/docker/startup_docker.py 
+include src/faunanet/docker/docker-compose.yml
