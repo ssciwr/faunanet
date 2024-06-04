@@ -1,6 +1,6 @@
 services:
   faunanet:
-    image: mahawo/faunanet:latest
+    image: mahawo/faunanet_tf:latest # put in the image name of the container you want to use
     tty: true 
     stdin_open: true
     volumes:
