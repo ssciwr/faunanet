@@ -28,6 +28,7 @@ dependencies = [
 [project.optional-dependencies]
 tensorflow   = ["tensorflow"]
 tensorflow-lite =["tflite-runtime"]
+tensorflow-arm=["tensorflow-aarch64"]
 dev = [
     "pytest", 
     "pytest-cov", 
