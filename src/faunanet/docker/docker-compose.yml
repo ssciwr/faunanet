@@ -4,20 +4,21 @@ services:
     tty: true 
     stdin_open: true
     volumes:
-      - ~/faunanet_config:/root/faunanet_config
       - ~/faunanet_output:/root/faunanet_output
       - ~/faunanet/models:/root/faunanet/models
-      - ~/faunanet_data:/root/faunanet_data
-    # environment:
-    #   - RUN_CONFIG=config.yml
+      - faunanet_data:/root/faunanet_data
+    environment:
+      - RUN_CONFIG=config.yml
   faunanet_record:
     image: mahawo/faunanet_record:latest
     tty: true 
     stdin_open: true
-    volumes:
-      - ~/faunanet_config:/root/faunanet_config
-      - ~/faunanet_data:/root/faunanet_data
+    volumes: 
+      - faunanet_data:/root/faunanet_data
     devices:
       - /dev/snd:/dev/snd # this needs to be the microphone device
-    # environment:
-    #   - RUN_CONFIG=config.yml
+    environment:
+      - RUN_CONFIG=config.yml
+volumes:
+  faunanet_data:
+    driver: overlay2
