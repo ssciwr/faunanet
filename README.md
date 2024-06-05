@@ -170,6 +170,13 @@ RUN mkdir /root/faunanet_config
 CMD ["faunanet"]
 ```
 
+In order to build an image for the ARM64 architecture often used by raspberry PI or other edge devices, you can use `docker buildx` in conjunction with `qemu` (tested on linux machine):
+
+```bash
+ docker buildx build --platform=linux/arm64 -t containername:tag -f ~/path/to/docker/file/dockerfile.dockerfile . --push
+```
+Have a look [here](https://www.docker.com/blog/multi-arch-images/) for more info.
+
 #### Using `faunanet` with other services via docker compose
 `faunanet` can be run together with `faunanet-record` using [docker compose](https://docs.docker.com/compose/) or together with other containers of your choice. You can use the following docker-compose file as a starting point, which also comes with the installation: 
 ```yaml 
