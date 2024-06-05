@@ -12,7 +12,6 @@ services:
   faunanet_record:
     image: mahawo/faunanet_record:latest
     tty: true 
-    stdin_open: true
     volumes: 
       - faunanet_data:/root/faunanet_data
     devices:
