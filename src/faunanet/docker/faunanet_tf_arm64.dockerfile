@@ -4,7 +4,16 @@ WORKDIR /root
 
 ENV RUN_CONFIG=""
 
-RUN apt-get update && apt-get install --no-install-recommends -y ffmpeg libhdf5-dev pkg-config build-essential && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y ffmpeg libhdf5-dev pkg-config build-essential \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+RUN apt install --no-install-recommends -y libhdf5-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --upgrade setuptools \
+    && pip install --upgrade wheel \
+    && pip install --no-binary=h5py h5py
 
 # install with the necessary option
 RUN pip install tensorflow-aarch64 && pip install faunanet && rm -rf /root/.cache/pip
