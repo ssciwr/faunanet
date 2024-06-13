@@ -50,7 +50,7 @@ You can install `faunanet` from pip with
 ```bash 
 pip install faunanet[option]
 ```
-with option being "tensorflow" for the full tensorflow suite, or "tensorflow_lite" to install only the `tflite_runtime` package which only provides restricted support for model operations, while full tensorflow supports all models built with it. Installing it from pip will install the newest release version of `faunanet`. 
+with option being "tensorflow" for the full tensorflow suite, or "tensorflow-lite" to install only the `tflite_runtime` package which only provides restricted support for model operations, while full tensorflow supports all models built with it. Installing it from pip will install the newest release version of `faunanet`. **One of the two is needed to run `faunanet`, with `tensorflow` being the appropriate one for most usecases.** 
 
 You can also install it from source to get the latest development chagnes. To do this, clone the repository, create a [python virtual environment](https://docs.python.org/3/library/venv.html), and install `faunanet`into it: 
 ```bash 
@@ -140,7 +140,7 @@ Of special interest are the mounted volumes, i.e., the paths behind the `-v` arg
 - third: for models 
 - forth: for incoming data. If you run the system via docker compose (see below) in conjunction with faunanet-record you do not need this, because `faunanet-record` will take care of this folder. 
 
-`{OPTION}` corresponds ot `tf` for tensorflow or `tflite` for tensorflow_lite.
+`{OPTION}` corresponds ot `tf` for tensorflow or `tflite` for tensorflow-lite.
 
 #### Built the image yourself
 To built the dockerfile that comes with the package yourself you can use the following docker command: 
