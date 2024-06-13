@@ -131,7 +131,7 @@ docker run -ti --rm \
      -v /path/on/host/for/faunanet/configs:/root/faunanet_config \
      -v /path/on/host/for/faunanet/output:/root/faunanet_output \ 
      -v /path/on/host/for/faunanet/models:/root/faunanet/models \ 
-     -v /path/on/host/for/faunanet/input:/root/faunanet_data \ 
+     -v /path/on/host/for/faunanet/data:/root/faunanet_data \ 
      mahawo/faunanet_{OPTION}:latest
 ```
 Of special interest are the mounted volumes, i.e., the paths behind the `-v` arguments: 
