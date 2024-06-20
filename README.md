@@ -186,10 +186,10 @@ services:
     tty: true 
     stdin_open: true
     volumes:
-      - ~/faunanet_config:/root/faunanet_config
-      - ~/faunanet_output:/root/faunanet_output
+      - ~/faunanet/config:/root/faunanet_config
+      - ~/faunanet/output:/root/faunanet_output
       - ~/faunanet/models:/root/faunanet/models
-      - ~/faunanet_data:/root/faunanet_data
+      - ~/faunanet/data:/root/faunanet_data
     environment:
       - RUN_CONFIG=analysis_config.yml
   faunanet_record:
@@ -197,11 +197,13 @@ services:
     tty: true 
     stdin_open: true
     volumes:
-      - ~/faunanet_config:/root/faunanet_config
-      - ~/faunanet_data:/root/faunanet_data
+      - ~/faunanet/config:/root/faunanet_config
+      - ~/faunanet/data:/root/faunanet_data
     devices:
       - /dev/snd:/dev/snd # this needs to be the microphone device
     environment:
       - RUN_CONFIG=record_config.yml
 ```
 To locate the files from an existing pip installation, use the following python script, or pull them from the `docker` directory in `faunanet` home directory after it has been set up (see [Setup](#Setup)). The environment variables `RUN_CONFIG` for each service here can hold the name of config files that are stored in the directory mounted into `/root/faunanet_config`.
+
+When working with config files for the docker version, make sure to refer to the folders within the docker container and not the local ones. Otherwise, the system will fail with a 
