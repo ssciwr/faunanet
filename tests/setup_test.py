@@ -166,3 +166,6 @@ def test_setup(clean_up_test_installation, patch_functions):
     assert (sps.FAUNANET_MODELS / "birdnet_custom" / tflite_file).is_file()
     assert (sps.FAUNANET_MODELS / "google_perch" / "saved_model.pb").is_file()
     assert (sps.FAUNANET_CONFIG / "install.yml").is_file()
+
+    assert (sps.FAUNANET_HOME / "docker" / "docker-compose.yml").is_file()
+    assert (sps.FAUNANET_HOME / "docker" / "faunanet.dockerfile").is_file()

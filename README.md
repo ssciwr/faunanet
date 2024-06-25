@@ -6,7 +6,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 # faunanet - A bioacoustics platform based on birdnetlib using neural networks 
-## What is it? 
+## What is faunanet? 
 `faunanet` is an extension of [*Birdnet-Analyzer*](https://github.com/kahst/BirdNET-Analyzer), and uses [*birdnetlib*](https://github.com/joeweiss/birdnetlib) as its basis. 
 `faunanet` was developed with the goal to provide a platform for bioacoustics research projects, started at the Interdisciplinary center for scientific computing at the University of Heidelberg. 
 
@@ -31,7 +31,28 @@ Feel free to contribute to this project by opening a pull request [here](https:/
 
 ## Usage
 ### Installation
-Currently, faunanet does not have a pypi package, so you need to install it from source. To do this, clone the repository, create a python virtual environment, and install faunanet: 
+Make sure that ffmpeg is installed on your system: 
+```bash
+# for debian based linux
+sudo apt install ffmpeg
+```
+or for macOS using homebrew:
+```bash 
+brew install ffmpeg
+```
+On windows, you can use chocolatey or other package managers to the same effect: 
+```bash
+choco install ffmpeg
+```
+ffmpeg is needed for the audio preprocessing that is done by faunanet when analyzing your data.
+
+You can install `faunanet` from pip with 
+```bash 
+pip install faunanet[option]
+```
+with option being "tensorflow" for the full tensorflow suite, or "tensorflow-lite" to install only the `tflite_runtime` package which only provides restricted support for model operations, while full tensorflow supports all models built with it. Installing it from pip will install the newest release version of `faunanet`. **One of the two is needed to run `faunanet`, with `tensorflow` being the appropriate one for most usecases.** 
+
+You can also install it from source to get the latest development chagnes. To do this, clone the repository, create a [python virtual environment](https://docs.python.org/3/library/venv.html), and install `faunanet`into it: 
 ```bash 
     cd path/to/dir/where/faunanet/should/live 
 
@@ -79,7 +100,7 @@ The method can be used as follows in python code
 
     sps.set_up(filepath)
 ```
-It is important to have an outermost node called  `Directories`. Aside from creating the directories named in the installation config file, the installation method will download the default tensorflow models from [hugginface](https://huggingface.co/MaHaWo/iSparrow_test_models/tree/main) and will create `faunanet` directories in you OS default config and cache folders. On Linux, these would be `~/.config` and `~/.cache`, respectively.
+It is important to have an outermost node called  `Directories`. Aside from creating the directories named in the installation config file, the installation method will download the default tensorflow models from [hugginface](https://huggingface.co/MaHaWo/faunanet_test_models/tree/main) and will create `faunanet` directories in you OS default config and cache folders. On Linux, these would be `~/.config` and `~/.cache`, respectively.
 
 In the repl, this would work like this: 
 ```bash
@@ -99,3 +120,90 @@ to have it available in your module, and make sure you use the correct virtual e
 ### Running faunanet 
 faunanet provides its own, small, REPL for interacting with a running instance. This can be used to start, stop, pause or continue it, to change classifier models or to query it's current state, input and output folders and so on. To get an overview over the available commands, you can just type  ```faunanet``` in a terminal with the virtual environment being activated that faunanet has been installed into. Alternatively, refer to the documentation.
 
+
+### Using the docker image
+
+#### Run the docker-hub image
+You can also run `faunanet` in docker by pulling the latest `faunanet` image from docker-hub and 
+running it via terminal command: 
+```bash
+docker run -ti --rm \ 
+     -v /path/on/host/for/faunanet/configs:/root/faunanet_config \
+     -v /path/on/host/for/faunanet/output:/root/faunanet_output \ 
+     -v /path/on/host/for/faunanet/models:/root/faunanet/models \ 
+     -v /path/on/host/for/faunanet/data:/root/faunanet_data \ 
+     mahawo/faunanet_{OPTION}:latest
+```
+Of special interest are the mounted volumes, i.e., the paths behind the `-v` arguments: 
+- first: for config files 
+- second: for analysis output 
+- third: for models 
+- forth: for incoming data. If you run the system via docker compose (see below) in conjunction with faunanet-record you do not need this, because `faunanet-record` will take care of this folder. 
+
+`{OPTION}` corresponds ot `tf` for tensorflow or `tflite` for tensorflow-lite.
+
+#### Built the image yourself
+To built the dockerfile that comes with the package yourself you can use the following docker command: 
+```bash
+docker build --build-arg INSTALL_OPTION=TENSORFLOW_OPTION \
+    -t your-dockerhub-username/your-image-name:tag \
+    -f path/to/Dockerfile .
+```
+Where the `TENSORFLOW_OPTION` has to be replaced with either `tensorflow` or `tensorflow-lite`. The dockerfile itself is very simple and can be modified to your liking.
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /root
+
+RUN apt-get update && apt-get install --no-install-recommends -y ffmpeg -y --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# add install option 
+ARG INSTALL_OPTION
+
+# install with the necessary option
+RUN pip install faunanet[${INSTALL_OPTION}]
+WORKDIR /root
+
+RUN mkdir /root/faunanet_config 
+
+# add entrypoint
+CMD ["faunanet"]
+```
+
+In order to build an image for the ARM64 architecture often used by raspberry PI or other edge devices, you can use `docker buildx` in conjunction with `qemu` (tested on linux machine):
+
+```bash
+ docker buildx build --platform=linux/arm64 -t containername:tag -f ~/path/to/docker/file/dockerfile.dockerfile . --push
+```
+Have a look [here](https://www.docker.com/blog/multi-arch-images/) for more info.
+
+#### Using `faunanet` with other services via docker compose
+`faunanet` can be run together with `faunanet-record` using [docker compose](https://docs.docker.com/compose/) or together with other containers of your choice. You can use the following docker-compose file as a starting point, which also comes with the installation: 
+```yaml 
+services:
+  faunanet:
+    image: mahawo/faunanet:latest
+    tty: true 
+    stdin_open: true
+    volumes:
+      - ~/faunanet/config:/root/faunanet_config
+      - ~/faunanet/output:/root/faunanet_output
+      - ~/faunanet/models:/root/faunanet/models
+      - ~/faunanet/data:/root/faunanet_data
+    environment:
+      - RUN_CONFIG=analysis_config.yml
+  faunanet_record:
+    image: mahawo/faunanet_record:latest
+    tty: true 
+    stdin_open: true
+    volumes:
+      - ~/faunanet/config:/root/faunanet_config
+      - ~/faunanet/data:/root/faunanet_data
+    devices:
+      - /dev/snd:/dev/snd # this needs to be the microphone device
+    environment:
+      - RUN_CONFIG=record_config.yml
+```
+To locate the files from an existing pip installation, use the following python script, or pull them from the `docker` directory in `faunanet` home directory after it has been set up (see [Setup](#Setup)). The environment variables `RUN_CONFIG` for each service here can hold the name of config files that are stored in the directory mounted into `/root/faunanet_config`.
+
+When working with config files for the docker version, make sure to refer to the folders within the docker container and not the local ones. Otherwise, the system will fail with a 

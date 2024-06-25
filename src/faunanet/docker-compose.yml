@@ -1,0 +1,25 @@
+services:
+  faunanet:
+    image: mahawo/faunanet_tf:latest # put in the image name of the container you want to use
+    tty: true 
+    stdin_open: true
+    volumes:
+      - ~/faunanet/output:/root/faunanet_output
+      - ~/faunanet/models:/root/faunanet/models
+      - ~/faunanet/config:/root/faunanet_config
+      - ~/faunanet/data:/root/faunanet_data
+    environment:
+      - RUN_CONFIG=analysis.yml
+  faunanet_record:
+    image: mahawo/faunanet_record:latest
+    tty: true
+    stdin_open: true
+    volumes: 
+      - ~/faunanet/data:/root/faunanet_data
+      - ~/faunanet/config:/root/faunanet_config
+    devices:
+      - /dev/snd:/dev/snd # this needs to be the microphone device
+    environment:
+      - RUN_CONFIG=record.yml
+volumes:
+  faunanet_data: {}
