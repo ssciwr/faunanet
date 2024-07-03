@@ -7,7 +7,7 @@ if __name__ == "__main__":
     run_cfg = os.environ.get("RUN_CONFIG", "")
 
     if run_cfg != "":
-        cmd.do_start("--cfg=/root/faunanet/config/" + run_cfg)
+        cmd.do_start("--cfg=/home/faunanet/config/" + run_cfg)
     else:
         cmd.do_start("")
 
