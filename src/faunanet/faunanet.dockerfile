@@ -25,7 +25,9 @@ RUN pip install "git+https://github.com/ssciwr/iSparrow@add-docker-files#egg=fau
 # copy over start script
 RUN mkdir /home/faunanet/config && mkdir /home/faunanet/data && python3 -c "import faunanet.faunanet_setup as sps; sps.set_up(None)"
 
-RUN pkgpath=$(python3 -c "import faunanet; from importlib.resources import files; print(files("faunanet"))") && cp $pkgpath/startup_docker.py /root/startup_docker.py
+RUN pkgpath=$(python3 -c "import faunanet; from importlib.resources import files; print(files("faunanet"))") && cp $pkgpath/startup_docker.py /home/faunanet/startup_docker.py
+
+RUN export PYTHONPATH=$PYTHONPATH:/home/faunanet
 
 # add entrypoint
 ENTRYPOINT ["python3", "./startup_docker.py"]

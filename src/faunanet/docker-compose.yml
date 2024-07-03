@@ -1,40 +1,13 @@
-# services:
-#   faunanet:
-#     image: mahawo/faunanet_tf:latest # put in the image name of the container you want to use
-#     tty: true 
-#     stdin_open: true
-#     volumes:
-#       - ~/faunanet/output:/root/faunanet_output
-#       # - ~/faunanet/models:/root/faunanet/models
-#       - ~/faunanet/config:/root/faunanet_config
-#       - ~/faunanet/data:/root/faunanet_data
-    # environment:
-    #   - RUN_CONFIG=analysis.yml
-    # user: "501:20"
-#   faunanet_record:
-#     image: mahawo/faunanet_record:latest
-#     tty: true
-#     stdin_open: true
-#     volumes: 
-#       - ~/faunanet/data:/root/faunanet_data
-#       - ~/faunanet/config:/root/faunanet_config
-#     devices:
-#       - /dev/snd:/dev/snd # this needs to be the microphone device
-#     environment:
-#       - RUN_CONFIG=record.yml
-# volumes:
-#   faunanet_data: {}
-
 services:
   faunanet:
-    image: mahawo/faunanet_tf:latest
+    image: mahawo/faunanet_tf:latest # put in the image name of the container you want to use
     tty: true 
     stdin_open: true
     volumes:
-      - faunanet_output:/root/faunanet/output
-      - faunanet_config:/root/faunanet/config
-      - faunanet_data:/root/faunanet/data
-      - faunanet_models:/root/faunanet/custom_models
+      - ~/faunanet/output:/home/faunanet/output
+      - ~/faunanet/models:/home/faunanet/custom_models
+      - ~/faunanet/config:/home/faunanet/config
+      - ~/faunanet/data:/home/faunanet/data
     environment:
       - RUN_CONFIG=analysis.yml
   faunanet_record:
@@ -42,14 +15,9 @@ services:
     tty: true
     stdin_open: true
     volumes: 
-      - faunanet_data:/root/faunanet/data
-      - faunanet_config:/root/faunanet/config
+      - ~/faunanet/data:/home/faunanet/data
+      - ~/faunanet/config:/home/faunanet/config
     devices:
-      - /dev/snd:/dev/snd
+      - /dev/snd:/dev/snd # this needs to be the microphone device
     environment:
       - RUN_CONFIG=record.yml
-volumes:
-  faunanet_output:
-  faunanet_config:
-  faunanet_data:
-  faunanet_models:
