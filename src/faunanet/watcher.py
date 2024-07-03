@@ -582,7 +582,7 @@ class Watcher:
 
     def change_analyzer(
         self,
-        model_name: str,
+        model_path: str,
         preprocessor_config: dict = None,
         model_config: dict = None,
         recording_config: dict = None,
@@ -600,7 +600,7 @@ class Watcher:
         model.
 
         Args:
-            model_name (str): Name of the model to be used
+            model_name (str): Path to the model to be used
             preprocessor_config (dict, optional): Parameters for preprocessor given as key(str): value. If empty, default parameters of the preprocessor will be used. Defaults to {}.
             model_config (dict, optional): Parameters for the model given as key(str): value. If empty, default parameters of the model will be used. Defaults to {}.
             recording_config (dict, optional): Parameters for the underlyin Recording object. If empty, default parameters of the recording will be used. Defaults to {}.
@@ -634,8 +634,10 @@ class Watcher:
         if species_predictor_config is None:
             species_predictor_config = {}
 
-        if (self.model_dir / model_name).is_dir() is False:
+        if Path(model_path).is_dir() is False:
             raise ValueError("Given model name does not exist in model dir.")
+
+        model_name = Path(model_path).name
 
         with self._backup_and_restore_state() as old_state:
             self.model_name = model_name
