@@ -140,7 +140,7 @@ Of special interest are the mounted volumes, i.e., the paths behind the `-v` arg
 - third: for models 
 - forth: for incoming data. If you run the system via docker compose (see below) in conjunction with faunanet-record you do not need this, because `faunanet-record` will take care of this folder. 
 
-`{OPTION}` corresponds ot `tf` for tensorflow or `tflite` for tensorflow-lite.
+`{OPTION}` corresponds to `tf` for tensorflow or `tflite` for tensorflow-lite.
 
 #### Built the image yourself
 To built the dockerfile that comes with the package yourself you can use the following docker command: 
