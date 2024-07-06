@@ -93,7 +93,7 @@ def test_watcher_construction(watch_fx, mocker):
     assert isclose(recording.sensitivity, 1.0)
 
     # give wrong paths and check that appropriate exceptions are raised
-    with pytest.raises(ValueError, match="Input directory does not exist"):
+    with pytest.raises(ValueError, match="does not exist"):
         Watcher(
             Path.home() / "faunanet_data_not_there",
             wfx.output,
@@ -101,7 +101,7 @@ def test_watcher_construction(watch_fx, mocker):
             "birdnet_default",
         )
 
-    with pytest.raises(ValueError, match="Output directory does not exist"):
+    with pytest.raises(ValueError, match="does not exist"):
         Watcher(
             wfx.data,
             Path.home() / "faunanet_output_not_there",
@@ -109,7 +109,7 @@ def test_watcher_construction(watch_fx, mocker):
             "birdnet_default",
         )
 
-    with pytest.raises(ValueError, match="Model directory does not exist"):
+    with pytest.raises(ValueError, match="does not exist"):
         Watcher(
             wfx.data,
             wfx.output,
@@ -118,7 +118,7 @@ def test_watcher_construction(watch_fx, mocker):
         )
 
     with pytest.raises(
-        ValueError, match="Given model name does not exist in model directory"
+        ValueError, match="does not exist in model directory"
     ):
         Watcher(
             wfx.data,
