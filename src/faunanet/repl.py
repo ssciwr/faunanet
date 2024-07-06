@@ -3,6 +3,7 @@ from platformdirs import user_config_dir, user_cache_dir
 import cmd
 import time
 import traceback
+from shutil import rmtree
 
 from faunanet import Watcher
 import faunanet.faunanet_setup as sps
@@ -299,6 +300,14 @@ class FaunanetCmd(cmd.Cmd):
                 "get_setup_info: get information about the current setup of faunanet. This command is used without any further arguments"
             )
             print(
+                "show_models: show all available models in the current watcher's model directory"
+            )
+
+            print(
+                "remove: Remove the faunanet setup. This deletes the `faunanet` folder in the user's home directory and all associated configuration and cache directories"
+            )
+
+            print(
                 "exit: leave this shell. This command is used without any further arguments"
             )
             print(
@@ -330,6 +339,62 @@ class FaunanetCmd(cmd.Cmd):
                 "Could not set up faunanet", e, "caused by: ", e.__cause__
             ),
         )
+
+    def do_remove(self, _: str):
+        """
+        do_remove Remove the faunanet setup. This deletes the `faunanet` folder in the user's home directory and all associated configuration and cache directories
+        """
+        if len(_) > 0:
+            print("Invalid input. Expected no arguments.", flush=True)
+
+        cache_directories = [
+            f.expanduser()
+            for f in Path(user_cache_dir()).iterdir()
+            if "faunanet" in str(f)
+        ]
+        config_directories = [
+            f.expanduser()
+            for f in Path(user_config_dir()).iterdir()
+            if "faunanet" in str(f)
+        ]
+
+        if Path(user_config_dir(), "faunanet", "install.yml").is_file():
+            data = read_yaml(str(Path(user_config_dir(), "faunanet", "install.yml")))
+            try:
+                rmtree(Path(data["Directories"]["models"]).expanduser().absolute())
+            except Exception as e:
+                print("Could not remove models directory: ", e, flush=True)
+            try:
+                rmtree(Path(data["Directories"]["example"]).expanduser().absolute())
+            except Exception as e:
+                print("Could not remove models directory: ", e, flush=True)
+            try:
+                rmtree(Path(data["Directories"]["output"]).expanduser().absolute())
+            except Exception as e:
+                print("Could not remove models directory: ", e, flush=True)
+            try:
+                rmtree(Path(data["Directories"]["home"]).expanduser().absolute())
+            except Exception as e:
+                print("Could not remove models directory: ", e, flush=True)
+
+        for f in cache_directories:
+            try:
+                rmtree(Path(f).expanduser().absolute())
+            except Exception as e:
+                print(f"Could not remove cache directory: {f}", e, flush=True)
+
+        for f in config_directories:
+            try:
+                rmtree(Path(f).expanduser().absolute())
+            except Exception as e:
+                print(f"Could not remove config directory: {f}", e, flush=True)
+
+        for f in Path.home().iterdir():
+            try:
+                if "faunanet" in str(f):
+                    rmtree(Path(f).expanduser().absolute())
+            except Exception as e:
+                print(f"Could not remove directory: {f}", e, flush=True)
 
     def do_start(self, line: str):
         """
@@ -717,6 +782,29 @@ class FaunanetCmd(cmd.Cmd):
             do_failure=lambda _, e: self.print_error(
                 f"An error occured when changing analyzer: {e}, caused by {e.__cause__}\n"
             ),
+        )
+
+    def show_models(self, _: str):
+        """
+        show_models Show available models in the model directory of the watcher.
+        """
+        if len(_) > 0:
+            print("Invalid input. Expected no arguments.", flush=True)
+
+        if self.watcher is None:
+            print("No watcher present, cannot show models")
+            return
+        print(
+            (
+                f"Available models in {self.watcher.model_dir}: \n"
+                + "\n".join(
+                    [
+                        str(p.name)
+                        for p in Path(self.watcher.model_dir).iterdir()
+                        if p.is_dir()
+                    ]
+                )
+            )
         )
 
     def emptyline(self):

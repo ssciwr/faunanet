@@ -328,12 +328,12 @@ class Watcher:
         self.input = Path(indir)
 
         if self.input.is_dir() is False:
-            raise ValueError("Input directory does not exist")
+            raise ValueError(f"Input directory {self.input} does not exist")
 
         self.outdir = Path(outdir)
 
         if self.outdir.is_dir() is False:
-            raise ValueError("Output directory does not exist")
+            raise ValueError(f"Output directory {self.outdir} does not exist")
 
         self.output = None
         self.old_output = None
@@ -341,10 +341,10 @@ class Watcher:
         self.model_dir = Path(model_dir)
 
         if self.model_dir.is_dir() is False:
-            raise ValueError("Model directory does not exist")
+            raise ValueError(f"Model directory {self.model_dir} does not exist")
 
         if (self.model_dir / model_name).is_dir() is False:
-            raise ValueError("Given model name does not exist in model directory")
+            raise ValueError(f"Given model name {model_name} does not exist in model directory")
 
         self.pattern = pattern
 
