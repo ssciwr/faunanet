@@ -72,7 +72,7 @@ Welcome to Faunanet! Type help or ? to list commands
 
 (Faunanet) set-up 
 ```
-This will create a default setup which creates folders `faunanet`, `faunanet/examples`, `faunanet/models` and `faunanet_output` in your home directory. 
+This will create a default setup which creates folders `faunanet`, `faunanet/examples`, `faunanet/models` and `faunanet/output` in your home directory. 
 Furthermore, there will be `user_cache_directory/faunanet` and `user_config_directory/faunanet`. `user_c****_directory` is the operating-system dependent standard folder for configurations and cached files, e.g. `~/home/.cache` and `~/home/.config` on Linux. The setup configuration with all the folder paths will be copied to  `user_config_directory/faunanet/install.yml`. 
 
 #### Customizing the setup 
@@ -82,7 +82,7 @@ The default `install.yml` file looks like this:
 Directories: 
   home: ~/faunanet
   models: ~/faunanet/models 
-  output: ~/faunanet_output
+  output: ~/faunanet/output
 ```
 
 The specified folders serve the following purposes: 
@@ -101,14 +101,14 @@ If you want to customize the locations of the folders that `faunanet` needs, you
 ```yaml 
 Directories: 
   models: ~/faunanet_models 
-  output: ~/faunanet_output
+  output: ~/faunanet/output
 ```
 You only have to add the folders that you want to customize, `faunanet` will use the default values for everything else. The final installation config file `install.yml` that gets written by the `set-up` routine will then look like this: 
 ```yaml 
 Directories: 
   home: ~/faunanet
   models: ~/faunanet_models 
-  output: ~/faunanet_output
+  output: ~/faunanet/output
 ```
 In order to use you customized install file, run the setup method from the REPL with the path to the config file as argument: 
 ```bash 
@@ -136,7 +136,7 @@ via yaml files. To start a default instance, after you have completed the setup 
 ```bash 
 (Faunanet) start 
 ``` 
-The default configuration expects a folder `~/faunanet_data` to exist where audio files should be placed for subsequent classification. `faunanet` will then watch this folder indefinitely for incoming `.wav` files and analyze them. Results will be written to `~/faunanet-lib_output/ddmmyyyyy`, one csv-file at per incoming file. See {doc}`basic_design` to learn more about how `faunanet` handles results folders at startup. The `faunanet` watcher process will take note of any files landing in subfolders of the data folder, too. 
+The default configuration expects a folder `~/faunanet/data` to exist where audio files should be placed for subsequent classification. `faunanet` will then watch this folder indefinitely for incoming `.wav` files and analyze them. Results will be written to `~/faunanet-lib_output/ddmmyyyyy`, one csv-file at per incoming file. See {doc}`basic_design` to learn more about how `faunanet` handles results folders at startup. The `faunanet` watcher process will take note of any files landing in subfolders of the data folder, too. 
 By default, `faunanet` will use the birdnet-v.2.4 tflite model for classification. In order to see all parameters for this model as well as the other default models that `faunanet` provides, see {doc}`using_configuration_files`. To see what else you can do with the REPL, see {doc}`repl_usage`. 
 
 ### Use custom parameters for a `faunanet` instance

@@ -23,8 +23,8 @@ Analysis:
   model_dir: ~/faunanet/models 
 
 Data: 
-  input: ~/faunanet_data
-  output: ~/faunanet_output
+  input: ~/faunanet/data
+  output: ~/faunanet/output
   Preprocessor:
     sample_rate: 48000
     overlap: 0.0

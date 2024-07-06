@@ -4,10 +4,10 @@ services:
     tty: true 
     stdin_open: true
     volumes:
-      - ~/faunanet/output:/root/faunanet_output
+      - ~/faunanet/output:/root/faunanet/output
       - ~/faunanet/models:/root/faunanet/models
-      - ~/faunanet/config:/root/faunanet_config
-      - ~/faunanet/data:/root/faunanet_data
+      - ~/faunanet/config:/root/faunanet/config
+      - ~/faunanet/data:/root/faunanet/data
     environment:
       - RUN_CONFIG=analysis.yml
   faunanet_record:
@@ -15,8 +15,8 @@ services:
     tty: true
     stdin_open: true
     volumes: 
-      - ~/faunanet/data:/root/faunanet_data
-      - ~/faunanet/config:/root/faunanet_config
+      - ~/faunanet/data:/root/faunanet/data
+      - ~/faunanet/config:/root/faunanet/config
     devices:
       - /dev/snd:/dev/snd # this needs to be the microphone device
     environment:

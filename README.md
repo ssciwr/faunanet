@@ -87,9 +87,9 @@ Below is an example of the structure faunanet demands:
 ```yaml 
 Directories: 
   home: ~/faunanet
-  data: ~/faunanet_data
+  data: ~/faunanet/data
   models: ~/faunanet/models 
-  output: ~/faunanet_output
+  output: ~/faunanet/output
 ```
 You can copy the above into a .yml file and customize the paths to whatever you want them to be. The `~` will be automatically expanded to the path to your home directory.
 The method can be used as follows in python code
@@ -128,10 +128,10 @@ You can also run `faunanet` in docker by pulling the latest `faunanet` image fro
 running it via terminal command: 
 ```bash
 docker run -ti --rm \ 
-     -v /path/on/host/for/faunanet/configs:/root/faunanet_config \
-     -v /path/on/host/for/faunanet/output:/root/faunanet_output \ 
+     -v /path/on/host/for/faunanet/configs:/root/faunanet/config \
+     -v /path/on/host/for/faunanet/output:/root/faunanet/output \ 
      -v /path/on/host/for/faunanet/models:/root/faunanet/models \ 
-     -v /path/on/host/for/faunanet/data:/root/faunanet_data \ 
+     -v /path/on/host/for/faunanet/data:/root/faunanet/data \ 
      mahawo/faunanet_{OPTION}:latest
 ```
 Of special interest are the mounted volumes, i.e., the paths behind the `-v` arguments: 
@@ -164,7 +164,7 @@ ARG INSTALL_OPTION
 RUN pip install faunanet[${INSTALL_OPTION}]
 WORKDIR /root
 
-RUN mkdir /root/faunanet_config 
+RUN mkdir /root/faunanet/config 
 
 # add entrypoint
 CMD ["faunanet"]
@@ -186,10 +186,10 @@ services:
     tty: true 
     stdin_open: true
     volumes:
-      - ~/faunanet/config:/root/faunanet_config
-      - ~/faunanet/output:/root/faunanet_output
+      - ~/faunanet/config:/root/faunanet/config
+      - ~/faunanet/output:/root/faunanet/output
       - ~/faunanet/models:/root/faunanet/models
-      - ~/faunanet/data:/root/faunanet_data
+      - ~/faunanet/data:/root/faunanet/data
     environment:
       - RUN_CONFIG=analysis_config.yml
   faunanet_record:
@@ -197,13 +197,13 @@ services:
     tty: true 
     stdin_open: true
     volumes:
-      - ~/faunanet/config:/root/faunanet_config
-      - ~/faunanet/data:/root/faunanet_data
+      - ~/faunanet/config:/root/faunanet/config
+      - ~/faunanet/data:/root/faunanet/data
     devices:
       - /dev/snd:/dev/snd # this needs to be the microphone device
     environment:
       - RUN_CONFIG=record_config.yml
 ```
-To locate the files from an existing pip installation, use the following python script, or pull them from the `docker` directory in `faunanet` home directory after it has been set up (see [Setup](#Setup)). The environment variables `RUN_CONFIG` for each service here can hold the name of config files that are stored in the directory mounted into `/root/faunanet_config`.
+To locate the files from an existing pip installation, use the following python script, or pull them from the `docker` directory in `faunanet` home directory after it has been set up (see [Setup](#Setup)). The environment variables `RUN_CONFIG` for each service here can hold the name of config files that are stored in the directory mounted into `/root/faunanet/config`.
 
 When working with config files for the docker version, make sure to refer to the folders within the docker container and not the local ones. Otherwise, the system will fail with a 

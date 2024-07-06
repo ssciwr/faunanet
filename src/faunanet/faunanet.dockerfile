@@ -13,7 +13,7 @@ ARG INSTALL_OPTION="tensorflow"
 RUN pip install faunanet[${INSTALL_OPTION}]
 
 # copy over start script
-RUN mkdir /root/faunanet_config && mkdir /root/faunanet_data && python3 -c "import faunanet.faunanet_setup as sps; sps.set_up(None)"
+RUN mkdir /root/faunanet/config && mkdir /root/faunanet/data && python3 -c "import faunanet.faunanet_setup as sps; sps.set_up(None)"
 
 RUN pkgpath=$(python3 -c "import faunanet; from importlib.resources import files; print(files("faunanet"))") && cp $pkgpath/startup_docker.py /root/startup_docker.py
 
