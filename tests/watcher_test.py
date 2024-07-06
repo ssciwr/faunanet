@@ -457,7 +457,6 @@ def test_watcher_integrated_delete_always(watch_fx):
 
 
 def test_watcher_integrated_delete_never(watch_fx):
-
     _, wfx = watch_fx
 
     watcher = wfx.make_watcher(
@@ -539,6 +538,7 @@ def test_change_analyzer(watch_fx):
     wfx.wait_for_event_then_do(
         condition=lambda: filename.is_file(),
         todo_event=lambda: watcher.change_analyzer(
+            wfx.models,
             "birdnet_custom",
             preprocessor_config=wfx.custom_preprocessor_cfg,
             model_config=wfx.custom_model_cfg,
@@ -585,8 +585,12 @@ def test_change_analyzer(watch_fx):
     assert number_of_files >= len(old_files) + len(current_files)  # some data can be
 
 
-def test_change_analyzer_recovery(watch_fx, mocker):
+def test_change_analyzer_custom_dir(watch_fx, mocker): 
+    # TODO
+    pass
 
+
+def test_change_analyzer_recovery(watch_fx, mocker):
     _, wfx = watch_fx
 
     watcher = wfx.make_watcher(
@@ -632,6 +636,7 @@ def test_change_analyzer_recovery(watch_fx, mocker):
     )
     try:
         watcher.change_analyzer(
+            wfx.models, 
             "birdnet_custom",
             preprocessor_config=wfx.custom_preprocessor_cfg,
             model_config=wfx.custom_model_cfg,
@@ -678,6 +683,7 @@ def test_change_analyzer_recovery(watch_fx, mocker):
     )
     try:
         watcher.change_analyzer(
+            wfx.models,
             "birdnet_custom",
             preprocessor_config=wfx.custom_preprocessor_cfg,
             model_config=wfx.custom_model_cfg,
@@ -745,6 +751,7 @@ def test_change_analyzer_exception(watch_fx, mocker):
         ValueError, match="Given model name does not exist in model dir."
     ):
         watcher.change_analyzer(
+            wfx.models,
             "nonexistent_model",
             preprocessor_config=wfx.custom_preprocessor_cfg,
             model_config=wfx.custom_model_cfg,
@@ -769,6 +776,7 @@ def test_change_analyzer_exception(watch_fx, mocker):
         match="Error when while trying to change the watcher process, any changes made have been undone. The process needs to be restarted manually. This operation may have led to data loss.",
     ):
         watcher.change_analyzer(
+            wfx.models,
             "birdnet_custom",
             preprocessor_config=wfx.custom_preprocessor_cfg,
             model_config=wfx.custom_model_cfg,
@@ -831,6 +839,7 @@ def test_cleanup_simple(
     )
 
     watcher.change_analyzer(
+        wfx.models,
         "birdnet_custom",
         preprocessor_config=wfx.custom_preprocessor_cfg,
         model_config=wfx.custom_model_cfg,

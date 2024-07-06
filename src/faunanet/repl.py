@@ -679,6 +679,7 @@ class FaunanetCmd(cmd.Cmd):
                 )
 
             self.watcher.change_analyzer(
+                model_path=config["Analysis"]["model_dir"],
                 model_name=config["Analysis"]["modelname"],
                 preprocessor_config=config["Data"]["Preprocessor"],
                 model_config=config["Analysis"]["Model"],

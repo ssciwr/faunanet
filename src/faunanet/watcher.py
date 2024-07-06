@@ -193,7 +193,6 @@ class Watcher:
         if all(name in recording_config for name in ["date", "lat", "lon"]) and all(
             recording_config[name] is not None for name in ["date", "lat", "lon"]
         ):
-
             try:
                 # we can use the species predictor
                 species_predictor = SpeciesPredictorBase(
@@ -487,7 +486,6 @@ class Watcher:
             self.is_done_analyzing.clear()
 
         except Exception as e:
-
             if self.output.is_dir():
                 for filename in self.output.iterdir():
                     filename.unlink()
@@ -583,6 +581,7 @@ class Watcher:
     def change_analyzer(
         self,
         model_path: str,
+        model_name: str,
         preprocessor_config: dict = None,
         model_config: dict = None,
         recording_config: dict = None,
@@ -600,6 +599,7 @@ class Watcher:
         model.
 
         Args:
+            model_path (str): Path to the model directory to be used
             model_name (str): Path to the model to be used
             preprocessor_config (dict, optional): Parameters for preprocessor given as key(str): value. If empty, default parameters of the preprocessor will be used. Defaults to {}.
             model_config (dict, optional): Parameters for the model given as key(str): value. If empty, default parameters of the model will be used. Defaults to {}.
@@ -635,11 +635,13 @@ class Watcher:
             species_predictor_config = {}
 
         if Path(model_path).is_dir() is False:
-            raise ValueError("Given model name does not exist in model dir.")
+            raise ValueError("Given model path does not exist.")
 
-        model_name = Path(model_path).name
+        if Path(model_path, model_name).is_dir() is False:
+            raise ValueError("Given model name does not exist in model directory.")
 
         with self._backup_and_restore_state() as old_state:
+            self.model_dir = model_path
             self.model_name = model_name
             self.preprocessor_config = preprocessor_config
             self.model_config = model_config

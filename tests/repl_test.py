@@ -473,7 +473,6 @@ def test_do_pause_exception(make_mock_install, capsys, mocker):
 
 
 def test_do_continue(make_mock_install):
-
     faunanet_cmd = repl.FaunanetCmd()
     faunanet_cmd.do_start(CFG_PATH)
     assert faunanet_cmd.watcher.is_running is True
@@ -492,7 +491,6 @@ def test_do_continue(make_mock_install):
 
 
 def test_do_continue_failure(make_mock_install, capsys):
-
     faunanet_cmd = repl.FaunanetCmd()
     faunanet_cmd.do_start(CFG_PATH)
     wait_for_watcher_status(faunanet_cmd)
@@ -539,7 +537,6 @@ def test_do_continue_failure(make_mock_install, capsys):
 
 
 def test_do_continue_exception(make_mock_install, capsys, mocker):
-
     mocker.patch("faunanet.Watcher.go_on", side_effect=Exception("RuntimeError"))
 
     faunanet_cmd = repl.FaunanetCmd()

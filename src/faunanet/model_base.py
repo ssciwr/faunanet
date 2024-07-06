@@ -10,7 +10,7 @@ class ModelBase(ABC):
     ModelBase Base model class for faunanet. Every model that faunanet can use must derive from this class.
 
     Attributes:
-        model_path (str): path to the model file used, or the url used to load it
+        model_path (str): path to the model file used
         labels_path (str): path to the labels file read for having labels
         species_list_path (str|None): Path to a restricted list of species labels if used, else None
         sensitivity (float, defaults to 1.0): Parameter of the sigmoid activation function used to produce classification probabilities.
