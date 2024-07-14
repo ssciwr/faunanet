@@ -4,7 +4,7 @@ WORKDIR /root
 
 ENV RUN_CONFIG=""
 
-RUN apt-get update && apt-get install --no-install-recommends -y ffmpeg git pkg-config cmake && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install --no-install-recommends -y ffmpeg git pkg-config cmake build-essential && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # add install option 
 ARG INSTALL_OPTION="tensorflow"
