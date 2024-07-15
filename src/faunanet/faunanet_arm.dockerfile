@@ -4,13 +4,13 @@ WORKDIR /root
 
 ENV RUN_CONFIG=""
 
-RUN apt-get update && apt-get install --no-install-recommends -y ffmpeg && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install --no-install-recommends -y ffmpeg git && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # add install option 
 ARG INSTALL_OPTION="tensorflow"
 
 # install with the necessary option
-# RUN pip install --upgrade pip setuptools wheel && pip install --index-url https://pypi.org/simple --extra-index-url https://www.piwheels.org/simple  git+https://github.com/ssciwr/iSparrow.git@allow-custom-model-directory#egg=faunanet[${INSTALL_OPTION}] 
+RUN pip install --upgrade pip setuptools wheel && pip install git+https://github.com/ssciwr/iSparrow.git@allow-custom-model-directory#egg=faunanet[${INSTALL_OPTION}] 
 RUN pip install --upgrade pip setuptools wheel && pip install faunanet[${INSTALL_OPTION}] 
 
 # copy over start script
