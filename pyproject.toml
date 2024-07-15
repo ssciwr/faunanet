@@ -29,7 +29,7 @@ dependencies = [
 
 [project.optional-dependencies]
 tensorflow = ["numpy", "tensorflow"]
-tensorflow_arm = ["numpy < 2.0", "tensorflow-aarch64"]
+tensorflow-arm = ["numpy < 2.0", "tensorflow-aarch64"]
 tensorflow-lite = ["numpy", "tflite-runtime"]
 
 dev = [
