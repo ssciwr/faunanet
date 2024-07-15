@@ -15,7 +15,8 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
-    "numpy<2.0",
+    "numpy; platform_machine != 'aarch64'",
+    "numpy<2.0; platform_machine == 'aarch64'",
     "librosa", 
     "PyYAML", 
     "birdnetlib==0.15.0",
