@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y ffmpeg git pkg-
 ARG INSTALL_OPTION="tensorflow"
 
 # install with the necessary option
-RUN pip install --upgrade pip setuptools wheel && pip install git+https://github.com/ssciwr/iSparrow.git@allow-custom-model-directory#egg=faunanet[${INSTALL_OPTION}] 
+# RUN pip install --upgrade pip setuptools wheel && pip install git+https://github.com/ssciwr/iSparrow.git@allow-custom-model-directory#egg=faunanet[${INSTALL_OPTION}] 
 RUN pip install --upgrade pip setuptools wheel && pip install faunanet[${INSTALL_OPTION}] 
 
 # copy over start script
