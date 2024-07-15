@@ -18,22 +18,20 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
-    "numpy", 
     "librosa",
     "PyYAML",
     "birdnetlib==0.15.0",
     "pooch",
-    "resampy",                                  # for audio loading
-    "platformdirs",                             # get cache dirs without os dependence etc
+    "resampy",            # for audio loading
+    "platformdirs",       # get cache dirs without os dependence etc
     "ffmpeg-python",
 ]
 
 [project.optional-dependencies]
-tensorflow = [
-    # "tensorflow; platform_machine != 'aarch64'",
-    "tensorflow-aarch64",
-]
-tensorflow-lite = ["tflite-runtime"]
+tensorflow = ["numpy", "tensorflow"]
+tensorflow_arm = ["numpy < 2.0", "tensorflow-aarch64"]
+tensorflow-lite = ["numpy", "tflite-runtime"]
+
 dev = [
     "pytest",
     "pytest-cov",
