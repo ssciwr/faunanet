@@ -240,7 +240,7 @@ def download_example_data(example_dir: str = "examples"):
 
     example_data = pooch.create(
         path=pooch.os_cache("faunanet_downloads"),
-        base_url="https://huggingface.co/datasets/MaHaWo/faunanet_test_data/resolve/main",
+        base_url="https://huggingface.co/datasets/MaHaWo/iSparrow_test_data/resolve/main",
         registry=example_data_file_names,
     )
 
