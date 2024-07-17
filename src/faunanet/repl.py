@@ -74,7 +74,7 @@ class FaunanetCmd(cmd.Cmd):
         self.watcher = None
         self.running = True
 
-    def update_parameters(self, cfgpath: str = None):
+    def update_parameters(self, cfgpath: str | None = None):
         """
         update_parameters Update watcher parameter dictionaries read from yaml files.
                         A default configuration file is used if no custom configuration file is provided.
@@ -90,17 +90,23 @@ class FaunanetCmd(cmd.Cmd):
             "Directories"
         ]
 
-        model_dir = Path(folders["models"]).expanduser()
-
         if cfgpath is not None:
             custom_config = read_yaml(Path(cfgpath).expanduser())
         else:
             custom_config = read_yaml(
-                model_dir / Path("birdnet_default") / "default.yml"
+                Path(folders["models"]).expanduser()
+                / Path("birdnet_default")
+                / "default.yml"
             )
 
         fallback_modelname = (
             self.watcher.model_name if self.watcher is not None else "birdnet_default"
+        )
+
+        model_dir = (
+            Path(custom_config["Analysis"]["model_dir"]).expanduser()
+            if "model_dir" in custom_config["Analysis"]
+            else Path(folders["models"]).expanduser()
         )
 
         modelname = (

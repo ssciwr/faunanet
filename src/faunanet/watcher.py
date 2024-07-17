@@ -59,7 +59,7 @@ class AnalysisEventHandler(FileSystemEventHandler):
                     runs if its flag is true.
 
         Args:
-            event (threading.Event): Event triggering the analysis, i.e., a new audio file appears and is ready to be processessed in the watched folder
+            event: Event triggering the analysis, i.e., a new audio file appears and is ready to be processessed in the watched folder
         """
         if (
             Path(event.src_path).is_file()
@@ -424,6 +424,7 @@ class Watcher:
         if self.first_analyzed.value == 0:
             self.first_analyzed.value = self.last_analyzed.value
 
+        print("  analyzing file", filename)
         recording.analyze()
 
         results = recording.detections

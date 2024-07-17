@@ -9,8 +9,9 @@ RUN apt-get update && apt-get install --no-install-recommends --fix-missing -y f
 # add install option 
 ARG INSTALL_OPTION="tensorflow"
 
+RUN if [ "$INSTALL_OPTION" = "tensorflow-arm" ]; then echo "tensorflow-arm is not supported as INSTALL_OPTION on amd64 architectures. Use tensorflow instead" >&2; exit 1; fi
+
 # install with the necessary option
-# RUN pip install git+https://github.com/ssciwr/iSparrow.git@allow-custom-model-directory#egg=faunanet[${INSTALL_OPTION}]
 RUN pip install --upgrade pip && pip install faunanet[${INSTALL_OPTION}] 
 
 # copy over start script
