@@ -74,7 +74,7 @@ class FaunanetCmd(cmd.Cmd):
         self.watcher = None
         self.running = True
 
-    def update_parameters(self, cfgpath: str | None = None):
+    def update_parameters(self, cfgpath: str = None):
         """
         update_parameters Update watcher parameter dictionaries read from yaml files.
                         A default configuration file is used if no custom configuration file is provided.
