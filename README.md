@@ -5,7 +5,7 @@
 [![Documentation](https://readthedocs.org/projects/isparrow/badge/?version=latest)](https://isparrow.readthedocs.io/en/latest/?badge=latest)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-# ![Logo](faunanet_logo.png) faunanet - A bioacoustics platform based on birdnetlib using neural networks 
+# ![Logo](faunanet_logo_small.png) faunanet - A bioacoustics platform based on birdnetlib using neural networks 
 ## What is faunanet? 
 `faunanet` is an extension of [*Birdnet-Analyzer*](https://github.com/kahst/BirdNET-Analyzer), and uses [*birdnetlib*](https://github.com/joeweiss/birdnetlib) as its basis. 
 `faunanet` was developed with the goal to provide a platform for bioacoustics research projects, started at the Interdisciplinary center for scientific computing at the University of Heidelberg. 
