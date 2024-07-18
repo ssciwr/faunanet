@@ -8,6 +8,7 @@
 <p align="center">
   <img src="faunanet_logo.png" />
 </p>
+
 # faunanet - A bioacoustics platform based on birdnetlib using neural networks 
 ## What is faunanet? 
 `faunanet` is an extension of [*Birdnet-Analyzer*](https://github.com/kahst/BirdNET-Analyzer), and uses [*birdnetlib*](https://github.com/joeweiss/birdnetlib) as its basis. 
