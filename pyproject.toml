@@ -45,8 +45,8 @@ doc = [
 ]
 
 [project.urls]
-Repository = "https://github.com/ssciwr/iSparrow"
-Issues = "https://github.com/ssciwr/iSparrow/issues"
+Repository = "https://github.com/ssciwr/faunanet"
+Issues = "https://github.com/ssciwr/faunanet/issues"
 Documentation = "https://isparrow.readthedocs.io/en/latest/"
 
 [build-system]

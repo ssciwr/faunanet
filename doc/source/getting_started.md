@@ -13,7 +13,7 @@ cd path/to/where/repo/should/go
 ```
 - clone the repository: 
 ```bash 
-git clone git@github.com:ssciwr/iSparrow.git # for using https: https://github.com/ssciwr/iSparrow.git
+git clone git@github.com:ssciwr/faunanet.git # for using https: https://github.com/ssciwr/faunanet.git
 ``` 
 - make a new python virtual environment and activate it 
 ```bash
@@ -149,4 +149,4 @@ The easiest way to provide your own model to use with `faunanet` is to retrain t
 You can also change the model on the fly via the `change_analyzer` command. This command works almost identically to the `start` command. See the documentation of the REPL {doc}`repl_usage` for more.
 
 ## Contribution 
-Issue- or bug reports and feature requests as well as code contributions are welcome here: https://github.com/ssciwr/iSparrow
+Issue- or bug reports and feature requests as well as code contributions are welcome here: https://github.com/ssciwr/faunanet
