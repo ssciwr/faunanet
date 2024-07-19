@@ -10,7 +10,7 @@ Every time the machine learning model is exchanged or the `faunanet` process is 
 Additionally, methods are provided that can be used to ensure data consistency even when the watcher process is shut down or crashes unexpectedly, such that raw data is not lost. 
 After a number of restarts and/or model exchanges, you will end up with a folder structure like this: 
 ```
-faunanet_output
+faunanet/output
   240510_150322 # batch 1
     results_file1.csv
     results_file2.csv

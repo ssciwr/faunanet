@@ -79,9 +79,9 @@ Analysis:
 
 Data: 
   # input directory where the audio files to analyze land. They can be in any subdirectory of this, too.
-  input: ~/faunanet_data
+  input: ~/faunanet/data
   # directory where the analysis results should be written to
-  output: ~/faunanet_output
+  output: ~/faunanet/output
   # Node that parameterizes the preprocessor instance
   Preprocessor: 
     # sample rate the audio files should be resampled to
@@ -125,8 +125,8 @@ Analysis:
   delete_recordings: "never"
 
 Data: 
-  input: ~/faunanet_data
-  output: ~/faunanet_output
+  input: ~/faunanet/data
+  output: ~/faunanet/output
   Preprocessor:
     sample_rate: 48000
     overlap: 0.0
@@ -143,7 +143,7 @@ be created.
 Directories: 
   home: ~/faunanet 
   models: ~/faunanet/models
-  output: ~/faunanet_output
+  output: ~/faunanet/output
 ```
 The same customization logic as for the run configurations described above applies here, too. See {doc}`Installation <getting_started>` for how to customize a Fauanetlab installation.
 This file will be written to to the default config path of your system into a folder called `faunanet`. On Linux, this would be `~/.config/faunanet/install.yml`. 

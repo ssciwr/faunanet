@@ -59,7 +59,7 @@ class AnalysisEventHandler(FileSystemEventHandler):
                     runs if its flag is true.
 
         Args:
-            event (threading.Event): Event triggering the analysis, i.e., a new audio file appears and is ready to be processessed in the watched folder
+            event: Event triggering the analysis, i.e., a new audio file appears and is ready to be processessed in the watched folder
         """
         if (
             Path(event.src_path).is_file()
@@ -193,7 +193,6 @@ class Watcher:
         if all(name in recording_config for name in ["date", "lat", "lon"]) and all(
             recording_config[name] is not None for name in ["date", "lat", "lon"]
         ):
-
             try:
                 # we can use the species predictor
                 species_predictor = SpeciesPredictorBase(
@@ -329,12 +328,12 @@ class Watcher:
         self.input = Path(indir)
 
         if self.input.is_dir() is False:
-            raise ValueError("Input directory does not exist")
+            raise ValueError(f"Input directory {self.input} does not exist")
 
         self.outdir = Path(outdir)
 
         if self.outdir.is_dir() is False:
-            raise ValueError("Output directory does not exist")
+            raise ValueError(f"Output directory {self.outdir} does not exist")
 
         self.output = None
         self.old_output = None
@@ -342,10 +341,10 @@ class Watcher:
         self.model_dir = Path(model_dir)
 
         if self.model_dir.is_dir() is False:
-            raise ValueError("Model directory does not exist")
+            raise ValueError(f"Model directory {self.model_dir} does not exist")
 
         if (self.model_dir / model_name).is_dir() is False:
-            raise ValueError("Given model name does not exist in model directory")
+            raise ValueError(f"Given model name {model_name} does not exist in model directory")
 
         self.pattern = pattern
 
@@ -425,6 +424,7 @@ class Watcher:
         if self.first_analyzed.value == 0:
             self.first_analyzed.value = self.last_analyzed.value
 
+        print("  analyzing file", filename)
         recording.analyze()
 
         results = recording.detections
@@ -487,7 +487,6 @@ class Watcher:
             self.is_done_analyzing.clear()
 
         except Exception as e:
-
             if self.output.is_dir():
                 for filename in self.output.iterdir():
                     filename.unlink()
@@ -582,6 +581,7 @@ class Watcher:
 
     def change_analyzer(
         self,
+        model_path: str,
         model_name: str,
         preprocessor_config: dict = None,
         model_config: dict = None,
@@ -600,7 +600,8 @@ class Watcher:
         model.
 
         Args:
-            model_name (str): Name of the model to be used
+            model_path (str): Path to the model directory to be used
+            model_name (str): Path to the model to be used
             preprocessor_config (dict, optional): Parameters for preprocessor given as key(str): value. If empty, default parameters of the preprocessor will be used. Defaults to {}.
             model_config (dict, optional): Parameters for the model given as key(str): value. If empty, default parameters of the model will be used. Defaults to {}.
             recording_config (dict, optional): Parameters for the underlyin Recording object. If empty, default parameters of the recording will be used. Defaults to {}.
@@ -634,10 +635,15 @@ class Watcher:
         if species_predictor_config is None:
             species_predictor_config = {}
 
-        if (self.model_dir / model_name).is_dir() is False:
-            raise ValueError("Given model name does not exist in model dir.")
+        if Path(model_path).expanduser().is_dir() is False:
+            print(Path(model_path).expanduser())
+            raise ValueError("Given model path does not exist.")
+
+        if Path(model_path, model_name).expanduser().is_dir() is False:
+            raise ValueError("Given model name does not exist in model directory.")
 
         with self._backup_and_restore_state() as old_state:
+            self.model_dir = model_path
             self.model_name = model_name
             self.preprocessor_config = preprocessor_config
             self.model_config = model_config

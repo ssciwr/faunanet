@@ -1,5 +1,5 @@
 Directories: 
   home: ~/faunanet_custom
-  data: ~/faunanet_data_custom/tests_custom
+  data: ~/faunanet/data_custom/tests_custom
   models: ~/faunanet_custom/models_custom
-  output: ~/faunanet_output_custom/tests_custom
+  output: ~/faunanet/output_custom/tests_custom

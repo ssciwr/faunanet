@@ -1,48 +1,46 @@
 [project]
 name = "faunanet"
 requires-python = ">= 3.9"
-authors=[{name = "Harald Mack", email = "harald.mack@uni-heidelberg.de"}, {name = "Inga Ulusoy", email = "inga.ulusoy@uni-heidelberg.de"}]
+authors = [
+    { name = "Harald Mack", email = "harald.mack@uni-heidelberg.de" },
+    { name = "Inga Ulusoy", email = "inga.ulusoy@uni-heidelberg.de" },
+]
 description = "faunanet - A bioacoustics platform for the analysis of animal sounds with neural networks based on birdnetlib"
-readme ="README.md"
-license={file = "LICENSE"}
+readme = "README.md"
+license = { file = "LICENSE" }
 classifiers = [
     "Programming Language :: Python :: 3.9",
     "Operating System :: OS Independent",
     "License :: OSI Approved :: Apache Software License",
     "Development Status :: 4 - Beta",
     "Topic :: Multimedia :: Sound/Audio :: Analysis",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence", 
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dynamic = ["version"]
 dependencies = [
-    "numpy", 
-    "librosa", 
-    "PyYAML", 
+    "librosa",
+    "PyYAML",
     "birdnetlib==0.15.0",
-    "pooch", 
-    "resampy", # for audio loading
-    "platformdirs", # get cache dirs without os dependence etc
-    "ffmpeg-python"
+    "pooch",
+    "resampy",            # for audio loading
+    "platformdirs",       # get cache dirs without os dependence etc
+    "ffmpeg-python",
 ]
 
 [project.optional-dependencies]
-tensorflow   = ["tensorflow"]
-tensorflow-lite =["tflite-runtime"]
-dev = [
-    "pytest", 
-    "pytest-cov", 
-    "coverage", 
-    "pre-commit", 
-    "pytest-mock", 
-    "pandas", 
-]
-doc = [
-    "sphinx",
-    "myst-parser",
-    "sphinxcontrib-napoleon",
-    "sphinx-rtd-theme"
+tensorflow = ["numpy", "tensorflow"]
+tensorflow-arm = ["numpy <2.0", "tensorflow-aarch64"]
+tensorflow-lite = ["numpy <2.0", "tflite-runtime"]
 
+dev = [
+    "pytest",
+    "pytest-cov",
+    "coverage",
+    "pre-commit",
+    "pytest-mock",
+    "pandas",
 ]
+doc = ["sphinx", "myst-parser", "sphinxcontrib-napoleon", "sphinx-rtd-theme"]
 
 [project.urls]
 Repository = "https://github.com/ssciwr/faunanet"
@@ -56,8 +54,8 @@ build-backend = "setuptools.build_meta"
 # Tools 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts="-v -x"
-testpaths = ["tests"] 
+addopts = "-v -x"
+testpaths = ["tests"]
 
 [tool.setuptools]
 include-package-data = true
@@ -84,7 +82,7 @@ exclude_also = [
 
     # Don't complain about abstract methods, they aren't run:
     "@(abc\\.)?abstractmethod",
-    ]
+]
 fail_under = 80
 
 [tool.coverage.html]
