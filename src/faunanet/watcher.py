@@ -635,10 +635,11 @@ class Watcher:
         if species_predictor_config is None:
             species_predictor_config = {}
 
-        if Path(model_path).is_dir() is False:
+        if Path(model_path).expanduser().is_dir() is False:
+            print(Path(model_path).expanduser())
             raise ValueError("Given model path does not exist.")
 
-        if Path(model_path, model_name).is_dir() is False:
+        if Path(model_path, model_name).expanduser().is_dir() is False:
             raise ValueError("Given model name does not exist in model directory.")
 
         with self._backup_and_restore_state() as old_state:
